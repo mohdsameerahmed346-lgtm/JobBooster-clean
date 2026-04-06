@@ -1,149 +1,96 @@
 "use client";
-import { useState, useEffect } from "react";
-import jsPDF from "jspdf";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  const [form, setForm] = useState({ name: "", role: "" });
-  const [result, setResult] = useState("");
-  const [jobs, setJobs] = useState([]);
-  const [jobInput, setJobInput] = useState("");
-  const [output, setOutput] = useState("");
+  const router = useRouter();
 
-  // ✅ Load saved jobs
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+  const [result, setResult] = useState("");
+
+  // 🔐 Protect dashboard
   useEffect(() => {
-    const saved = localStorage.getItem("jobs");
-    if (saved) setJobs(JSON.parse(saved));
+    const user = localStorage.getItem("user");
+
+    if (!user) {
+      router.push("/login");
+    }
   }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  // Resume Generator
+  // 📄 Generate Resume
   const generateResume = () => {
-    const data = `
+    const text = `
 PROFESSIONAL RESUME
 
-Name: ${form.name}
-Role: ${form.role}
+Name: ${name}
+Role: ${role}
 
 ----------------------------------
+
 SUMMARY:
-Motivated and passionate ${form.role}
+Motivated and passionate ${role} ready to grow and contribute.
 
 ----------------------------------
+
 SKILLS:
 - Communication
 - Problem Solving
+- Teamwork
 
 ----------------------------------
+
 EXPERIENCE:
 Fresher
-`;
-    setResult(data);
+    `;
+
+    setResult(text);
   };
 
-  // 🔒 Premium PDF
-  const downloadPDF = () => {
-    const isPaid = localStorage.getItem("paid");
-
-    if (!isPaid) {
-      alert("Upgrade to Pro 🚀");
-      return;
-    }
-
-    const doc = new jsPDF();
-    const lines = doc.splitTextToSize(result, 180);
-    doc.text(lines, 10, 10);
-    doc.save(`${form.name || "resume"}.pdf`);
-  };
-
-  // 🔒 Resume Analyzer
-  const analyzeResume = () => {
-    const isPaid = localStorage.getItem("paid");
-
-    if (!isPaid) {
-      alert("Pro feature 🔒");
-      return;
-    }
-
-    setOutput("Resume Score: 75%\nImprove projects + skills.");
-  };
-
-  // 🔒 Job Tracker
-  const addJob = () => {
-    const isPaid = localStorage.getItem("paid");
-
-    if (!isPaid) {
-      alert("Pro feature 🔒");
-      return;
-    }
-
-    const newJobs = [...jobs, jobInput];
-    setJobs(newJobs);
-    localStorage.setItem("jobs", JSON.stringify(newJobs));
-    setJobInput("");
+  // 🚪 Logout
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    router.push("/login");
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>🚀 Dashboard</h1>
+    <main style={{ padding: 20 }}>
+      <h1>📊 Dashboard</h1>
+
+      {/* Logout */}
+      <button onClick={handleLogout}>
+        Logout
+      </button>
+
+      <br /><br />
 
       {/* Inputs */}
       <input
-        name="name"
-        placeholder="Name"
-        onChange={handleChange}
-        style={{ display: "block", margin: "10px 0" }}
+        placeholder="Your Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
       />
+      <br /><br />
 
       <input
-        name="role"
-        placeholder="Role"
-        onChange={handleChange}
-        style={{ display: "block", margin: "10px 0" }}
+        placeholder="Job Role"
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
       />
+      <br /><br />
 
-      {/* Resume */}
-      <button onClick={generateResume}>Generate Resume</button>
+      {/* Generate Resume */}
+      <button onClick={generateResume}>
+        Generate Resume
+      </button>
 
-      {result && (
-        <>
-          <pre>{result}</pre>
-          <button onClick={downloadPDF}>Download PDF</button>
-          <button onClick={analyzeResume}>
-            Analyze Resume (Pro)
-          </button>
-        </>
-      )}
-
-      {/* Job Tracker */}
-      <h2>Job Tracker (Pro)</h2>
-
-      <input
-        value={jobInput}
-        onChange={(e) => setJobInput(e.target.value)}
-        placeholder="Company / Role"
-      />
-
-      <button onClick={addJob}>Add Job</button>
-
-      <ul>
-        {jobs.map((job, i) => (
-          <li key={i}>{job}</li>
-        ))}
-      </ul>
+      <br /><br />
 
       {/* Output */}
-      {output && <pre>{output}</pre>}
-
-      {/* Test Pro */}
-      <button
-        onClick={() => localStorage.setItem("paid", "true")}
-        style={{ marginTop: "20px" }}
-      >
-        Activate Pro
-      </button>
-    </div>
+      <pre style={{ whiteSpace: "pre-wrap" }}>
+        {result}
+      </pre>
+    </main>
   );
-  }
+    }
