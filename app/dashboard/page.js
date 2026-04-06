@@ -3,6 +3,43 @@ import { useState } from "react";
 
 export default function Dashboard() {
   const [active, setActive] = useState("resume");
+  const [form, setForm] = useState({
+    name: "",
+    role: ""
+  });
+  const [result, setResult] = useState("");
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const generateResume = () => {
+    const output = `
+PROFESSIONAL RESUME
+
+Name: ${form.name}
+Role: ${form.role}
+
+----------------------------------
+
+SUMMARY:
+Motivated and passionate ${form.role} ready to grow and contribute.
+
+----------------------------------
+
+SKILLS:
+- Communication
+- Problem Solving
+- Teamwork
+
+----------------------------------
+
+EXPERIENCE:
+Fresher
+`;
+
+    setResult(output);
+  };
 
   return (
     <div style={{
@@ -13,85 +50,55 @@ export default function Dashboard() {
     }}>
 
       {/* Sidebar */}
-      <div style={{
-        width: "220px",
-        background: "#020617",
-        padding: "20px"
-      }}>
+      <div style={{ width: "220px", background: "#020617", padding: "20px" }}>
         <h2>🚀 JobBoost</h2>
 
-        <p
-          style={{ cursor: "pointer", marginTop: "20px" }}
-          onClick={() => setActive("resume")}
-        >
-          📄 Resume Builder
-        </p>
-
-        <p
-          style={{ cursor: "pointer" }}
-          onClick={() => setActive("cover")}
-        >
-          ✉️ Cover Letter
-        </p>
-
-        <p
-          style={{ cursor: "pointer" }}
-          onClick={() => setActive("interview")}
-        >
-          🎯 Interview Prep
-        </p>
-
-        <p
-          style={{ cursor: "pointer" }}
-          onClick={() => setActive("career")}
-        >
-          🗺️ Career AI
-        </p>
+        <p onClick={() => setActive("resume")} style={{ cursor: "pointer", marginTop: "20px" }}>📄 Resume Builder</p>
+        <p onClick={() => setActive("cover")} style={{ cursor: "pointer" }}>✉️ Cover Letter</p>
+        <p onClick={() => setActive("interview")} style={{ cursor: "pointer" }}>🎯 Interview Prep</p>
+        <p onClick={() => setActive("career")} style={{ cursor: "pointer" }}>🗺️ Career AI</p>
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
       <div style={{ flex: 1, padding: "30px" }}>
         <h1>Dashboard</h1>
 
         {active === "resume" && (
           <div>
             <h2>Resume Builder</h2>
+
             <input
+              name="name"
               placeholder="Your Name"
+              onChange={handleChange}
               style={{ display: "block", margin: "10px 0", padding: "10px" }}
             />
+
             <input
+              name="role"
               placeholder="Job Role"
+              onChange={handleChange}
               style={{ display: "block", margin: "10px 0", padding: "10px" }}
             />
-            <button style={{ padding: "10px 20px" }}>
+
+            <button onClick={generateResume} style={{ padding: "10px 20px" }}>
               Generate Resume
             </button>
+
+            {result && (
+              <pre style={{
+                marginTop: "20px",
+                background: "#020617",
+                padding: "20px",
+                whiteSpace: "pre-wrap"
+              }}>
+                {result}
+              </pre>
+            )}
           </div>
         )}
 
-        {active === "cover" && (
-          <div>
-            <h2>Cover Letter Generator</h2>
-            <button>Generate Cover Letter</button>
-          </div>
-        )}
-
-        {active === "interview" && (
-          <div>
-            <h2>Interview Questions</h2>
-            <button>Get Questions</button>
-          </div>
-        )}
-
-        {active === "career" && (
-          <div>
-            <h2>Career Direction AI</h2>
-            <button>Analyze Career</button>
-          </div>
-        )}
       </div>
-
     </div>
   );
 }
