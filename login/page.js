@@ -1,24 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const router = useRouter();
 
   const handleLogin = () => {
-    localStorage.setItem("user", email);
-    window.location.href = "/dashboard";
+    router.push("/dashboard");
   };
 
   return (
-    <main style={{ padding: "40px" }}>
-      <h1>Login Page</h1>
-
-      <input
-        placeholder="Enter Email"
-        onChange={(e) => setEmail(e.target.value)}
-        style={{ display: "block", margin: "10px 0", padding: "10px" }}
-      />
-
+    <main style={{ padding: 20 }}>
+      <h1>Login</h1>
       <button onClick={handleLogin}>Login</button>
     </main>
   );
