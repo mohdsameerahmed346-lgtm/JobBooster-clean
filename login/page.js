@@ -1,24 +1,25 @@
-export default function Home() {
+"use client";
+import { useState } from "react";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+
+  const handleLogin = () => {
+    localStorage.setItem("user", email);
+    window.location.href = "/dashboard";
+  };
+
   return (
-    <main style={{ padding: "40px", textAlign: "center" }}>
-      <h1>🚀 JobBoost AI</h1>
-      <p>India’s AI Career Platform</p>
+    <main style={{ padding: "40px" }}>
+      <h1>Login Page</h1>
 
-      <a href="/login">
-        <button style={{ padding: "10px 20px", margin: "10px" }}>
-          Login
-        </button>
-      </a>
+      <input
+        placeholder="Enter Email"
+        onChange={(e) => setEmail(e.target.value)}
+        style={{ display: "block", margin: "10px 0", padding: "10px" }}
+      />
 
-      <a href="/dashboard">
-        <button style={{ padding: "10px 20px" }}>
-          Go Dashboard
-        </button>
-      </a>
-
-      <h3 style={{ marginTop: "40px" }}>💰 Pricing</h3>
-      <p>Free → Basic tools</p>
-      <p>Pro ₹299 → PDF + Analyzer</p>
+      <button onClick={handleLogin}>Login</button>
     </main>
   );
-  }
+}
