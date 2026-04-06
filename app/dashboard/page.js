@@ -1,18 +1,25 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 
 export default function Dashboard() {
-  const [active, setActive] = useState("resume");
   const [form, setForm] = useState({ name: "", role: "" });
   const [result, setResult] = useState("");
+  const [jobs, setJobs] = useState([]);
+  const [jobInput, setJobInput] = useState("");
   const [output, setOutput] = useState("");
+
+  // ✅ Load saved jobs
+  useEffect(() => {
+    const saved = localStorage.getItem("jobs");
+    if (saved) setJobs(JSON.parse(saved));
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Resume
+  // Resume Generator
   const generateResume = () => {
     const data = `
 PROFESSIONAL RESUME
@@ -21,32 +28,27 @@ Name: ${form.name}
 Role: ${form.role}
 
 ----------------------------------
-
 SUMMARY:
-Motivated and passionate ${form.role} ready to grow.
+Motivated and passionate ${form.role}
 
 ----------------------------------
-
 SKILLS:
 - Communication
 - Problem Solving
-- Teamwork
 
 ----------------------------------
-
 EXPERIENCE:
 Fresher
 `;
     setResult(data);
-    setOutput("");
   };
 
-  // PDF
+  // 🔒 Premium PDF
   const downloadPDF = () => {
     const isPaid = localStorage.getItem("paid");
 
     if (!isPaid) {
-      alert("Upgrade to Pro to download PDF 🚀");
+      alert("Upgrade to Pro 🚀");
       return;
     }
 
@@ -56,141 +58,92 @@ Fresher
     doc.save(`${form.name || "resume"}.pdf`);
   };
 
-  // Interview Questions
-  const generateQuestions = () => {
-    const data = `
-Interview Questions for ${form.role}:
+  // 🔒 Resume Analyzer
+  const analyzeResume = () => {
+    const isPaid = localStorage.getItem("paid");
 
-1. Tell me about yourself
-2. Why ${form.role}?
-3. Your strengths & weaknesses?
-4. Explain a project
-5. Where do you see yourself in 5 years?
-`;
-    setOutput(data);
-    setResult("");
+    if (!isPaid) {
+      alert("Pro feature 🔒");
+      return;
+    }
+
+    setOutput("Resume Score: 75%\nImprove projects + skills.");
   };
 
-  // Skill Gap Analyzer
-  const analyzeSkills = () => {
-    const data = `
-Skill Gap Analysis for ${form.role}:
+  // 🔒 Job Tracker
+  const addJob = () => {
+    const isPaid = localStorage.getItem("paid");
 
-Required Skills:
-- JavaScript
-- React
-- Problem Solving
+    if (!isPaid) {
+      alert("Pro feature 🔒");
+      return;
+    }
 
-Missing Skills (Example):
-- Advanced React
-- System Design
-
-Learning Plan:
-1. Learn basics
-2. Build projects
-3. Apply for jobs
-`;
-    setOutput(data);
-    setResult("");
-  };
-
-  // Career Direction AI
-  const careerAdvice = () => {
-    const data = `
-Career Suggestions based on "${form.role}":
-
-- Software Developer
-- Frontend Developer
-- Freelancer
-- Startup Founder
-
-Tip:
-Focus on projects + real skills 🚀
-`;
-    setOutput(data);
-    setResult("");
+    const newJobs = [...jobs, jobInput];
+    setJobs(newJobs);
+    localStorage.setItem("jobs", JSON.stringify(newJobs));
+    setJobInput("");
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ padding: "20px" }}>
+      <h1>🚀 Dashboard</h1>
 
-      {/* Sidebar */}
-      <div style={{ width: "220px", background: "#111", color: "white", padding: "20px" }}>
-        <h2>🚀 JobBoost</h2>
+      {/* Inputs */}
+      <input
+        name="name"
+        placeholder="Name"
+        onChange={handleChange}
+        style={{ display: "block", margin: "10px 0" }}
+      />
 
-        <p onClick={() => setActive("resume")} style={{ cursor: "pointer" }}>📄 Resume</p>
-        <p onClick={() => setActive("interview")} style={{ cursor: "pointer" }}>🎯 Interview</p>
-        <p onClick={() => setActive("skills")} style={{ cursor: "pointer" }}>🧠 Skills</p>
-        <p onClick={() => setActive("career")} style={{ cursor: "pointer" }}>🗺️ Career</p>
+      <input
+        name="role"
+        placeholder="Role"
+        onChange={handleChange}
+        style={{ display: "block", margin: "10px 0" }}
+      />
 
-        <button
-          onClick={() => localStorage.setItem("paid", "true")}
-          style={{ marginTop: "20px", padding: "10px" }}
-        >
-          Activate Pro
-        </button>
-      </div>
+      {/* Resume */}
+      <button onClick={generateResume}>Generate Resume</button>
 
-      {/* Main */}
-      <div style={{ flex: 1, padding: "30px" }}>
-        <h1>Dashboard</h1>
+      {result && (
+        <>
+          <pre>{result}</pre>
+          <button onClick={downloadPDF}>Download PDF</button>
+          <button onClick={analyzeResume}>
+            Analyze Resume (Pro)
+          </button>
+        </>
+      )}
 
-        <input
-          name="name"
-          placeholder="Your Name"
-          onChange={handleChange}
-          style={{ display: "block", margin: "10px 0", padding: "10px" }}
-        />
+      {/* Job Tracker */}
+      <h2>Job Tracker (Pro)</h2>
 
-        <input
-          name="role"
-          placeholder="Job Role"
-          onChange={handleChange}
-          style={{ display: "block", margin: "10px 0", padding: "10px" }}
-        />
+      <input
+        value={jobInput}
+        onChange={(e) => setJobInput(e.target.value)}
+        placeholder="Company / Role"
+      />
 
-        {/* Resume */}
-        {active === "resume" && (
-          <>
-            <button onClick={generateResume}>Generate Resume</button>
+      <button onClick={addJob}>Add Job</button>
 
-            {result && (
-              <>
-                <pre style={{ marginTop: "20px" }}>{result}</pre>
-                <button onClick={downloadPDF}>Download PDF</button>
-              </>
-            )}
-          </>
-        )}
+      <ul>
+        {jobs.map((job, i) => (
+          <li key={i}>{job}</li>
+        ))}
+      </ul>
 
-        {/* Interview */}
-        {active === "interview" && (
-          <>
-            <button onClick={generateQuestions}>Get Questions</button>
-          </>
-        )}
+      {/* Output */}
+      {output && <pre>{output}</pre>}
 
-        {/* Skills */}
-        {active === "skills" && (
-          <>
-            <button onClick={analyzeSkills}>Analyze Skills</button>
-          </>
-        )}
-
-        {/* Career */}
-        {active === "career" && (
-          <>
-            <button onClick={careerAdvice}>Get Career Advice</button>
-          </>
-        )}
-
-        {/* Output */}
-        {output && (
-          <pre style={{ marginTop: "20px", background: "#eee", padding: "20px" }}>
-            {output}
-          </pre>
-        )}
-      </div>
+      {/* Test Pro */}
+      <button
+        onClick={() => localStorage.setItem("paid", "true")}
+        style={{ marginTop: "20px" }}
+      >
+        Activate Pro
+      </button>
     </div>
   );
-      }
+  }
