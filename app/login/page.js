@@ -12,8 +12,11 @@ export default function Login() {
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>Login</h1>
-      <button onClick={handleLogin}>Login</button>
+      <h1>🔐 Login</h1>
+
+      <button onClick={handleLogin}>
+        Login
+      </button>
     </main>
   );
 }
