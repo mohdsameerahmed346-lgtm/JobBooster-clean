@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import jsPDF from "jspdf";
 
 export default function Dashboard() {
   const [active, setActive] = useState("resume");
@@ -39,6 +40,13 @@ Fresher
 `;
 
     setResult(output);
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const lines = doc.splitTextToSize(result, 180);
+    doc.text(lines, 10, 10);
+    doc.save(`${form.name || "resume"}.pdf`);
   };
 
   return (
@@ -86,14 +94,23 @@ Fresher
             </button>
 
             {result && (
-              <pre style={{
-                marginTop: "20px",
-                background: "#020617",
-                padding: "20px",
-                whiteSpace: "pre-wrap"
-              }}>
-                {result}
-              </pre>
+              <>
+                <pre style={{
+                  marginTop: "20px",
+                  background: "#020617",
+                  padding: "20px",
+                  whiteSpace: "pre-wrap"
+                }}>
+                  {result}
+                </pre>
+
+                <button
+                  onClick={downloadPDF}
+                  style={{ marginTop: "10px", padding: "10px 20px" }}
+                >
+                  Download PDF
+                </button>
+              </>
             )}
           </div>
         )}
@@ -101,4 +118,4 @@ Fresher
       </div>
     </div>
   );
-}
+      }
