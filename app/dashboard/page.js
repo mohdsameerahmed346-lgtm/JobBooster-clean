@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import jsPDF from "jspdf";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -17,7 +16,7 @@ export default function Dashboard() {
 
   const [motivation, setMotivation] = useState("");
 
-  const isPro = localStorage.getItem("paid");
+  const isPro = typeof window !== "undefined" && localStorage.getItem("paid");
 
   // 🔐 Protect
   useEffect(() => {
@@ -57,13 +56,16 @@ ${resumeText}
     setScore(`ATS Score: ${match + 5}/10`);
   };
 
-  // 📥 PDF
+  // 📥 DOWNLOAD (FIXED ✅)
   const downloadPDF = () => {
     if (!isPro) return alert("🔒 Pro feature");
 
-    const doc = new jsPDF();
-    doc.text(optimized, 10, 10);
-    doc.save("resume.pdf");
+    const element = document.createElement("a");
+    const file = new Blob([optimized], { type: "text/plain" });
+    element.href = URL.createObjectURL(file);
+    element.download = "resume.txt";
+    document.body.appendChild(element);
+    element.click();
   };
 
   // 📊 Job Tracker
@@ -125,7 +127,7 @@ ${resumeText}
       <h3>{score}</h3>
 
       <button onClick={downloadPDF}>
-        📥 Download PDF {isPro ? "" : "🔒"}
+        📥 Download File {isPro ? "" : "🔒"}
       </button>
 
       <hr />
@@ -175,4 +177,4 @@ ${resumeText}
       )}
     </main>
   );
-            }
+                           }
