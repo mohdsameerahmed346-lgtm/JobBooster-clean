@@ -10,6 +10,8 @@ export default function Dashboard() {
   const [jobDesc, setJobDesc] = useState("");
 
   const [optimized, setOptimized] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+
   const [score, setScore] = useState("");
   const [suggestions, setSuggestions] = useState("");
 
@@ -38,7 +40,7 @@ export default function Dashboard() {
     setMotivation(quotes[Math.floor(Math.random() * quotes.length)]);
   }, []);
 
-  // 🔥 Resume Optimizer + ATS Suggestions
+  // 🔥 Resume Optimizer
   const optimizeResume = () => {
     const keywords = jobDesc.split(" ").slice(0, 5);
     const missing = keywords.filter(k => !resumeText.includes(k));
@@ -52,15 +54,41 @@ ${resumeText}
     `);
 
     const match = keywords.filter(k => resumeText.includes(k)).length;
-    const finalScore = match + 5;
-
-    setScore(`ATS Score: ${finalScore}/10`);
+    setScore(`ATS Score: ${match + 5}/10`);
 
     setSuggestions(`
 Suggestions:
 - Add keywords: ${missing.join(", ")}
-- Use action verbs (Built, Created, Led)
-- Add measurable results (e.g., increased performance by 20%)
+- Use action verbs
+- Add measurable results
+    `);
+  };
+
+  // ✉️ Cover Letter
+  const generateCoverLetter = () => {
+    if (!isPro) return alert("🔒 Pro feature");
+
+    setCoverLetter(`
+Dear Hiring Manager,
+
+I am excited to apply for this role. My skills and passion align well with your requirements.
+
+${resumeText}
+
+I am eager to contribute and grow in your company.
+
+Sincerely,
+Your Name
+    `);
+  };
+
+  // 🎯 Action Plan
+  const generatePlan = () => {
+    setActionPlan(`
+👉 Apply to 3 jobs daily
+👉 Learn new skills weekly
+👉 Build real-world projects
+👉 Improve communication
     `);
   };
 
@@ -74,18 +102,8 @@ Suggestions:
     setJobInput("");
   };
 
-  // 🎯 Action Plan
-  const generatePlan = () => {
-    setActionPlan(`
-👉 Apply to 3 jobs daily
-👉 Learn 1 new skill this week
-👉 Build 1 project in 7 days
-👉 Improve communication skills
-    `);
-  };
-
   // 📥 Download
-  const downloadPDF = () => {
+  const downloadFile = () => {
     if (!isPro) return alert("🔒 Pro feature");
 
     const element = document.createElement("a");
@@ -107,38 +125,49 @@ Suggestions:
   };
 
   return (
-    <main style={{ maxWidth: 900, margin: "auto", padding: 20 }}>
+    <main style={container}>
 
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={header}>
         <h1>🚀 JobBoost AI</h1>
-        <button onClick={logout}>Logout</button>
+        <button onClick={logout} style={btn}>Logout</button>
       </div>
 
-      <p><b>💡 {motivation}</b></p>
+      <p style={{ color: "#aaa" }}>💡 {motivation}</p>
 
-      {/* RESUME LAB */}
+      {/* RESUME */}
       <div style={card}>
         <h2>🧪 Resume Lab</h2>
 
-        <textarea placeholder="Paste Resume" onChange={e => setResumeText(e.target.value)} style={textarea}/>
-        <textarea placeholder="Paste Job Description" onChange={e => setJobDesc(e.target.value)} style={textarea}/>
+        <textarea placeholder="Resume" onChange={e => setResumeText(e.target.value)} style={textarea}/>
+        <textarea placeholder="Job Description" onChange={e => setJobDesc(e.target.value)} style={textarea}/>
 
-        <button style={btn} onClick={optimizeResume}>Optimize Resume</button>
+        <button style={btn} onClick={optimizeResume}>Optimize</button>
 
         <pre>{optimized}</pre>
         <h3>{score}</h3>
         <pre>{suggestions}</pre>
 
-        <button style={btn} onClick={downloadPDF}>
+        <button style={btn} onClick={downloadFile}>
           Download {isPro ? "" : "🔒"}
         </button>
       </div>
 
+      {/* COVER LETTER */}
+      <div style={card}>
+        <h2>✉️ Cover Letter</h2>
+
+        <button style={btn} onClick={generateCoverLetter}>
+          Generate {isPro ? "" : "🔒"}
+        </button>
+
+        <pre>{coverLetter}</pre>
+      </div>
+
       {/* ACTION PLAN */}
       <div style={card}>
-        <h2>🎯 Your Action Plan</h2>
-        <button style={btn} onClick={generatePlan}>Generate Plan</button>
+        <h2>🎯 Action Plan</h2>
+        <button style={btn} onClick={generatePlan}>Generate</button>
         <pre>{actionPlan}</pre>
       </div>
 
@@ -146,28 +175,18 @@ Suggestions:
       <div style={card}>
         <h2>📊 Job Tracker {isPro ? "" : "🔒"}</h2>
 
-        <input
-          value={jobInput}
-          onChange={e => setJobInput(e.target.value)}
-          placeholder="Company / Role"
-          style={input}
-        />
-
-        <select onChange={(e) => setJobStatus(e.target.value)} style={input}>
+        <input value={jobInput} onChange={e => setJobInput(e.target.value)} placeholder="Company / Role" style={input}/>
+        <select onChange={e => setJobStatus(e.target.value)} style={input}>
           <option>Applied</option>
           <option>Interview</option>
           <option>Rejected</option>
         </select>
 
-        <button style={btn} onClick={addJob}>
-          Add Job
-        </button>
+        <button style={btn} onClick={addJob}>Add Job</button>
 
         <ul>
           {jobs.map((job, i) => (
-            <li key={i}>
-              {job.name} - <b>{job.status}</b>
-            </li>
+            <li key={i}>{job.name} - <b>{job.status}</b></li>
           ))}
         </ul>
       </div>
@@ -176,9 +195,9 @@ Suggestions:
       {!isPro && (
         <div style={{ ...card, textAlign: "center" }}>
           <h2>💎 Upgrade to Pro</h2>
-          <p>Unlock full AI career system</p>
+          <p>Unlock full career system</p>
 
-          <button style={btn} onClick={activatePro}>
+          <button style={btnPrimary} onClick={activatePro}>
             ₹299 Upgrade
           </button>
         </div>
@@ -188,9 +207,21 @@ Suggestions:
   );
 }
 
-/* STYLES */
+/* DARK THEME */
+const container = {
+  background: "#0f172a",
+  color: "white",
+  minHeight: "100vh",
+  padding: 20
+};
+
+const header = {
+  display: "flex",
+  justifyContent: "space-between"
+};
+
 const card = {
-  background: "#f5f5f5",
+  background: "#1e293b",
   padding: 20,
   borderRadius: 10,
   marginTop: 20
@@ -199,19 +230,33 @@ const card = {
 const textarea = {
   width: "100%",
   height: 100,
-  marginTop: 10
+  marginTop: 10,
+  background: "#020617",
+  color: "white",
+  padding: 10
 };
 
 const input = {
   width: "100%",
   padding: 10,
-  marginTop: 10
+  marginTop: 10,
+  background: "#020617",
+  color: "white"
 };
 
 const btn = {
   marginTop: 10,
   padding: 10,
-  background: "black",
+  background: "#334155",
   color: "white",
   borderRadius: 5
+};
+
+const btnPrimary = {
+  marginTop: 10,
+  padding: 12,
+  background: "#22c55e",
+  color: "white",
+  borderRadius: 6,
+  fontWeight: "bold"
 };
