@@ -7,36 +7,37 @@ import jsPDF from "jspdf";
 export default function Dashboard() {
   const router = useRouter();
 
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("");
-
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
-
   const [optimized, setOptimized] = useState("");
-  const [cover, setCover] = useState("");
   const [score, setScore] = useState("");
 
-  const [usage, setUsage] = useState(0);
+  const [jobs, setJobs] = useState([]);
+  const [jobInput, setJobInput] = useState("");
 
-  // 🔐 Protect route
+  const [motivation, setMotivation] = useState("");
+
+  const isPro = localStorage.getItem("paid");
+
+  // 🔐 Protect
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (!user) router.push("/login");
 
-    const used = localStorage.getItem("usage") || 0;
-    setUsage(Number(used));
+    const savedJobs = localStorage.getItem("jobs");
+    if (savedJobs) setJobs(JSON.parse(savedJobs));
+
+    const quotes = [
+      "Apply to 3 jobs today 🚀",
+      "Consistency beats talent 💪",
+      "Small steps daily = big success 🔥",
+      "Don’t quit, you’re close 💯"
+    ];
+    setMotivation(quotes[Math.floor(Math.random() * quotes.length)]);
   }, []);
 
-  const isPro = localStorage.getItem("paid");
-
-  // 📄 Resume Optimizer (LIMITED)
+  // 🔥 Resume Optimizer
   const optimizeResume = () => {
-    if (!isPro && usage >= 1) {
-      alert("Free limit reached. Upgrade to Pro 🚀");
-      return;
-    }
-
     const keywords = jobDesc.split(" ").slice(0, 5);
 
     const text = `
@@ -44,61 +45,35 @@ OPTIMIZED RESUME
 
 ${resumeText}
 
-Added Keywords:
-${keywords.join(", ")}
+--- Improvements ---
+✔ Added keywords: ${keywords.join(", ")}
+✔ Better alignment with job
+✔ Improved structure
     `;
 
     setOptimized(text);
 
     const match = keywords.filter(k => resumeText.includes(k)).length;
     setScore(`ATS Score: ${match + 5}/10`);
-
-    if (!isPro) {
-      localStorage.setItem("usage", usage + 1);
-      setUsage(usage + 1);
-    }
   };
 
-  // ✉️ Cover Letter (LIMITED)
-  const generateCover = () => {
-    if (!isPro && usage >= 1) {
-      alert("Free limit reached. Upgrade to Pro 🚀");
-      return;
-    }
-
-    const text = `
-Dear Hiring Manager,
-
-I am applying for ${role}. I am motivated and ready to grow.
-
-Thank you,
-${name}
-    `;
-
-    setCover(text);
-
-    if (!isPro) {
-      localStorage.setItem("usage", usage + 1);
-      setUsage(usage + 1);
-    }
-  };
-
-  // 📥 PDF Download (PRO ONLY)
+  // 📥 PDF
   const downloadPDF = () => {
-    if (!isPro) {
-      alert("Upgrade to Pro to download PDF 🚀");
-      return;
-    }
+    if (!isPro) return alert("🔒 Pro feature");
 
     const doc = new jsPDF();
-    doc.text(optimized || cover, 10, 10);
-    doc.save("jobboost.pdf");
+    doc.text(optimized, 10, 10);
+    doc.save("resume.pdf");
   };
 
-  // 💰 Activate Pro (Fake payment)
-  const activatePro = () => {
-    localStorage.setItem("paid", "true");
-    alert("Pro Activated 🚀");
+  // 📊 Job Tracker
+  const addJob = () => {
+    if (!isPro) return alert("🔒 Pro feature");
+
+    const newJobs = [...jobs, jobInput];
+    setJobs(newJobs);
+    localStorage.setItem("jobs", JSON.stringify(newJobs));
+    setJobInput("");
   };
 
   // 🚪 Logout
@@ -107,22 +82,31 @@ ${name}
     router.push("/login");
   };
 
+  // 💰 Activate Pro
+  const activatePro = () => {
+    localStorage.setItem("paid", "true");
+    alert("Pro Activated 🚀");
+  };
+
   return (
-    <main style={{ padding: 20 }}>
+    <main style={{ padding: 20, maxWidth: 600, margin: "auto" }}>
       <h1>🚀 JobBoost AI</h1>
 
       <button onClick={logout}>Logout</button>
 
-      <p>Free Usage: {usage}/1</p>
+      <p style={{ marginTop: 10, fontWeight: "bold" }}>
+        💡 {motivation}
+      </p>
 
       <hr />
 
       {/* Resume Optimizer */}
-      <h2>🔥 Optimize Resume</h2>
+      <h2>🔥 Resume Optimizer</h2>
 
       <textarea
-        placeholder="Paste resume"
+        placeholder="Paste your resume"
         onChange={(e) => setResumeText(e.target.value)}
+        style={{ width: "100%", height: 100 }}
       />
 
       <br /><br />
@@ -130,6 +114,7 @@ ${name}
       <textarea
         placeholder="Paste job description"
         onChange={(e) => setJobDesc(e.target.value)}
+        style={{ width: "100%", height: 100 }}
       />
 
       <br /><br />
@@ -139,45 +124,55 @@ ${name}
       <pre>{optimized}</pre>
       <h3>{score}</h3>
 
+      <button onClick={downloadPDF}>
+        📥 Download PDF {isPro ? "" : "🔒"}
+      </button>
+
       <hr />
 
-      {/* Cover Letter */}
-      <h2>✉️ Cover Letter</h2>
+      {/* Job Tracker */}
+      <h2>📊 Job Tracker {isPro ? "" : "🔒"}</h2>
 
       <input
-        placeholder="Your Name"
-        onChange={(e) => setName(e.target.value)}
+        value={jobInput}
+        onChange={(e) => setJobInput(e.target.value)}
+        placeholder="Company / Role"
+        style={{ width: "100%" }}
       />
 
       <br /><br />
 
-      <input
-        placeholder="Role"
-        onChange={(e) => setRole(e.target.value)}
-      />
+      <button onClick={addJob}>
+        Add Job {isPro ? "" : "🔒"}
+      </button>
 
-      <br /><br />
-
-      <button onClick={generateCover}>Generate</button>
-
-      <pre>{cover}</pre>
-
-      <br />
-
-      {/* PDF */}
-      <button onClick={downloadPDF}>Download PDF</button>
+      <ul>
+        {jobs.map((job, i) => (
+          <li key={i}>{job}</li>
+        ))}
+      </ul>
 
       <hr />
 
-      {/* PRO */}
+      {/* Upgrade */}
       {!isPro && (
-        <>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
           <h2>💎 Upgrade to Pro</h2>
-          <button onClick={activatePro}>
-            Activate Pro ₹299
+          <p>Unlock all features</p>
+
+          <button
+            onClick={activatePro}
+            style={{
+              padding: 10,
+              background: "black",
+              color: "white",
+              borderRadius: 5
+            }}
+          >
+            ₹299 Upgrade
           </button>
-        </>
+        </div>
       )}
     </main>
   );
-}
+            }
