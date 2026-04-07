@@ -14,6 +14,10 @@ export default function Dashboard() {
   const [jobs, setJobs] = useState([]);
   const [jobInput, setJobInput] = useState("");
 
+  const [skillGap, setSkillGap] = useState("");
+  const [questions, setQuestions] = useState("");
+  const [careerAdvice, setCareerAdvice] = useState("");
+
   const [motivation, setMotivation] = useState("");
 
   const isPro = typeof window !== "undefined" && localStorage.getItem("paid");
@@ -34,7 +38,7 @@ export default function Dashboard() {
     setMotivation(quotes[Math.floor(Math.random() * quotes.length)]);
   }, []);
 
-  // Resume
+  // Resume optimizer
   const optimizeResume = () => {
     const keywords = jobDesc.split(" ").slice(0, 5);
 
@@ -43,16 +47,44 @@ OPTIMIZED RESUME
 
 ${resumeText}
 
---- Improvements ---
 ✔ Added keywords: ${keywords.join(", ")}
 ✔ Better alignment with job
-✔ Improved structure
     `;
 
     setOptimized(text);
 
     const match = keywords.filter(k => resumeText.includes(k)).length;
     setScore(`ATS Score: ${match + 5}/10`);
+  };
+
+  // Skill gap
+  const analyzeSkills = () => {
+    const keywords = jobDesc.split(" ").slice(0, 5);
+    const missing = keywords.filter(k => !resumeText.includes(k));
+
+    setSkillGap(`Missing Skills: ${missing.join(", ")}`);
+  };
+
+  // Interview questions
+  const generateQuestions = () => {
+    const role = jobDesc.split(" ")[0];
+
+    setQuestions(`
+1. Why do you want this ${role} role?
+2. What are your strengths?
+3. Explain a project you worked on.
+4. How do you solve problems?
+    `);
+  };
+
+  // Career advice
+  const getCareerAdvice = () => {
+    setCareerAdvice(`
+👉 Focus on learning core skills
+👉 Build 2-3 real projects
+👉 Apply consistently
+👉 Improve communication skills
+    `);
   };
 
   // Download
@@ -77,13 +109,11 @@ ${resumeText}
     setJobInput("");
   };
 
-  // Logout
   const logout = () => {
     localStorage.removeItem("user");
     router.push("/login");
   };
 
-  // Activate Pro
   const activatePro = () => {
     localStorage.setItem("paid", "true");
     alert("Pro Activated 🚀");
@@ -92,88 +122,67 @@ ${resumeText}
   return (
     <main style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
 
-      {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <h1>🚀 JobBoost AI</h1>
         <button onClick={logout}>Logout</button>
       </div>
 
-      <p style={{ marginTop: 10, fontWeight: "bold" }}>
-        💡 {motivation}
-      </p>
+      <p><b>💡 {motivation}</b></p>
 
-      {/* SECTION 1: RESUME */}
+      {/* Resume */}
       <div style={card}>
         <h2>🔥 Resume Optimizer</h2>
 
-        <textarea
-          placeholder="Paste your resume"
-          onChange={(e) => setResumeText(e.target.value)}
-          style={textarea}
-        />
+        <textarea placeholder="Resume" onChange={e => setResumeText(e.target.value)} style={textarea} />
+        <textarea placeholder="Job Description" onChange={e => setJobDesc(e.target.value)} style={textarea} />
 
-        <textarea
-          placeholder="Paste job description"
-          onChange={(e) => setJobDesc(e.target.value)}
-          style={textarea}
-        />
+        <button style={btn} onClick={optimizeResume}>Optimize</button>
 
-        <button style={btn} onClick={optimizeResume}>
-          Optimize Resume
+        <pre>{optimized}</pre>
+        <h3>{score}</h3>
+
+        <button style={btn} onClick={downloadPDF}>
+          Download {isPro ? "" : "🔒"}
         </button>
-
-        {optimized && (
-          <>
-            <pre style={output}>{optimized}</pre>
-            <h3>{score}</h3>
-
-            <button style={btn} onClick={downloadPDF}>
-              📥 Download {isPro ? "" : "🔒"}
-            </button>
-          </>
-        )}
       </div>
 
-      {/* SECTION 2: JOB TRACKER */}
+      {/* Skill Gap */}
+      <div style={card}>
+        <h2>🧠 Skill Gap Analyzer</h2>
+        <button style={btn} onClick={analyzeSkills}>Analyze</button>
+        <p>{skillGap}</p>
+      </div>
+
+      {/* Interview */}
+      <div style={card}>
+        <h2>🎯 Interview Questions</h2>
+        <button style={btn} onClick={generateQuestions}>Generate</button>
+        <pre>{questions}</pre>
+      </div>
+
+      {/* Career */}
+      <div style={card}>
+        <h2>🗺️ Career Direction</h2>
+        <button style={btn} onClick={getCareerAdvice}>Get Advice</button>
+        <pre>{careerAdvice}</pre>
+      </div>
+
+      {/* Job Tracker */}
       <div style={card}>
         <h2>📊 Job Tracker {isPro ? "" : "🔒"}</h2>
 
-        <input
-          value={jobInput}
-          onChange={(e) => setJobInput(e.target.value)}
-          placeholder="Company / Role"
-          style={input}
-        />
-
-        <button style={btn} onClick={addJob}>
-          Add Job {isPro ? "" : "🔒"}
-        </button>
+        <input value={jobInput} onChange={e => setJobInput(e.target.value)} placeholder="Company / Role" style={input} />
+        <button style={btn} onClick={addJob}>Add Job</button>
 
         <ul>
-          {jobs.map((job, i) => (
-            <li key={i}>{job}</li>
-          ))}
+          {jobs.map((j, i) => <li key={i}>{j}</li>)}
         </ul>
       </div>
 
-      {/* SECTION 3: UPGRADE */}
       {!isPro && (
         <div style={{ ...card, textAlign: "center" }}>
           <h2>💎 Upgrade to Pro</h2>
-          <p>Unlock all premium features</p>
-
-          <button
-            onClick={activatePro}
-            style={{
-              padding: 12,
-              background: "black",
-              color: "white",
-              borderRadius: 6,
-              fontWeight: "bold"
-            }}
-          >
-            ₹299 Upgrade
-          </button>
+          <button style={btn} onClick={activatePro}>₹299 Upgrade</button>
         </div>
       )}
 
@@ -181,38 +190,7 @@ ${resumeText}
   );
 }
 
-/* 🎨 STYLES */
-const card = {
-  background: "#f5f5f5",
-  padding: 20,
-  borderRadius: 10,
-  marginTop: 20
-};
-
-const textarea = {
-  width: "100%",
-  height: 100,
-  marginTop: 10,
-  padding: 10
-};
-
-const input = {
-  width: "100%",
-  padding: 10,
-  marginTop: 10
-};
-
-const btn = {
-  marginTop: 10,
-  padding: 10,
-  background: "black",
-  color: "white",
-  borderRadius: 5
-};
-
-const output = {
-  background: "#000",
-  color: "#0f0",
-  padding: 10,
-  marginTop: 10
-};
+const card = { background: "#f5f5f5", padding: 20, borderRadius: 10, marginTop: 20 };
+const textarea = { width: "100%", height: 100, marginTop: 10 };
+const input = { width: "100%", padding: 10, marginTop: 10 };
+const btn = { marginTop: 10, padding: 10, background: "black", color: "white" };
