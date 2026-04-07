@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
@@ -10,20 +10,21 @@ export default function Dashboard() {
   const [role, setRole] = useState("");
   const [result, setResult] = useState("");
 
-  const [skills, setSkills] = useState("");
-  const [skillResult, setSkillResult] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [jobDesc, setJobDesc] = useState("");
+  const [optimized, setOptimized] = useState("");
+  const [score, setScore] = useState("");
 
-  const [questions, setQuestions] = useState("");
+  const [cover, setCover] = useState("");
+  const [company, setCompany] = useState("");
 
-  const [career, setCareer] = useState("");
-
-  // 🔐 Protect dashboard
+  // 🔐 Protect route
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (!user) router.push("/login");
   }, []);
 
-  // 📄 Resume Generator
+  // 📄 Resume Builder
   const generateResume = () => {
     const text = `
 PROFESSIONAL RESUME
@@ -31,19 +32,12 @@ PROFESSIONAL RESUME
 Name: ${name}
 Role: ${role}
 
-----------------------------------
-
 SUMMARY:
-Motivated and passionate ${role} ready to grow and contribute.
-
-----------------------------------
+Motivated ${role} ready to grow.
 
 SKILLS:
 - Communication
 - Problem Solving
-- Teamwork
-
-----------------------------------
 
 EXPERIENCE:
 Fresher
@@ -51,84 +45,65 @@ Fresher
     setResult(text);
   };
 
-  // 🧠 Skill Gap Analyzer
-  const analyzeSkills = () => {
+  // 🔥 Resume Optimizer
+  const optimizeResume = () => {
+    const keywords = jobDesc.split(" ").slice(0, 5);
+
     const text = `
-SKILL GAP ANALYSIS
+OPTIMIZED RESUME
 
-Target Role: ${role}
+${resumeText}
 
-Your Skills:
-${skills}
+--- Improvements ---
+Added keywords:
+${keywords.join(", ")}
 
-Missing Skills:
-- Advanced ${role} concepts
-- Real-world projects
-- Industry tools
-
-Suggestion:
-Start learning daily and build 2-3 projects.
+Better alignment with job role: ${role}
     `;
-    setSkillResult(text);
+
+    setOptimized(text);
+
+    // simple ATS score
+    const match = keywords.filter(k => resumeText.includes(k)).length;
+    setScore(`ATS Score: ${match + 5}/10`);
   };
 
-  // 🎯 Interview Questions
-  const generateQuestions = () => {
+  // ✉️ Cover Letter
+  const generateCover = () => {
     const text = `
-INTERVIEW QUESTIONS for ${role}
+Dear ${company},
 
-1. Tell me about yourself.
-2. Why do you want this role?
-3. What are your strengths?
-4. Explain a project you built.
-5. Where do you see yourself in 5 years?
+I am excited to apply for the ${role} position.
+
+I am a motivated individual with strong interest in this field and eager to contribute.
+
+Thank you,
+${name}
     `;
-    setQuestions(text);
-  };
-
-  // 🗺️ Career AI
-  const generateCareer = () => {
-    const text = `
-CAREER ROADMAP for ${role}
-
-Step 1: Learn basics
-Step 2: Build projects
-Step 3: Apply for internships
-Step 4: Improve communication
-Step 5: Crack interviews
-    `;
-    setCareer(text);
+    setCover(text);
   };
 
   // 🚪 Logout
-  const handleLogout = () => {
+  const logout = () => {
     localStorage.removeItem("user");
     router.push("/login");
   };
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>📊 Dashboard</h1>
+      <h1>🚀 JobBoost AI Dashboard</h1>
 
-      <button onClick={handleLogout}>Logout</button>
+      <button onClick={logout}>Logout</button>
 
       <hr />
 
       {/* Resume Builder */}
       <h2>📄 Resume Builder</h2>
 
-      <input
-        placeholder="Your Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
+      <input placeholder="Name" onChange={(e) => setName(e.target.value)} />
       <br /><br />
 
-      <input
-        placeholder="Job Role"
-        value={role}
-        onChange={(e) => setRole(e.target.value)}
-      />
+      <input placeholder="Role" onChange={(e) => setRole(e.target.value)} />
       <br /><br />
 
       <button onClick={generateResume}>Generate Resume</button>
@@ -137,41 +112,41 @@ Step 5: Crack interviews
 
       <hr />
 
-      {/* Skill Gap */}
-      <h2>🧠 Skill Gap Analyzer</h2>
+      {/* Resume Optimizer */}
+      <h2>🔥 Optimize Resume for Job</h2>
 
       <textarea
-        placeholder="Enter your skills"
-        value={skills}
-        onChange={(e) => setSkills(e.target.value)}
+        placeholder="Paste your resume"
+        onChange={(e) => setResumeText(e.target.value)}
       />
       <br /><br />
 
-      <button onClick={analyzeSkills}>Analyze Skills</button>
+      <textarea
+        placeholder="Paste job description"
+        onChange={(e) => setJobDesc(e.target.value)}
+      />
+      <br /><br />
 
-      <pre>{skillResult}</pre>
+      <button onClick={optimizeResume}>Optimize</button>
 
-      <hr />
-
-      {/* Interview Questions */}
-      <h2>🎯 Interview Questions</h2>
-
-      <button onClick={generateQuestions}>
-        Generate Questions
-      </button>
-
-      <pre>{questions}</pre>
+      <pre>{optimized}</pre>
+      <h3>{score}</h3>
 
       <hr />
 
-      {/* Career AI */}
-      <h2>🗺️ Career Direction AI</h2>
+      {/* Cover Letter */}
+      <h2>✉️ Cover Letter Generator</h2>
 
-      <button onClick={generateCareer}>
-        Generate Career Path
-      </button>
+      <input
+        placeholder="Company Name"
+        onChange={(e) => setCompany(e.target.value)}
+      />
+      <br /><br />
 
-      <pre>{career}</pre>
+      <button onClick={generateCover}>Generate Cover Letter</button>
+
+      <pre>{cover}</pre>
+
     </main>
   );
-}
+                           }
