@@ -63,4 +63,20 @@ export default function Home() { return ( <main className="min-h-screen bg-white
 
   {/* FINAL CTA */}
   <section className="py-20 px-6 text-center">
-    <h2
+    <h2 className="text-3xl font-bold mb-6">
+      Ready to get your first interview?
+    </h2>
+    <Link href="/dashboard">
+      <button className="px-8 py-4 bg-black text-white rounded-2xl text-lg">
+        Start Free Now
+      </button>
+    </Link>
+  </section>
+
+  {/* FOOTER */}
+  <footer className="text-center py-6 border-t text-gray-500">
+    © 2026 CareerAI. All rights reserved.
+  </footer>
+</main>
+
+); }
