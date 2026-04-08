@@ -2,27 +2,30 @@ import OpenAI from "openai";
 
 export async function POST(req) {
   try {
-    const { resume } = await req.json();
+    const body = await req.json();
+    const resume = body.resume;
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const response = await openai.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
+          role: "system",
+          content: "You are a resume expert. Give short improvement tips.",
+        },
+        {
           role: "user",
-          content: `Give ATS score, strengths, weaknesses, and improvements for this resume:\n${resume}`,
+          content: `Analyze this resume:\n${resume}`,
         },
       ],
     });
 
-    const result =
-      response.choices?.[0]?.message?.content ||
-      "No response from AI";
-
-    return Response.json({ result });
+    return Response.json({
+      result: completion.choices[0].message.content,
+    });
 
   } catch (error) {
     console.log(error);
@@ -31,4 +34,4 @@ export async function POST(req) {
       result: "❌ AI error. Check API key or quota.",
     });
   }
-                }
+      }
