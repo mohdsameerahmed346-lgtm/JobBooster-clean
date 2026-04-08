@@ -1,13 +1,35 @@
-export async function POST(req) {
-  const body = await req.json();
+import OpenAI from "openai";
 
-  // TEMP FAKE AI RESPONSE (to avoid build errors)
-  return new Response(
-    JSON.stringify({
-      result: "Your resume looks good. Add more metrics and strong action words."
-    }),
-    {
-      headers: { "Content-Type": "application/json" },
-    }
-  );
-}
+export async function POST(req) {
+  try {
+    const { resume } = await req.json();
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert ATS resume analyzer. Give:\n1. ATS score out of 100\n2. Strengths\n3. Weaknesses\n4. Improvements\nMake it clean and structured."
+        },
+        {
+          role: "user",
+          content: resume
+        }
+      ],
+    });
+
+    return Response.json({
+      result: response.choices[0].message.content,
+    });
+
+  } catch (error) {
+    return Response.json({
+      result: "Error analyzing resume. Check API key or try again."
+    });
+  }
+      }
