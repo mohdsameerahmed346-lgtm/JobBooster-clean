@@ -1,262 +1,175 @@
 "use client";
-
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  const router = useRouter();
-
-  const [resumeText, setResumeText] = useState("");
+  const [resume, setResume] = useState("");
   const [jobDesc, setJobDesc] = useState("");
-
-  const [optimized, setOptimized] = useState("");
-  const [coverLetter, setCoverLetter] = useState("");
-
-  const [score, setScore] = useState("");
-  const [suggestions, setSuggestions] = useState("");
-
+  const [result, setResult] = useState("");
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(1);
+  const [tasksDone, setTasksDone] = useState(0);
   const [jobs, setJobs] = useState([]);
   const [jobInput, setJobInput] = useState("");
-  const [jobStatus, setJobStatus] = useState("Applied");
 
-  const [actionPlan, setActionPlan] = useState("");
-  const [motivation, setMotivation] = useState("");
-
-  const isPro = typeof window !== "undefined" && localStorage.getItem("paid");
-
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) router.push("/login");
-
-    const savedJobs = localStorage.getItem("jobs");
-    if (savedJobs) setJobs(JSON.parse(savedJobs));
-
-    const quotes = [
-      "Rejection is redirection 🔥",
-      "You’re improving every day 💪",
-      "Keep going, success is near 🚀",
-      "Consistency beats talent 💯"
-    ];
-    setMotivation(quotes[Math.floor(Math.random() * quotes.length)]);
-  }, []);
-
-  // 🔥 Resume Optimizer
+  // Fake AI optimize
   const optimizeResume = () => {
-    const keywords = jobDesc.split(" ").slice(0, 5);
-    const missing = keywords.filter(k => !resumeText.includes(k));
+    if (!resume || !jobDesc) {
+      alert("Fill both fields");
+      return;
+    }
 
-    setOptimized(`
-OPTIMIZED RESUME
+    const fakeScore = Math.floor(Math.random() * 40) + 60;
+    setScore(fakeScore);
 
-${resumeText}
+    setResult(`
+PROFESSIONAL RESUME
 
-✔ Added keywords: ${keywords.join(", ")}
-    `);
+${resume}
 
-    const match = keywords.filter(k => resumeText.includes(k)).length;
-    setScore(`ATS Score: ${match + 5}/10`);
+--- Optimized for Job ---
 
-    setSuggestions(`
+${jobDesc}
+
 Suggestions:
-- Add keywords: ${missing.join(", ")}
-- Use action verbs
-- Add measurable results
+- Add keywords
+- Improve summary
+- Add metrics
     `);
   };
 
-  // ✉️ Cover Letter
-  const generateCoverLetter = () => {
-    if (!isPro) return alert("🔒 Pro feature");
-
-    setCoverLetter(`
-Dear Hiring Manager,
-
-I am excited to apply for this role. My skills and passion align well with your requirements.
-
-${resumeText}
-
-I am eager to contribute and grow in your company.
-
-Sincerely,
-Your Name
-    `);
+  // Download PDF
+  const downloadPDF = () => {
+    alert("PDF Downloaded ✅");
   };
 
-  // 🎯 Action Plan
-  const generatePlan = () => {
-    setActionPlan(`
-👉 Apply to 3 jobs daily
-👉 Learn new skills weekly
-👉 Build real-world projects
-👉 Improve communication
-    `);
+  // DOCX Locked
+  const downloadDOCX = () => {
+    alert("Upgrade to Pro to download DOCX 🚀");
   };
 
-  // 📊 Job Tracker
+  // Share score
+  const shareScore = () => {
+    navigator.clipboard.writeText(
+      `I got ${score}% ATS score using JobBoost AI 🚀`
+    );
+    alert("Copied! Share with friends 🔥");
+  };
+
+  // Add job
   const addJob = () => {
-    if (!isPro) return alert("🔒 Pro feature");
-
-    const newJobs = [...jobs, { name: jobInput, status: jobStatus }];
-    setJobs(newJobs);
-    localStorage.setItem("jobs", JSON.stringify(newJobs));
+    if (!jobInput) return;
+    setJobs([...jobs, { name: jobInput, status: "Applied" }]);
     setJobInput("");
   };
 
-  // 📥 Download
-  const downloadFile = () => {
-    if (!isPro) return alert("🔒 Pro feature");
-
-    const element = document.createElement("a");
-    const file = new Blob([optimized], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = "resume.txt";
-    document.body.appendChild(element);
-    element.click();
-  };
-
-  const logout = () => {
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  const activatePro = () => {
-    localStorage.setItem("paid", "true");
-    alert("Pro Activated 🚀");
+  // Task complete
+  const completeTask = () => {
+    if (tasksDone < 3) {
+      setTasksDone(tasksDone + 1);
+    }
   };
 
   return (
-    <main style={container}>
-
+    <div style={{ padding: 20, color: "white", background: "#0f172a", minHeight: "100vh" }}>
+      
       {/* HEADER */}
-      <div style={header}>
-        <h1>🚀 JobBoost AI</h1>
-        <button onClick={logout} style={btn}>Logout</button>
-      </div>
+      <h1>🚀 JobBoost AI</h1>
+      <p>💡 Consistency beats talent</p>
 
-      <p style={{ color: "#aaa" }}>💡 {motivation}</p>
+      <h3>🔥 Streak: {streak} days</h3>
+      <h3>📊 Resume Score: {score}%</h3>
+      <h3>🎯 Job Readiness: {Math.min(score + tasksDone * 5, 100)}%</h3>
 
-      {/* RESUME */}
-      <div style={card}>
-        <h2>🧪 Resume Lab</h2>
+      <hr />
 
-        <textarea placeholder="Resume" onChange={e => setResumeText(e.target.value)} style={textarea}/>
-        <textarea placeholder="Job Description" onChange={e => setJobDesc(e.target.value)} style={textarea}/>
+      {/* RESUME OPTIMIZER */}
+      <h2>🔥 Resume Optimizer</h2>
+      <textarea
+        placeholder="Paste your resume"
+        value={resume}
+        onChange={(e) => setResume(e.target.value)}
+        style={{ width: "100%", height: 100 }}
+      />
+      <textarea
+        placeholder="Paste job description"
+        value={jobDesc}
+        onChange={(e) => setJobDesc(e.target.value)}
+        style={{ width: "100%", height: 100 }}
+      />
 
-        <button style={btn} onClick={optimizeResume}>Optimize</button>
+      <button onClick={optimizeResume}>Optimize</button>
 
-        <pre>{optimized}</pre>
-        <h3>{score}</h3>
-        <pre>{suggestions}</pre>
-
-        <button style={btn} onClick={downloadFile}>
-          Download {isPro ? "" : "🔒"}
-        </button>
-      </div>
-
-      {/* COVER LETTER */}
-      <div style={card}>
-        <h2>✉️ Cover Letter</h2>
-
-        <button style={btn} onClick={generateCoverLetter}>
-          Generate {isPro ? "" : "🔒"}
-        </button>
-
-        <pre>{coverLetter}</pre>
-      </div>
-
-      {/* ACTION PLAN */}
-      <div style={card}>
-        <h2>🎯 Action Plan</h2>
-        <button style={btn} onClick={generatePlan}>Generate</button>
-        <pre>{actionPlan}</pre>
-      </div>
-
-      {/* JOB TRACKER */}
-      <div style={card}>
-        <h2>📊 Job Tracker {isPro ? "" : "🔒"}</h2>
-
-        <input value={jobInput} onChange={e => setJobInput(e.target.value)} placeholder="Company / Role" style={input}/>
-        <select onChange={e => setJobStatus(e.target.value)} style={input}>
-          <option>Applied</option>
-          <option>Interview</option>
-          <option>Rejected</option>
-        </select>
-
-        <button style={btn} onClick={addJob}>Add Job</button>
-
-        <ul>
-          {jobs.map((job, i) => (
-            <li key={i}>{job.name} - <b>{job.status}</b></li>
-          ))}
-        </ul>
-      </div>
-
-      {/* UPGRADE */}
-      {!isPro && (
-        <div style={{ ...card, textAlign: "center" }}>
-          <h2>💎 Upgrade to Pro</h2>
-          <p>Unlock full career system</p>
-
-          <button style={btnPrimary} onClick={activatePro}>
-            ₹299 Upgrade
-          </button>
-        </div>
+      {score > 0 && (
+        <>
+          <h3>📊 Match Score: {score}%</h3>
+          <button onClick={shareScore}>🔥 Share Score</button>
+        </>
       )}
 
-    </main>
+      <pre>{result}</pre>
+
+      <button onClick={downloadPDF}>📥 Download PDF</button>
+      <button onClick={downloadDOCX}>📥 Download DOCX 🔒</button>
+
+      <hr />
+
+      {/* DAILY TASKS */}
+      <h2>🔥 Today’s Tasks</h2>
+      <p>Progress: {tasksDone}/3</p>
+
+      <button onClick={completeTask}>Complete Task</button>
+
+      <hr />
+
+      {/* JOB TRACKER */}
+      <h2>📊 Job Tracker</h2>
+      <input
+        placeholder="Company / Role"
+        value={jobInput}
+        onChange={(e) => setJobInput(e.target.value)}
+      />
+      <button onClick={addJob}>Add Job</button>
+
+      <ul>
+        {jobs.map((job, index) => (
+          <li key={index}>
+            {job.name} - {job.status}
+          </li>
+        ))}
+      </ul>
+
+      <hr />
+
+      {/* CAREER AI */}
+      <h2>🧬 Career AI</h2>
+      <p>🎯 Goal: Web Developer</p>
+      <p>Missing Skills: React, Projects</p>
+      <p>Plan: Build project → Apply jobs</p>
+
+      <hr />
+
+      {/* REFERRAL */}
+      <h2>🎁 Referral System</h2>
+      <p>Invite friends and unlock rewards</p>
+      <p>Invite 3 → Unlock Pro 🔓</p>
+
+      <button onClick={() => alert("Invite link copied!")}>
+        Invite Friends
+      </button>
+
+      <hr />
+
+      {/* UPGRADE */}
+      <h2>💎 Upgrade to Pro</h2>
+      <p>✔ Unlimited scans</p>
+      <p>✔ DOCX download</p>
+      <p>✔ Advanced AI</p>
+
+      <h3>₹299/month</h3>
+      <button onClick={() => alert("Payment coming soon 🚀")}>
+        Upgrade Now
+      </button>
+
+    </div>
   );
-}
-
-/* DARK THEME */
-const container = {
-  background: "#0f172a",
-  color: "white",
-  minHeight: "100vh",
-  padding: 20
-};
-
-const header = {
-  display: "flex",
-  justifyContent: "space-between"
-};
-
-const card = {
-  background: "#1e293b",
-  padding: 20,
-  borderRadius: 10,
-  marginTop: 20
-};
-
-const textarea = {
-  width: "100%",
-  height: 100,
-  marginTop: 10,
-  background: "#020617",
-  color: "white",
-  padding: 10
-};
-
-const input = {
-  width: "100%",
-  padding: 10,
-  marginTop: 10,
-  background: "#020617",
-  color: "white"
-};
-
-const btn = {
-  marginTop: 10,
-  padding: 10,
-  background: "#334155",
-  color: "white",
-  borderRadius: 5
-};
-
-const btnPrimary = {
-  marginTop: 10,
-  padding: 12,
-  background: "#22c55e",
-  color: "white",
-  borderRadius: 6,
-  fontWeight: "bold"
-};
+    }
