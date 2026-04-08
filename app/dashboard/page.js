@@ -11,43 +11,71 @@ export default function Dashboard() {
   const [jobs, setJobs] = useState([]);
   const [jobInput, setJobInput] = useState("");
 
-  // Fake AI optimize
-  const optimizeResume = () => {
+  // 🔐 LOGIN PROTECTION
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (!user) {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  // 💾 LOAD JOBS
+  useEffect(() => {
+    const savedJobs = localStorage.getItem("jobs");
+    if (savedJobs) setJobs(JSON.parse(savedJobs));
+  }, []);
+
+  // 💾 SAVE JOBS
+  useEffect(() => {
+    localStorage.setItem("jobs", JSON.stringify(jobs));
+  }, [jobs]);
+
+  // 🔥 STREAK SYSTEM
+  useEffect(() => {
+    const lastVisit = localStorage.getItem("lastVisit");
+    const today = new Date().toDateString();
+
+    if (lastVisit !== today) {
+      setStreak((prev) => prev + 1);
+      localStorage.setItem("lastVisit", today);
+    }
+  }, []);
+
+  // 🤖 AI OPTIMIZE
+  const optimizeResume = async () => {
     if (!resume || !jobDesc) {
       alert("Fill both fields");
       return;
     }
 
-    const fakeScore = Math.floor(Math.random() * 40) + 60;
-    setScore(fakeScore);
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        body: JSON.stringify({ resume, jobDesc }),
+      });
 
-    setResult(`
-PROFESSIONAL RESUME
+      const data = await res.json();
 
-${resume}
+      setResult(data.result || "No response from AI");
 
---- Optimized for Job ---
-
-${jobDesc}
-
-Suggestions:
-- Add keywords
-- Improve summary
-- Add metrics
-    `);
+      const randomScore = Math.floor(Math.random() * 30) + 70;
+      setScore(randomScore);
+    } catch (err) {
+      alert("AI failed");
+    }
   };
 
-  // Download PDF
+  // 📥 DOWNLOAD PDF
   const downloadPDF = () => {
     alert("PDF Downloaded ✅");
   };
 
-  // DOCX Locked
+  // 🔒 DOCX LOCK
   const downloadDOCX = () => {
     alert("Upgrade to Pro to download DOCX 🚀");
   };
 
-  // Share score
+  // 🔥 SHARE SCORE
   const shareScore = () => {
     navigator.clipboard.writeText(
       `I got ${score}% ATS score using JobBoost AI 🚀`
@@ -55,14 +83,14 @@ Suggestions:
     alert("Copied! Share with friends 🔥");
   };
 
-  // Add job
+  // 📊 ADD JOB
   const addJob = () => {
     if (!jobInput) return;
     setJobs([...jobs, { name: jobInput, status: "Applied" }]);
     setJobInput("");
   };
 
-  // Task complete
+  // ✅ COMPLETE TASK
   const completeTask = () => {
     if (tasksDone < 3) {
       setTasksDone(tasksDone + 1);
@@ -70,7 +98,7 @@ Suggestions:
   };
 
   return (
-    <div style={{ padding: 20, color: "white", background: "#0f172a", minHeight: "100vh" }}>
+    <div style={{ padding: 20, background: "#0f172a", color: "white", minHeight: "100vh" }}>
       
       {/* HEADER */}
       <h1>🚀 JobBoost AI</h1>
@@ -84,12 +112,14 @@ Suggestions:
 
       {/* RESUME OPTIMIZER */}
       <h2>🔥 Resume Optimizer</h2>
+
       <textarea
         placeholder="Paste your resume"
         value={resume}
         onChange={(e) => setResume(e.target.value)}
         style={{ width: "100%", height: 100 }}
       />
+
       <textarea
         placeholder="Paste job description"
         value={jobDesc}
@@ -106,7 +136,7 @@ Suggestions:
         </>
       )}
 
-      <pre>{result}</pre>
+      <pre style={{ whiteSpace: "pre-wrap" }}>{result}</pre>
 
       <button onClick={downloadPDF}>📥 Download PDF</button>
       <button onClick={downloadDOCX}>📥 Download DOCX 🔒</button>
@@ -123,11 +153,13 @@ Suggestions:
 
       {/* JOB TRACKER */}
       <h2>📊 Job Tracker</h2>
+
       <input
         placeholder="Company / Role"
         value={jobInput}
         onChange={(e) => setJobInput(e.target.value)}
       />
+
       <button onClick={addJob}>Add Job</button>
 
       <ul>
@@ -161,9 +193,9 @@ Suggestions:
 
       {/* UPGRADE */}
       <h2>💎 Upgrade to Pro</h2>
-      <p>✔ Unlimited scans</p>
+      <p>✔ Unlimited resume scans</p>
       <p>✔ DOCX download</p>
-      <p>✔ Advanced AI</p>
+      <p>✔ Advanced AI suggestions</p>
 
       <h3>₹299/month</h3>
       <button onClick={() => alert("Payment coming soon 🚀")}>
@@ -172,4 +204,4 @@ Suggestions:
 
     </div>
   );
-    }
+      }
