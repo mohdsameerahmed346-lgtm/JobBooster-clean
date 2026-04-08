@@ -1,22 +1,24 @@
 "use client";
-
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Login() {
-  const router = useRouter();
+  const [name, setName] = useState("");
 
   const handleLogin = () => {
-    localStorage.setItem("user", "loggedIn"); // simple auth
-    router.push("/dashboard");
+    if (!name) return alert("Enter name");
+
+    localStorage.setItem("user", name);
+    window.location.href = "/dashboard";
   };
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>🔐 Login</h1>
-
-      <button onClick={handleLogin}>
-        Login
-      </button>
-    </main>
+    <div style={{ padding: 20 }}>
+      <h1>Login</h1>
+      <input
+        placeholder="Enter your name"
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button onClick={handleLogin}>Login</button>
+    </div>
   );
 }
