@@ -1,205 +1,139 @@
 "use client";
-
 import { useState } from "react";
 
 export default function Dashboard() {
-  const [score, setScore] = useState(72);
-  const [skills, setSkills] = useState(["JavaScript"]);
-  const [targetRole] = useState("Frontend Developer");
-  const [question, setQuestion] = useState("");
   const [resumeText, setResumeText] = useState("");
-  const [referrals, setReferrals] = useState(0);
+  const [aiResult, setAiResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 🔥 SHARE SCORE
+  // 🔥 Share function
   const share = () => {
-    const text = `I got ${score}% ATS score using JobBoost AI 🚀`;
+    const text = `I got a high ATS score using JobBoost AI 🚀`;
     navigator.clipboard.writeText(text);
     alert("Copied! Share with friends");
   };
 
-  // 📈 IMPROVE SCORE
-  const improveScore = () => {
-    if (score < 95) setScore(score + 5);
-  };
+  // ⚡ Scan Resume (AI call)
+  const scanResume = async () => {
+    if (!resumeText) {
+      alert("Please paste your resume first");
+      return;
+    }
 
-  // ➕ ADD SKILL
-  const addSkill = () => {
-    const newSkill = prompt("Enter new skill:");
-    if (newSkill) setSkills([...skills, newSkill]);
-  };
+    setLoading(true);
 
-  // 🤖 INTERVIEW AI
-  const generateQuestion = () => {
-    const questions = [
-      "Explain JavaScript closures",
-      "What is React state?",
-      "Difference between var, let, const?",
-      "How does event loop work?",
-      "Tell me about yourself"
-    ];
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({ resume: resumeText }),
+      });
 
-    const random =
-      questions[Math.floor(Math.random() * questions.length)];
+      const data = await res.json();
 
-    setQuestion(random);
-  };
+      console.log("AI RESPONSE:", data); // Debug
 
-  // 📄 RESUME SCANNER
-  const scanResume = () => {
-    let newScore = score;
+      setAiResult(data.result);
+    } catch (error) {
+      setAiResult("❌ Error connecting to AI");
+    }
 
-    if (resumeText.includes("JavaScript")) newScore += 5;
-    if (resumeText.includes("React")) newScore += 5;
-    if (resumeText.length > 100) newScore += 5;
-
-    if (newScore > 95) newScore = 95;
-
-    setScore(newScore);
-  };
-
-  // 🚀 REFERRAL SYSTEM
-  const inviteFriend = () => {
-    const link = "https://yourapp.com/?ref=123";
-
-    navigator.clipboard.writeText(link);
-    alert("Invite link copied!");
-
-    setReferrals(referrals + 1);
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="p-6 max-w-4xl mx-auto">
+      {/* 🔥 Header */}
+      <h1 className="text-3xl font-bold mb-4">
+        🚀 JobBoost AI Dashboard
+      </h1>
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🚀 JobBoost AI Dashboard</h1>
+      {/* 🔥 Share Button */}
+      <button
+        onClick={share}
+        className="mb-6 px-4 py-2 bg-black text-white rounded"
+      >
+        🔥 Share Score
+      </button>
 
-        <button
-          onClick={share}
-          className="bg-black text-white px-4 py-2 rounded-xl"
-        >
-          🔥 Share Score
-        </button>
-      </div>
-
-      {/* RESUME SCANNER */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <h2 className="text-lg font-semibold">📄 Resume Scanner</h2>
+      {/* 📄 Resume Scanner */}
+      <div className="bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">
+          📄 Resume Scanner
+        </h2>
 
         <textarea
-          placeholder="Paste your resume here..."
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
-          className="w-full mt-3 p-2 border rounded"
+          placeholder="Paste your resume here..."
+          className="w-full h-40 p-2 border rounded"
         />
 
         <button
           onClick={scanResume}
-          className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-xl"
+          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded"
         >
-          Scan Resume ⚡
-        </button>
-      </div>
-
-      {/* ATS SCORE */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <h2 className="text-lg font-semibold">ATS Score</h2>
-
-        <p className="text-4xl font-bold mt-2">{score}%</p>
-
-        <div className="w-full bg-gray-200 h-3 rounded mt-3">
-          <div
-            className="bg-green-500 h-3 rounded"
-            style={{ width: `${score}%` }}
-          ></div>
-        </div>
-
-        <button
-          onClick={improveScore}
-          className="mt-4 bg-green-500 text-white px-4 py-2 rounded-xl"
-        >
-          Improve Score 🚀
-        </button>
-      </div>
-
-      {/* SKILL GAP */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <h2 className="text-lg font-semibold">Skill Gap</h2>
-
-        <p className="text-gray-600 mb-3">
-          Target Role: {targetRole}
-        </p>
-
-        <ul className="list-disc ml-6">
-          {skills.map((skill, i) => (
-            <li key={i}>{skill}</li>
-          ))}
-        </ul>
-
-        <button
-          onClick={addSkill}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-xl"
-        >
-          Add Skill ➕
-        </button>
-      </div>
-
-      {/* INTERVIEW AI */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <h2 className="text-lg font-semibold">Interview AI</h2>
-
-        <button
-          onClick={generateQuestion}
-          className="bg-purple-500 text-white px-4 py-2 rounded-xl"
-        >
-          Generate Question 🎯
+          {loading ? "Analyzing..." : "Scan Resume ⚡"}
         </button>
 
-        {question && (
-          <div className="mt-4 p-3 bg-gray-100 rounded">
-            <p>{question}</p>
+        {/* 🤖 AI Result */}
+        {aiResult && (
+          <div className="mt-4 p-4 bg-gray-100 rounded">
+            <h3 className="font-bold mb-2">AI Analysis</h3>
+            <p className="whitespace-pre-line">{aiResult}</p>
           </div>
         )}
       </div>
 
-      {/* PROGRESS */}
-      <div className="bg-white p-6 rounded-2xl shadow mb-6">
-        <h2 className="text-lg font-semibold">Your Progress</h2>
-
-        <div className="mt-3 space-y-2">
-          <p>✅ Resume Optimized</p>
-          <p>📈 Score Improved</p>
-          <p>📚 Skills Added</p>
-        </div>
-      </div>
-
-      {/* REFERRALS */}
-      <div className="bg-white p-6 rounded-2xl shadow">
-        <h2 className="text-lg font-semibold">🔥 Earn Free Credits</h2>
-
-        <p className="text-gray-600">
-          Invite friends & unlock premium features
-        </p>
-
-        <p className="mt-2 font-bold">
-          Referrals: {referrals}/3
-        </p>
-
-        <div className="w-full bg-gray-200 h-3 rounded mt-2">
-          <div
-            className="bg-orange-500 h-3 rounded"
-            style={{ width: `${(referrals / 3) * 100}%` }}
-          ></div>
-        </div>
-
-        <button
-          onClick={inviteFriend}
-          className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-xl"
-        >
-          Invite Friends 🚀
+      {/* 📊 Fake ATS Score (UI only for now) */}
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">ATS Score</h2>
+        <p className="text-3xl font-bold text-green-600">87%</p>
+        <button className="mt-2 px-3 py-1 bg-green-500 text-white rounded">
+          Improve Score 🚀
         </button>
       </div>
 
+      {/* 🧠 Skill Gap */}
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">Skill Gap</h2>
+        <p>Target Role: Frontend Developer</p>
+        <ul className="mt-2 list-disc ml-5">
+          <li>JavaScript</li>
+        </ul>
+        <button className="mt-2 px-3 py-1 bg-blue-500 text-white rounded">
+          Add Skill ➕
+        </button>
+      </div>
+
+      {/* 🎯 Interview AI */}
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">Interview AI</h2>
+        <button className="px-3 py-1 bg-purple-500 text-white rounded">
+          Generate Question 🎯
+        </button>
+      </div>
+
+      {/* 📈 Progress */}
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
+        <ul>
+          <li>✅ Resume Optimized</li>
+          <li>📈 Score Improved</li>
+          <li>📚 Skills Added</li>
+        </ul>
+      </div>
+
+      {/* 🔥 Referral */}
+      <div className="mt-6 bg-white p-4 rounded shadow">
+        <h2 className="text-xl font-semibold mb-2">
+          🔥 Earn Free Credits
+        </h2>
+        <p>Invite friends & unlock premium features</p>
+        <p className="mt-2">Referrals: 0/3</p>
+        <button className="mt-2 px-3 py-1 bg-black text-white rounded">
+          Invite Friends 🚀
+        </button>
+      </div>
     </div>
   );
-      }
+                  }
