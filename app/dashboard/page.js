@@ -2,21 +2,36 @@
 import { useState } from "react";
 
 export default function Dashboard() {
+  const [score, setScore] = useState(72);
+  const [skills, setSkills] = useState(["JavaScript"]);
+  const [targetRole, setTargetRole] = useState("Frontend Developer");
   const [resumeText, setResumeText] = useState("");
   const [aiResult, setAiResult] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 Share function
+  // 🔥 SHARE FUNCTION (UPDATED)
   const share = () => {
-    const text = `I got a high ATS score using JobBoost AI 🚀`;
+    const text = `🚀 I got ${score}% ATS score using JobBoost AI!\nTry it here: https://job-booster-clean.vercel.app`;
+
     navigator.clipboard.writeText(text);
-    alert("Copied! Share with friends");
+    alert("Copied! Share with friends 🔥");
   };
 
-  // ⚡ Scan Resume (AI call)
+  // 🚀 IMPROVE SCORE
+  const improveScore = () => {
+    if (score < 95) setScore(score + 5);
+  };
+
+  // ➕ ADD SKILL
+  const addSkill = () => {
+    const newSkill = prompt("Enter new skill:");
+    if (newSkill) setSkills([...skills, newSkill]);
+  };
+
+  // 🤖 AI RESUME SCAN
   const scanResume = async () => {
     if (!resumeText) {
-      alert("Please paste your resume first");
+      alert("Paste resume first!");
       return;
     }
 
@@ -25,115 +40,140 @@ export default function Dashboard() {
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ resume: resumeText }),
       });
 
       const data = await res.json();
-
-      console.log("AI RESPONSE:", data); // Debug
-
       setAiResult(data.result);
-    } catch (error) {
-      setAiResult("❌ Error connecting to AI");
+    } catch (err) {
+      setAiResult("❌ Error analyzing resume.");
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* 🔥 Header */}
-      <h1 className="text-3xl font-bold mb-4">
-        🚀 JobBoost AI Dashboard
-      </h1>
+    <div className="min-h-screen bg-gray-100 p-6">
 
-      {/* 🔥 Share Button */}
-      <button
-        onClick={share}
-        className="mb-6 px-4 py-2 bg-black text-white rounded"
-      >
-        🔥 Share Score
-      </button>
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">🚀 JobBoost AI</h1>
+        <button
+          onClick={share}
+          className="bg-black text-white px-4 py-2 rounded-xl shadow"
+        >
+          🔥 Share Score
+        </button>
+      </div>
 
-      {/* 📄 Resume Scanner */}
-      <div className="bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">
-          📄 Resume Scanner
-        </h2>
+      {/* RESUME SCANNER */}
+      <div className="bg-white p-6 rounded-2xl shadow mb-6">
+        <h2 className="text-xl font-semibold mb-3">📄 Resume Scanner</h2>
 
         <textarea
+          placeholder="Paste your resume here..."
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
-          placeholder="Paste your resume here..."
-          className="w-full h-40 p-2 border rounded"
+          className="w-full p-3 border rounded mb-3"
+          rows={6}
         />
 
         <button
           onClick={scanResume}
-          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded"
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl"
         >
           {loading ? "Analyzing..." : "Scan Resume ⚡"}
         </button>
 
-        {/* 🤖 AI Result */}
+        {/* AI RESULT */}
         {aiResult && (
-          <div className="mt-4 p-4 bg-gray-100 rounded">
-            <h3 className="font-bold mb-2">AI Analysis</h3>
-            <p className="whitespace-pre-line">{aiResult}</p>
+          <div className="mt-4 p-4 bg-gray-100 rounded-xl">
+            <h3 className="font-semibold mb-2">🤖 AI Analysis</h3>
+            <p>{aiResult}</p>
           </div>
         )}
       </div>
 
-      {/* 📊 Fake ATS Score (UI only for now) */}
-      <div className="mt-6 bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">ATS Score</h2>
-        <p className="text-3xl font-bold text-green-600">87%</p>
-        <button className="mt-2 px-3 py-1 bg-green-500 text-white rounded">
+      {/* ATS SCORE */}
+      <div className="bg-white p-6 rounded-2xl shadow mb-6">
+        <h2 className="text-xl font-semibold">ATS Score</h2>
+
+        <p className="text-4xl font-bold mt-2">{score}%</p>
+
+        <div className="w-full bg-gray-200 h-3 rounded mt-3">
+          <div
+            className="bg-green-500 h-3 rounded"
+            style={{ width: `${score}%` }}
+          ></div>
+        </div>
+
+        <button
+          onClick={improveScore}
+          className="mt-4 bg-green-500 text-white px-4 py-2 rounded-xl"
+        >
           Improve Score 🚀
         </button>
       </div>
 
-      {/* 🧠 Skill Gap */}
-      <div className="mt-6 bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">Skill Gap</h2>
-        <p>Target Role: Frontend Developer</p>
-        <ul className="mt-2 list-disc ml-5">
-          <li>JavaScript</li>
+      {/* SKILL GAP */}
+      <div className="bg-white p-6 rounded-2xl shadow mb-6">
+        <h2 className="text-xl font-semibold">Skill Gap</h2>
+        <p className="text-gray-600 mb-3">Target Role: {targetRole}</p>
+
+        <ul className="list-disc ml-6">
+          {skills.map((skill, i) => (
+            <li key={i}>{skill}</li>
+          ))}
         </ul>
-        <button className="mt-2 px-3 py-1 bg-blue-500 text-white rounded">
+
+        <button
+          onClick={addSkill}
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-xl"
+        >
           Add Skill ➕
         </button>
       </div>
 
-      {/* 🎯 Interview AI */}
-      <div className="mt-6 bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">Interview AI</h2>
-        <button className="px-3 py-1 bg-purple-500 text-white rounded">
+      {/* INTERVIEW AI */}
+      <div className="bg-white p-6 rounded-2xl shadow mb-6">
+        <h2 className="text-xl font-semibold">Interview AI</h2>
+        <p className="text-gray-600 mb-3">
+          Practice questions for {targetRole}
+        </p>
+
+        <button className="bg-purple-500 text-white px-4 py-2 rounded-xl">
           Generate Question 🎯
         </button>
       </div>
 
-      {/* 📈 Progress */}
-      <div className="mt-6 bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">Your Progress</h2>
-        <ul>
-          <li>✅ Resume Optimized</li>
-          <li>📈 Score Improved</li>
-          <li>📚 Skills Added</li>
-        </ul>
+      {/* PROGRESS */}
+      <div className="bg-white p-6 rounded-2xl shadow mb-6">
+        <h2 className="text-xl font-semibold">Your Progress</h2>
+
+        <div className="mt-3 space-y-2">
+          <p>✅ Resume Optimized</p>
+          <p>📈 Score Improved</p>
+          <p>📚 Skills Added</p>
+        </div>
       </div>
 
-      {/* 🔥 Referral */}
-      <div className="mt-6 bg-white p-4 rounded shadow">
-        <h2 className="text-xl font-semibold mb-2">
-          🔥 Earn Free Credits
-        </h2>
-        <p>Invite friends & unlock premium features</p>
-        <p className="mt-2">Referrals: 0/3</p>
-        <button className="mt-2 px-3 py-1 bg-black text-white rounded">
+      {/* REFERRAL */}
+      <div className="bg-white p-6 rounded-2xl shadow">
+        <h2 className="text-xl font-semibold">🔥 Earn Free Credits</h2>
+        <p className="text-gray-600 mb-2">
+          Invite friends & unlock premium features
+        </p>
+
+        <p className="font-semibold">Referrals: 0/3</p>
+
+        <button className="mt-3 bg-black text-white px-4 py-2 rounded-xl">
           Invite Friends 🚀
         </button>
       </div>
+
     </div>
   );
-                  }
+  }
