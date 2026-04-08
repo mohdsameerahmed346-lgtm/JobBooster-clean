@@ -12,24 +12,23 @@ export async function POST(req) {
       model: "gpt-4o-mini",
       messages: [
         {
-          role: "system",
-          content:
-            "You are an expert ATS resume analyzer. Give:\n1. ATS score out of 100\n2. Strengths\n3. Weaknesses\n4. Improvements\nMake it clean and structured."
-        },
-        {
           role: "user",
-          content: resume
-        }
+          content: `Give ATS score, strengths, weaknesses, and improvements for this resume:\n${resume}`,
+        },
       ],
     });
 
-    return Response.json({
-      result: response.choices[0].message.content,
-    });
+    const result =
+      response.choices?.[0]?.message?.content ||
+      "No response from AI";
+
+    return Response.json({ result });
 
   } catch (error) {
+    console.log(error);
+
     return Response.json({
-      result: "Error analyzing resume. Check API key or try again."
+      result: "❌ AI error. Check API key or quota.",
     });
   }
-      }
+                }
