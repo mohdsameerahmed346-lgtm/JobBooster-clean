@@ -1,177 +1,75 @@
-"use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function Dashboard() {
-  const [resume, setResume] = useState("");
-  const [jobDesc, setJobDesc] = useState("");
-  const [result, setResult] = useState("");
-  const [score, setScore] = useState(0);
+export default function Dashboard() { const [score, setScore] = useState(72); const [skills, setSkills] = useState(["JavaScript", "React"]); const [targetRole, setTargetRole] = useState("Frontend Developer");
 
-  // 🔐 LOGIN PROTECTION
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      window.location.href = "/login";
-    }
-  }, []);
+const share = () => { const text = I got ${score}% ATS score using JobBoost AI 🚀; navigator.clipboard.writeText(text); alert("Copied! Share with friends"); };
 
-  // 🤖 AI OPTIMIZE
-  const optimizeResume = async () => {
-    if (!resume || !jobDesc) {
-      alert("Fill both fields");
-      return;
-    }
+const improveScore = () => { if (score < 95) setScore(score + 5); };
 
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        body: JSON.stringify({ resume, jobDesc }),
-      });
+const addSkill = () => { const newSkill = prompt("Enter new skill:"); if (newSkill) setSkills([...skills, newSkill]); };
 
-      const data = await res.json();
+return ( <div className="min-h-screen bg-gray-100 p-6"> {/* Header */} <div className="flex justify-between items-center mb-6"> <h1 className="text-2xl font-bold">🚀 JobBoost Dashboard</h1> <button
+onClick={share}
+className="bg-black text-white px-4 py-2 rounded-xl"
+> 🔥 Share Score </button> </div>
 
-      setResult(data.result || "No response");
-
-      // temporary score
-      const fakeScore = Math.floor(Math.random() * 30) + 70;
-      setScore(fakeScore);
-    } catch (err) {
-      alert("AI failed");
-    }
-  };
-
-  // 🔥 SHARE FUNCTION (ADDED)
-  const share = () => {
-    const text = `I got ${score}% ATS score using JobBoost AI 🚀`;
-
-    navigator.clipboard.writeText(text);
-    alert("Copied! Share with friends 🔥");
-  };
-
-  return (
-    <div
-      style={{
-        padding: 20,
-        background: "#020617",
-        minHeight: "100vh",
-        color: "white",
-      }}
-    >
-      {/* NAVBAR */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h2>🚀 JobBoost AI</h2>
-
-        <button
-          onClick={() => {
-            localStorage.removeItem("user");
-            window.location.href = "/login";
-          }}
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* STATS */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div style={card}>📊 Score: {score}%</div>
-        <div style={card}>🔥 Streak: 3 days</div>
-        <div style={card}>🎯 Ready: {score}%</div>
-      </div>
-
-      {/* MAIN GRID */}
+{/* ATS Score Card */}
+  <div className="bg-white p-6 rounded-2xl shadow mb-6">
+    <h2 className="text-lg font-semibold">ATS Score</h2>
+    <p className="text-4xl font-bold mt-2">{score}%</p>
+    <div className="w-full bg-gray-200 h-3 rounded mt-3">
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 20,
-          marginTop: 20,
-        }}
-      >
-        {/* LEFT SIDE */}
-        <div style={card}>
-          <h3>🔥 Resume Optimizer</h3>
-
-          <textarea
-            placeholder="Paste your resume"
-            value={resume}
-            onChange={(e) => setResume(e.target.value)}
-            style={input}
-          />
-
-          <textarea
-            placeholder="Paste job description"
-            value={jobDesc}
-            onChange={(e) => setJobDesc(e.target.value)}
-            style={input}
-          />
-
-          <button style={btn} onClick={optimizeResume}>
-            Optimize
-          </button>
-
-          {/* SCORE + SHARE */}
-          {score > 0 && (
-            <>
-              <p>📊 Match Score: {score}%</p>
-              <button style={btn} onClick={share}>
-                🔥 Share Score
-              </button>
-            </>
-          )}
-
-          <pre style={{ whiteSpace: "pre-wrap" }}>{result}</pre>
-
-          <button style={btn}>📥 Download PDF</button>
-          <button style={lockBtn}>📥 DOCX 🔒</button>
-        </div>
-
-        {/* RIGHT SIDE */}
-        <div style={card}>
-          <h3>🧠 AI Tools</h3>
-
-          <button style={btn}>Skill Gap Analyzer</button>
-          <button style={btn}>Interview Questions</button>
-          <button style={btn}>Career Direction</button>
-        </div>
-      </div>
-
-      {/* UPGRADE SECTION */}
-      <div style={{ marginTop: 30 }}>
-        <h3>💎 Upgrade to Pro</h3>
-        <p>✔ Unlimited scans</p>
-        <p>✔ DOCX download</p>
-        <p>✔ Advanced AI</p>
-
-        <button style={btn}>Upgrade 🚀</button>
-      </div>
+        className="bg-green-500 h-3 rounded"
+        style={{ width: `${score}%` }}
+      />
     </div>
-  );
-}
+    <button
+      onClick={improveScore}
+      className="mt-4 bg-green-500 text-white px-4 py-2 rounded-xl"
+    >
+      Improve Score
+    </button>
+  </div>
 
-// 🎨 STYLES
-const card = {
-  background: "#0f172a",
-  padding: 20,
-  borderRadius: 10,
-};
+  {/* Skill Gap Section */}
+  <div className="bg-white p-6 rounded-2xl shadow mb-6">
+    <h2 className="text-lg font-semibold">Skill Gap</h2>
+    <p className="text-sm text-gray-500 mb-3">
+      Target Role: {targetRole}
+    </p>
+    <ul className="list-disc ml-6">
+      {skills.map((skill, i) => (
+        <li key={i}>{skill}</li>
+      ))}
+    </ul>
+    <button
+      onClick={addSkill}
+      className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-xl"
+    >
+      + Add Skill
+    </button>
+  </div>
 
-const input = {
-  width: "100%",
-  height: 80,
-  marginTop: 10,
-};
+  {/* Interview AI Section */}
+  <div className="bg-white p-6 rounded-2xl shadow mb-6">
+    <h2 className="text-lg font-semibold">Interview AI</h2>
+    <p className="text-gray-600 mb-3">
+      Practice common questions for {targetRole}
+    </p>
+    <button className="bg-purple-500 text-white px-4 py-2 rounded-xl">
+      Start Mock Interview
+    </button>
+  </div>
 
-const btn = {
-  marginTop: 10,
-  padding: 10,
-  background: "#2563eb",
-  color: "white",
-  border: "none",
-  borderRadius: 5,
-  cursor: "pointer",
-};
+  {/* Progress Section */}
+  <div className="bg-white p-6 rounded-2xl shadow">
+    <h2 className="text-lg font-semibold">Your Progress</h2>
+    <div className="mt-4 space-y-2">
+      <p>📄 Resume Optimized</p>
+      <p>📊 Score Improved</p>
+      <p>🎯 Skills Added</p>
+    </div>
+  </div>
+</div>
 
-const lockBtn = {
-  ...btn,
-  background: "#334155",
-};
+); }
