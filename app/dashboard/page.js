@@ -11,7 +11,6 @@ import {
 } from "firebase/firestore";
 
 import {
-  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
@@ -25,28 +24,39 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
 
-  // 🔐 LOGIN (POPUP + FALLBACK REDIRECT)
+  // 🔐 LOGIN (ONLY REDIRECT — NO POPUP)
   const login = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.log("Popup failed, using redirect...");
-      await signInWithRedirect(auth, provider);
-    }
+    await signInWithRedirect(auth, provider);
   };
 
-  // 🔥 SHARE
-  const share = () => {
-    const text = `I got ${score}% ATS score using JobBoost AI 🚀`;
-    navigator.clipboard.writeText(text);
-    alert("Copied! Share with friends 🔥");
-  };
+  // 🔥 HANDLE LOGIN RESULT (VERY IMPORTANT)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch((error) => console.error(error));
+  }, []);
+
+  // 🔥 AUTH STATE LISTENER
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        fetchHistory(currentUser.uid);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // 🤖 AI SCAN
   const scanResume = async () => {
-    try {
-      setLoading(true);
+    setLoading(true);
 
+    try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         body: JSON.stringify({ resume: resumeText }),
@@ -55,13 +65,13 @@ export default function Dashboard() {
       const data = await res.json();
 
       setScore(data.score || 85);
-      setAiResult(data.result || "AI analysis not available");
+      setAiResult(data.result || "AI result not available");
     } catch (error) {
       console.error(error);
-      setAiResult("❌ AI error. Check API key.");
-    } finally {
-      setLoading(false);
+      setAiResult("❌ AI error");
     }
+
+    setLoading(false);
   };
 
   // 💾 SAVE
@@ -79,118 +89,49 @@ export default function Dashboard() {
     fetchHistory(user.uid);
   };
 
-  // 📜 FETCH HISTORY
+  // 📜 HISTORY
   const fetchHistory = async (uid) => {
     const q = query(collection(db, "resumes"), where("uid", "==", uid));
     const snapshot = await getDocs(q);
-    const data = snapshot.docs.map((doc) => doc.data());
-    setHistory(data);
+    setHistory(snapshot.docs.map((doc) => doc.data()));
   };
 
-  // 🔥 FIX: AUTH STATE (NO MORE BLINK)
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        fetchHistory(currentUser.uid);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // 🔁 HANDLE REDIRECT LOGIN
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-        }
-      })
-      .catch((error) => console.error(error));
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 text-white p-6">
+    <div className="min-h-screen bg-black text-white p-6">
 
       {!user ? (
         <button
           onClick={login}
-          className="bg-white text-black px-6 py-3 rounded-xl shadow-lg"
+          className="bg-white text-black px-6 py-3 rounded-xl"
         >
           Login with Google 🚀
         </button>
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-4">
-            Welcome, {user.displayName} 🚀
+          <h1 className="text-2xl mb-4">
+            Welcome, {user.displayName}
           </h1>
 
-          <button
-            onClick={share}
-            className="bg-purple-600 px-4 py-2 rounded mb-4"
-          >
-            🔥 Share Score
+          <textarea
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            className="w-full p-2 text-black rounded"
+            placeholder="Paste resume"
+          />
+
+          <button onClick={scanResume} className="bg-blue-500 p-2 mt-2 rounded">
+            {loading ? "Analyzing..." : "Scan Resume"}
           </button>
 
-          {/* RESUME */}
-          <div className="bg-white/10 p-4 rounded-xl mb-4">
-            <h2 className="mb-2 font-semibold">📄 Resume Scanner</h2>
+          <button onClick={saveResume} className="bg-green-500 p-2 mt-2 ml-2 rounded">
+            Save
+          </button>
 
-            <textarea
-              rows={8}
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-              className="w-full p-2 rounded text-black"
-              placeholder="Paste your resume..."
-            />
+          {aiResult && <p className="mt-4">{aiResult}</p>}
 
-            <button
-              onClick={scanResume}
-              className="bg-blue-500 px-4 py-2 rounded mt-3"
-            >
-              {loading ? "Analyzing..." : "Scan Resume ⚡"}
-            </button>
-
-            <button
-              onClick={saveResume}
-              className="bg-green-500 px-4 py-2 rounded mt-3 ml-2"
-            >
-              💾 Save
-            </button>
-          </div>
-
-          {/* AI RESULT */}
-          {aiResult && (
-            <div className="bg-white/10 p-4 rounded mb-4">
-              <h2>🤖 AI Analysis</h2>
-              <p>{aiResult}</p>
-            </div>
-          )}
-
-          {/* SCORE */}
-          {score > 0 && (
-            <div className="bg-white/10 p-4 rounded mb-4">
-              <h2>📊 ATS Score</h2>
-              <p className="text-3xl">{score}%</p>
-            </div>
-          )}
-
-          {/* HISTORY */}
-          <div className="bg-white/10 p-4 rounded">
-            <h2>📜 Your Resumes</h2>
-
-            {history.length === 0 && <p>No saved resumes</p>}
-
-            {history.map((item, i) => (
-              <div key={i} className="bg-black/30 p-2 rounded mt-2">
-                <p>Score: {item.score}%</p>
-                <p className="text-xs">{item.createdAt}</p>
-              </div>
-            ))}
-          </div>
+          {score > 0 && <p className="text-xl mt-2">Score: {score}%</p>}
         </>
       )}
     </div>
   );
-}
+  }
