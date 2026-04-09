@@ -9,7 +9,7 @@ export default function Dashboard() {
 
   // 🔥 SHARE FUNCTION
   const share = () => {
-    const text = `I improved my resume using JobBoost AI 🚀 Try it here: https://your-vercel-link`;
+    const text = `I improved my resume using JobBoost AI 🚀 Try it here: https://job-booster-clean.vercel.app`;
     navigator.clipboard.writeText(text);
     alert("Copied! Share with friends");
   };
