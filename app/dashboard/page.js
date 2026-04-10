@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
 
-  // 🔐 LOGIN (simple + reliable)
+  // 🔐 LOGIN
   const handleLogin = async () => {
     try {
       await signInWithRedirect(auth, provider);
@@ -21,7 +21,7 @@ export default function Dashboard() {
     }
   };
 
-  // 🔥 AUTH STATE (MAIN SOURCE OF TRUTH)
+  // 🔥 AUTH STATE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -60,4 +60,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-      }
+                                           }
