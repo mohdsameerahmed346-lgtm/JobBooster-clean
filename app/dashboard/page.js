@@ -1,66 +1,63 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { auth, provider } from "../../lib/firebase";
 import {
   signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
 } from "firebase/auth";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 🔥 important
+  const [checking, setChecking] = useState(true);
 
-  // 🔐 LOGIN
-  const login = async () => {
-    await signInWithRedirect(auth, provider);
+  // 🔐 LOGIN (simple + reliable)
+  const handleLogin = async () => {
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (err) {
+      console.error(err);
+      alert("Login failed");
+    }
   };
 
-  // 🔁 HANDLE REDIRECT RESULT
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-        }
-      })
-      .catch((error) => console.error(error));
-  }, []);
-
-  // 🔥 AUTH STATE LISTENER (MAIN FIX)
+  // 🔥 AUTH STATE (MAIN SOURCE OF TRUTH)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false); // ✅ stop loading after check
+      setChecking(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // ⏳ WAIT UNTIL AUTH CHECKED
-  if (loading) {
+  // ⏳ WAIT
+  if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white">
-        <p>Loading...</p>
+      <div style={{ color: "white", background: "black", height: "100vh" }}>
+        Loading...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+    <div
+      style={{
+        color: "white",
+        background: "black",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
       {!user ? (
-        <button
-          onClick={login}
-          className="bg-white text-black px-6 py-3 rounded-xl"
-        >
+        <button onClick={handleLogin}>
           Login with Google 🚀
         </button>
       ) : (
-        <h1 className="text-2xl">
-          Welcome, {user.displayName} 🎉
-        </h1>
+        <h1>Welcome, {user.displayName} 🎉</h1>
       )}
     </div>
   );
-            }
+      }
