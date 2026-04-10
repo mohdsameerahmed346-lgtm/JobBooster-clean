@@ -8,6 +8,8 @@ import {
   signOut,
 } from "firebase/auth";
 
+import { motion } from "framer-motion";
+
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
@@ -15,19 +17,16 @@ export default function Dashboard() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔐 LOGIN
   const handleLogin = async () => {
     const result = await signInWithPopup(auth, provider);
     setUser(result.user);
   };
 
-  // 🔓 LOGOUT
   const handleLogout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
-  // 🔥 AUTH STATE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -37,7 +36,6 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // 🧠 AI ANALYZE
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume text first");
@@ -65,7 +63,7 @@ export default function Dashboard() {
   if (checking) {
     return (
       <div style={styles.center}>
-        <h2 style={{ color: "#fff" }}>Loading...</h2>
+        <h2>Loading...</h2>
       </div>
     );
   }
@@ -73,24 +71,42 @@ export default function Dashboard() {
   return (
     <div style={styles.page}>
       {!user ? (
-        <button style={styles.primaryBtn} onClick={handleLogin}>
+        <motion.button
+          style={styles.primaryBtn}
+          onClick={handleLogin}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
           Login with Google 🚀
-        </button>
+        </motion.button>
       ) : (
-        <div style={styles.container}>
+        <motion.div
+          style={styles.container}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {/* HEADER */}
           <div style={styles.header}>
             <div>
               <h2>Welcome, {user.displayName} 👋</h2>
               <p style={{ opacity: 0.7 }}>{user.email}</p>
             </div>
-            <button style={styles.logoutBtn} onClick={handleLogout}>
+
+            <motion.button
+              style={styles.logoutBtn}
+              onClick={handleLogout}
+              whileHover={{ scale: 1.1 }}
+            >
               Logout
-            </button>
+            </motion.button>
           </div>
 
           {/* INPUT CARD */}
-          <div style={styles.card}>
+          <motion.div
+            style={styles.card}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <h3>📄 Paste Your Resume</h3>
 
             <textarea
@@ -100,21 +116,31 @@ export default function Dashboard() {
               style={styles.textarea}
             />
 
-            <button style={styles.primaryBtn} onClick={handleAnalyze}>
+            <motion.button
+              style={styles.primaryBtn}
+              onClick={handleAnalyze}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               {loading ? "Analyzing..." : "Analyze Resume 🧠"}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           {/* RESULT CARD */}
           {result && (
-            <div style={styles.resultCard}>
+            <motion.div
+              style={styles.resultCard}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
               <h3>📊 AI Analysis Result</h3>
               <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
                 {result}
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );
@@ -197,5 +223,6 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    color: "#fff",
   },
 };
