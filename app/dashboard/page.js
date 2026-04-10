@@ -10,42 +10,42 @@ import {
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // 🔥 important
 
   // 🔐 LOGIN
   const login = async () => {
-    try {
-      console.log("Login started");
-      await signInWithRedirect(auth, provider);
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    }
+    await signInWithRedirect(auth, provider);
   };
 
   // 🔁 HANDLE REDIRECT RESULT
   useEffect(() => {
-    const checkRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
+    getRedirectResult(auth)
+      .then((result) => {
         if (result?.user) {
           setUser(result.user);
         }
-      } catch (error) {
-        console.error("Redirect error:", error);
-      }
-    };
-
-    checkRedirect();
+      })
+      .catch((error) => console.error(error));
   }, []);
 
-  // 🔥 AUTH STATE LISTENER
+  // 🔥 AUTH STATE LISTENER (MAIN FIX)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      setLoading(false); // ✅ stop loading after check
     });
 
     return () => unsubscribe();
   }, []);
+
+  // ⏳ WAIT UNTIL AUTH CHECKED
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-white">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
@@ -63,4 +63,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-                                           }
+            }
