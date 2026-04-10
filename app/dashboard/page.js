@@ -4,17 +4,19 @@ import { useEffect, useState } from "react";
 import { auth, provider } from "../../lib/firebase";
 import {
   signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
 } from "firebase/auth";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
 
-  // 🔐 LOGIN
+  // 🔐 LOGIN (SET PERSISTENCE BEFORE LOGIN)
   const handleLogin = async () => {
     try {
+      await setPersistence(auth, browserLocalPersistence); // 🔥 FIX
       await signInWithRedirect(auth, provider);
     } catch (err) {
       console.error("LOGIN ERROR:", err);
@@ -23,21 +25,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // 🔥 HANDLE REDIRECT RESULT (VERY IMPORTANT)
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          console.log("Redirect user:", result.user);
-          setUser(result.user);
-        }
-      })
-      .catch((error) => {
-        console.error("Redirect error:", error);
-      });
-
-    // 🔥 AUTH STATE LISTENER (MAIN SOURCE)
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("Auth user:", currentUser);
+      console.log("USER:", currentUser);
       setUser(currentUser);
       setChecking(false);
     });
@@ -45,19 +34,9 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // ⏳ WAIT UNTIL AUTH READY
   if (checking) {
     return (
-      <div
-        style={{
-          color: "white",
-          background: "black",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ background: "black", color: "white", height: "100vh" }}>
         Loading...
       </div>
     );
@@ -66,8 +45,8 @@ export default function Dashboard() {
   return (
     <div
       style={{
-        color: "white",
         background: "black",
+        color: "white",
         height: "100vh",
         display: "flex",
         justifyContent: "center",
@@ -83,4 +62,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-      }
+}
