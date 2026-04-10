@@ -17,16 +17,17 @@ export default function Dashboard() {
     try {
       await signInWithRedirect(auth, provider);
     } catch (err) {
-      console.error(err);
-      alert("Login failed");
+      console.error("LOGIN ERROR:", err);
+      alert(err.message);
     }
   };
 
   useEffect(() => {
-    // 🔥 VERY IMPORTANT: HANDLE REDIRECT RESULT
+    // 🔥 HANDLE REDIRECT RESULT (VERY IMPORTANT)
     getRedirectResult(auth)
       .then((result) => {
         if (result?.user) {
+          console.log("Redirect user:", result.user);
           setUser(result.user);
         }
       })
@@ -34,8 +35,9 @@ export default function Dashboard() {
         console.error("Redirect error:", error);
       });
 
-    // 🔥 AUTH STATE LISTENER
+    // 🔥 AUTH STATE LISTENER (MAIN SOURCE)
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      console.log("Auth user:", currentUser);
       setUser(currentUser);
       setChecking(false);
     });
@@ -43,9 +45,19 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // ⏳ WAIT UNTIL AUTH READY
   if (checking) {
     return (
-      <div style={{ color: "white", background: "black", height: "100vh" }}>
+      <div
+        style={{
+          color: "white",
+          background: "black",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         Loading...
       </div>
     );
