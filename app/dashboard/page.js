@@ -8,17 +8,12 @@ import {
   signOut,
 } from "firebase/auth";
 
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
-  const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
-  const db = getFirestore();
-  const storage = getStorage();
+  const [resumeText, setResumeText] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // 🔐 LOGIN
   const handleLogin = async () => {
@@ -42,60 +37,33 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // 💾 SAVE USER
-  useEffect(() => {
-    if (user) {
-      setDoc(doc(db, "users", user.uid), {
-        name: user.displayName,
-        email: user.email,
-      });
-    }
-  }, [user]);
-
-  // 📄 FILE SELECT
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
-  // 🚀 UPLOAD TO FIREBASE STORAGE
-  const handleUpload = async () => {
-    if (!file || !user) {
-      alert("Select file first");
+  // 🧠 AI ANALYZE
+  const handleAnalyze = async () => {
+    if (!resumeText) {
+      alert("Paste resume text first");
       return;
     }
 
     try {
-      setUploading(true);
+      setLoading(true);
 
-      const storageRef = ref(storage, `resumes/${user.uid}/${file.name}`);
-
-      await uploadBytes(storageRef, file);
-
-      const downloadURL = await getDownloadURL(storageRef);
-
-      console.log("File URL:", downloadURL);
-
-      // 💾 Save resume URL
-      await setDoc(doc(db, "resumes", user.uid), {
-        fileName: file.name,
-        url: downloadURL,
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({ text: resumeText }),
       });
 
-      alert("Resume uploaded successfully 🚀");
+      const data = await res.json();
+      setResult(data.result);
     } catch (err) {
       console.error(err);
-      alert("Upload failed");
+      alert("Error analyzing");
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
   if (checking) {
-    return (
-      <div style={{ background: "black", color: "white", height: "100vh" }}>
-        Loading...
-      </div>
-    );
+    return <div style={{ color: "white", background: "black" }}>Loading...</div>;
   }
 
   return (
@@ -103,11 +71,8 @@ export default function Dashboard() {
       style={{
         background: "black",
         color: "white",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
+        minHeight: "100vh",
+        padding: "20px",
       }}
     >
       {!user ? (
@@ -116,22 +81,31 @@ export default function Dashboard() {
         </button>
       ) : (
         <>
-          <h1>Welcome, {user.displayName} 🎉</h1>
-          <p>{user.email}</p>
+          <h2>Welcome, {user.displayName} 🎉</h2>
 
-          {/* 📄 Upload */}
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={handleFileChange}
-            style={{ marginTop: "20px" }}
+          <textarea
+            placeholder="Paste your resume here..."
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            style={{
+              width: "100%",
+              height: "200px",
+              marginTop: "20px",
+              padding: "10px",
+            }}
           />
 
-          <button onClick={handleUpload} disabled={uploading}>
-            {uploading ? "Uploading..." : "Upload Resume 📄"}
+          <button onClick={handleAnalyze} style={{ marginTop: "10px" }}>
+            {loading ? "Analyzing..." : "Analyze Resume 🧠"}
           </button>
 
-          {/* 🔓 Logout */}
+          {result && (
+            <div style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}>
+              <h3>Result:</h3>
+              <p>{result}</p>
+            </div>
+          )}
+
           <button onClick={handleLogout} style={{ marginTop: "20px" }}>
             Logout
           </button>
@@ -139,4 +113,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-}
+    }
