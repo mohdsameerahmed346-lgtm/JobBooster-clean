@@ -13,35 +13,25 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [file, setFile] = useState(null);
 
   const db = getFirestore();
 
   // 🔐 LOGIN
   const handleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log("Logged in:", result.user);
-      setUser(result.user);
-    } catch (err) {
-      console.error("LOGIN ERROR:", err);
-      alert(err.message);
-    }
+    const result = await signInWithPopup(auth, provider);
+    setUser(result.user);
   };
 
   // 🔓 LOGOUT
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-    } catch (err) {
-      console.error("LOGOUT ERROR:", err);
-    }
+    await signOut(auth);
+    setUser(null);
   };
 
   // 🔥 AUTH STATE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("Auth state:", currentUser);
       setUser(currentUser);
       setChecking(false);
     });
@@ -49,31 +39,36 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // 💾 SAVE USER TO FIRESTORE
+  // 💾 SAVE USER
   useEffect(() => {
     if (user) {
       setDoc(doc(db, "users", user.uid), {
         name: user.displayName,
         email: user.email,
-      })
-        .then(() => console.log("User saved"))
-        .catch((err) => console.error("Firestore error:", err));
+      });
     }
-  }, [user, db]);
+  }, [user]);
 
-  // ⏳ LOADING
+  // 📄 HANDLE FILE
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleUpload = () => {
+    if (!file) {
+      alert("Please select a file");
+      return;
+    }
+
+    console.log("File selected:", file.name);
+
+    // 🚀 NEXT: We will upload + analyze
+    alert("Resume uploaded (next: AI scan)");
+  };
+
   if (checking) {
     return (
-      <div
-        style={{
-          background: "black",
-          color: "white",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <div style={{ background: "black", color: "white", height: "100vh" }}>
         Loading...
       </div>
     );
@@ -98,18 +93,24 @@ export default function Dashboard() {
       ) : (
         <>
           <h1>Welcome, {user.displayName} 🎉</h1>
+          <p>{user.email}</p>
 
-          <p style={{ marginTop: "10px" }}>{user.email}</p>
+          {/* 📄 Upload */}
+          <input
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+            style={{ marginTop: "20px" }}
+          />
 
+          <button onClick={handleUpload} style={{ marginTop: "10px" }}>
+            Upload Resume 📄
+          </button>
+
+          {/* 🔓 Logout */}
           <button
             onClick={handleLogout}
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              background: "white",
-              color: "black",
-              borderRadius: "8px",
-            }}
+            style={{ marginTop: "20px" }}
           >
             Logout
           </button>
