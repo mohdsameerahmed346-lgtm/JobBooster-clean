@@ -13,7 +13,8 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "You are a resume expert. Analyze resumes and give score out of 100 with improvements.",
+            content:
+              "Analyze this resume and return ONLY JSON in this format: {\"score\": number (0-100), \"feedback\": \"detailed improvements\"}",
           },
           {
             role: "user",
@@ -25,10 +26,11 @@ export async function POST(req) {
 
     const data = await response.json();
 
-    return Response.json({
-      result: data.choices[0].message.content,
-    });
+    const result = data.choices[0].message.content;
+
+    return Response.json({ result });
   } catch (error) {
-    return Response.json({ error: "Something went wrong" });
+    console.error(error);
+    return Response.json({ error: "AI failed" });
   }
-              }
+}
