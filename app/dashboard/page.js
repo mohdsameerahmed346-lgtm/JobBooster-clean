@@ -3,30 +3,30 @@
 import { useEffect, useState } from "react";
 import { auth, provider } from "../../lib/firebase";
 import {
-  signInWithRedirect,
+  signInWithPopup,
   onAuthStateChanged,
-  setPersistence,
-  browserLocalPersistence,
 } from "firebase/auth";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
 
-  // 🔐 LOGIN (SET PERSISTENCE BEFORE LOGIN)
+  // 🔐 LOGIN WITH POPUP (NO REDIRECT)
   const handleLogin = async () => {
     try {
-      await setPersistence(auth, browserLocalPersistence); // 🔥 FIX
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      console.log("Logged in:", result.user);
+      setUser(result.user);
     } catch (err) {
       console.error("LOGIN ERROR:", err);
       alert(err.message);
     }
   };
 
+  // 🔥 AUTH STATE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log("USER:", currentUser);
+      console.log("Auth state:", currentUser);
       setUser(currentUser);
       setChecking(false);
     });
@@ -62,4 +62,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-}
+                                           }
