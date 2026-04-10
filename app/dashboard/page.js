@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
   const [resumeText, setResumeText] = useState("");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -51,7 +51,11 @@ export default function Dashboard() {
       });
 
       const data = await res.json();
-      setResult(data.result);
+
+      // 🔥 parse AI JSON safely
+      const parsed = JSON.parse(data.result);
+
+      setResult(parsed);
     } catch (err) {
       console.error(err);
       alert("Error analyzing");
@@ -61,86 +65,80 @@ export default function Dashboard() {
   };
 
   if (checking) {
-    return (
-      <div style={styles.center}>
-        <h2>Loading...</h2>
-      </div>
-    );
+    return <div style={{ color: "#fff" }}>Loading...</div>;
   }
 
   return (
     <div style={styles.page}>
       {!user ? (
-        <motion.button
-          style={styles.primaryBtn}
-          onClick={handleLogin}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Login with Google 🚀
-        </motion.button>
+        <button style={styles.btn} onClick={handleLogin}>
+          Login 🚀
+        </button>
       ) : (
-        <motion.div
-          style={styles.container}
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <div style={styles.container}>
           {/* HEADER */}
           <div style={styles.header}>
             <div>
               <h2>Welcome, {user.displayName} 👋</h2>
-              <p style={{ opacity: 0.7 }}>{user.email}</p>
+              <p>{user.email}</p>
             </div>
-
-            <motion.button
-              style={styles.logoutBtn}
-              onClick={handleLogout}
-              whileHover={{ scale: 1.1 }}
-            >
+            <button style={styles.logout} onClick={handleLogout}>
               Logout
-            </motion.button>
+            </button>
           </div>
 
-          {/* INPUT CARD */}
-          <motion.div
-            style={styles.card}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h3>📄 Paste Your Resume</h3>
-
+          {/* INPUT */}
+          <div style={styles.card}>
             <textarea
-              placeholder="Paste your resume here..."
+              placeholder="Paste your resume..."
               value={resumeText}
               onChange={(e) => setResumeText(e.target.value)}
               style={styles.textarea}
             />
 
-            <motion.button
-              style={styles.primaryBtn}
-              onClick={handleAnalyze}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <button style={styles.btn} onClick={handleAnalyze}>
               {loading ? "Analyzing..." : "Analyze Resume 🧠"}
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
 
-          {/* RESULT CARD */}
+          {/* RESULT */}
           {result && (
             <motion.div
               style={styles.resultCard}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
             >
-              <h3>📊 AI Analysis Result</h3>
-              <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
-                {result}
+              {/* SCORE */}
+              <div style={styles.scoreBox}>
+                <motion.h1
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  style={styles.score}
+                >
+                  {result.score}
+                </motion.h1>
+                <p>/100</p>
+              </div>
+
+              {/* PROGRESS BAR */}
+              <div style={styles.progressBg}>
+                <motion.div
+                  style={{
+                    ...styles.progressFill,
+                    width: `${result.score}%`,
+                  }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${result.score}%` }}
+                />
+              </div>
+
+              {/* FEEDBACK */}
+              <p style={{ marginTop: "20px" }}>
+                {result.feedback}
               </p>
             </motion.div>
           )}
-        </motion.div>
+        </div>
       )}
     </div>
   );
@@ -149,80 +147,77 @@ export default function Dashboard() {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #0f172a, #1e293b)",
+    background: "linear-gradient(135deg,#0f172a,#1e293b)",
     color: "#fff",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
     padding: "20px",
   },
 
   container: {
-    width: "100%",
     maxWidth: "800px",
+    margin: "auto",
   },
 
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "20px",
   },
 
   card: {
-    background: "rgba(255,255,255,0.05)",
-    backdropFilter: "blur(10px)",
+    background: "#111",
     padding: "20px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
-    marginBottom: "20px",
-  },
-
-  resultCard: {
-    background: "rgba(34,197,94,0.1)",
-    padding: "20px",
-    borderRadius: "16px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+    borderRadius: "12px",
   },
 
   textarea: {
     width: "100%",
-    height: "180px",
-    marginTop: "10px",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "none",
-    outline: "none",
-    background: "#020617",
-    color: "#fff",
+    height: "150px",
     marginBottom: "10px",
   },
 
-  primaryBtn: {
-    padding: "10px 20px",
-    borderRadius: "10px",
-    border: "none",
+  btn: {
     background: "#3b82f6",
     color: "#fff",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  logoutBtn: {
-    padding: "8px 16px",
-    borderRadius: "8px",
+    padding: "10px",
     border: "none",
-    background: "#ef4444",
-    color: "#fff",
-    cursor: "pointer",
+    borderRadius: "8px",
   },
 
-  center: {
-    minHeight: "100vh",
-    background: "#020617",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
+  logout: {
+    background: "red",
     color: "#fff",
+    padding: "8px",
+    borderRadius: "6px",
+  },
+
+  resultCard: {
+    marginTop: "20px",
+    padding: "20px",
+    background: "#020617",
+    borderRadius: "12px",
+  },
+
+  scoreBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+
+  score: {
+    fontSize: "48px",
+    color: "#22c55e",
+  },
+
+  progressBg: {
+    height: "10px",
+    background: "#333",
+    borderRadius: "10px",
+    marginTop: "10px",
+  },
+
+  progressFill: {
+    height: "100%",
+    background: "#22c55e",
+    borderRadius: "10px",
   },
 };
