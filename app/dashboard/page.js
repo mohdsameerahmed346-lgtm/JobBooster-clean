@@ -63,54 +63,139 @@ export default function Dashboard() {
   };
 
   if (checking) {
-    return <div style={{ color: "white", background: "black" }}>Loading...</div>;
+    return (
+      <div style={styles.center}>
+        <h2 style={{ color: "#fff" }}>Loading...</h2>
+      </div>
+    );
   }
 
   return (
-    <div
-      style={{
-        background: "black",
-        color: "white",
-        minHeight: "100vh",
-        padding: "20px",
-      }}
-    >
+    <div style={styles.page}>
       {!user ? (
-        <button onClick={handleLogin}>
+        <button style={styles.primaryBtn} onClick={handleLogin}>
           Login with Google 🚀
         </button>
       ) : (
-        <>
-          <h2>Welcome, {user.displayName} 🎉</h2>
+        <div style={styles.container}>
+          {/* HEADER */}
+          <div style={styles.header}>
+            <div>
+              <h2>Welcome, {user.displayName} 👋</h2>
+              <p style={{ opacity: 0.7 }}>{user.email}</p>
+            </div>
+            <button style={styles.logoutBtn} onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
 
-          <textarea
-            placeholder="Paste your resume here..."
-            value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
-            style={{
-              width: "100%",
-              height: "200px",
-              marginTop: "20px",
-              padding: "10px",
-            }}
-          />
+          {/* INPUT CARD */}
+          <div style={styles.card}>
+            <h3>📄 Paste Your Resume</h3>
 
-          <button onClick={handleAnalyze} style={{ marginTop: "10px" }}>
-            {loading ? "Analyzing..." : "Analyze Resume 🧠"}
-          </button>
+            <textarea
+              placeholder="Paste your resume here..."
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+              style={styles.textarea}
+            />
 
+            <button style={styles.primaryBtn} onClick={handleAnalyze}>
+              {loading ? "Analyzing..." : "Analyze Resume 🧠"}
+            </button>
+          </div>
+
+          {/* RESULT CARD */}
           {result && (
-            <div style={{ marginTop: "20px", whiteSpace: "pre-wrap" }}>
-              <h3>Result:</h3>
-              <p>{result}</p>
+            <div style={styles.resultCard}>
+              <h3>📊 AI Analysis Result</h3>
+              <p style={{ whiteSpace: "pre-wrap", lineHeight: "1.6" }}>
+                {result}
+              </p>
             </div>
           )}
-
-          <button onClick={handleLogout} style={{ marginTop: "20px" }}>
-            Logout
-          </button>
-        </>
+        </div>
       )}
     </div>
   );
-    }
+}
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #0f172a, #1e293b)",
+    color: "#fff",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "20px",
+  },
+
+  container: {
+    width: "100%",
+    maxWidth: "800px",
+  },
+
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "20px",
+  },
+
+  card: {
+    background: "rgba(255,255,255,0.05)",
+    backdropFilter: "blur(10px)",
+    padding: "20px",
+    borderRadius: "16px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+    marginBottom: "20px",
+  },
+
+  resultCard: {
+    background: "rgba(34,197,94,0.1)",
+    padding: "20px",
+    borderRadius: "16px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+  },
+
+  textarea: {
+    width: "100%",
+    height: "180px",
+    marginTop: "10px",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    outline: "none",
+    background: "#020617",
+    color: "#fff",
+    marginBottom: "10px",
+  },
+
+  primaryBtn: {
+    padding: "10px 20px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#3b82f6",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+
+  logoutBtn: {
+    padding: "8px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#ef4444",
+    color: "#fff",
+    cursor: "pointer",
+  },
+
+  center: {
+    minHeight: "100vh",
+    background: "#020617",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+};
