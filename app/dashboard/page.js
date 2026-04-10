@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { auth, provider } from "../../lib/firebase";
 import {
   signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
 } from "firebase/auth";
 
@@ -21,8 +22,19 @@ export default function Dashboard() {
     }
   };
 
-  // 🔥 AUTH STATE
   useEffect(() => {
+    // 🔥 VERY IMPORTANT: HANDLE REDIRECT RESULT
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("Redirect error:", error);
+      });
+
+    // 🔥 AUTH STATE LISTENER
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setChecking(false);
@@ -31,7 +43,6 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
-  // ⏳ WAIT
   if (checking) {
     return (
       <div style={{ color: "white", background: "black", height: "100vh" }}>
@@ -60,4 +71,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-                                           }
+      }
