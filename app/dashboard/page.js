@@ -9,13 +9,16 @@ import {
 } from "firebase/auth";
 
 import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
   const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const db = getFirestore();
+  const storage = getStorage();
 
   // 🔐 LOGIN
   const handleLogin = async () => {
@@ -49,21 +52,42 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // 📄 HANDLE FILE
+  // 📄 FILE SELECT
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
-  const handleUpload = () => {
-    if (!file) {
-      alert("Please select a file");
+  // 🚀 UPLOAD TO FIREBASE STORAGE
+  const handleUpload = async () => {
+    if (!file || !user) {
+      alert("Select file first");
       return;
     }
 
-    console.log("File selected:", file.name);
+    try {
+      setUploading(true);
 
-    // 🚀 NEXT: We will upload + analyze
-    alert("Resume uploaded (next: AI scan)");
+      const storageRef = ref(storage, `resumes/${user.uid}/${file.name}`);
+
+      await uploadBytes(storageRef, file);
+
+      const downloadURL = await getDownloadURL(storageRef);
+
+      console.log("File URL:", downloadURL);
+
+      // 💾 Save resume URL
+      await setDoc(doc(db, "resumes", user.uid), {
+        fileName: file.name,
+        url: downloadURL,
+      });
+
+      alert("Resume uploaded successfully 🚀");
+    } catch (err) {
+      console.error(err);
+      alert("Upload failed");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (checking) {
@@ -103,15 +127,12 @@ export default function Dashboard() {
             style={{ marginTop: "20px" }}
           />
 
-          <button onClick={handleUpload} style={{ marginTop: "10px" }}>
-            Upload Resume 📄
+          <button onClick={handleUpload} disabled={uploading}>
+            {uploading ? "Uploading..." : "Upload Resume 📄"}
           </button>
 
           {/* 🔓 Logout */}
-          <button
-            onClick={handleLogout}
-            style={{ marginTop: "20px" }}
-          >
+          <button onClick={handleLogout} style={{ marginTop: "20px" }}>
             Logout
           </button>
         </>
