@@ -68,13 +68,20 @@ Analyze this resume deeply and return ONLY JSON in this format:
       });
     }
 
-    const result = data.choices?.[0]?.message?.content;
+    let result = data.choices?.[0]?.message?.content;
 
-    if (!result) {
-      return Response.json({ error: "Invalid AI response" });
-    }
+if (!result) {
+  return Response.json({ error: "Invalid AI response" });
+}
 
-    return Response.json({ result });
+// 🔥 CLEAN JSON FROM RESPONSE
+const jsonMatch = result.match(/\{[\s\S]*\}/);
+
+if (!jsonMatch) {
+  return Response.json({ error: "AI did not return valid JSON" });
+}
+
+return Response.json({ result: jsonMatch[0] });
 
   } catch (error) {
     console.error("SERVER ERROR:", error);
