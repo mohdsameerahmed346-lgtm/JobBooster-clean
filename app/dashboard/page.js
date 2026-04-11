@@ -17,16 +17,23 @@ export default function Dashboard() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // 🔐 LOGIN
   const handleLogin = async () => {
-    const result = await signInWithPopup(auth, provider);
-    setUser(result.user);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      setUser(result.user);
+    } catch (err) {
+      alert("Login failed");
+    }
   };
 
+  // 🔓 LOGOUT
   const handleLogout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
+  // 🔥 AUTH STATE
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -36,6 +43,7 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // 🧠 ANALYZE
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume text first");
@@ -52,28 +60,50 @@ export default function Dashboard() {
 
       const data = await res.json();
 
-      // 🔥 parse AI JSON safely
-      const parsed = JSON.parse(data.result);
+      // 🔥 SHOW REAL ERROR
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      // 🔥 SAFE PARSE
+      let parsed;
+      try {
+        parsed = JSON.parse(data.result);
+      } catch {
+        alert("AI response format error. Try again.");
+        return;
+      }
 
       setResult(parsed);
+
     } catch (err) {
       console.error(err);
-      alert("Error analyzing");
+      alert("Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
+  // ⏳ LOADING
   if (checking) {
-    return <div style={{ color: "#fff" }}>Loading...</div>;
+    return (
+      <div style={styles.center}>
+        <h2>Loading...</h2>
+      </div>
+    );
   }
 
   return (
     <div style={styles.page}>
       {!user ? (
-        <button style={styles.btn} onClick={handleLogin}>
-          Login 🚀
-        </button>
+        <motion.button
+          style={styles.btn}
+          onClick={handleLogin}
+          whileHover={{ scale: 1.05 }}
+        >
+          Login with Google 🚀
+        </motion.button>
       ) : (
         <div style={styles.container}>
           {/* HEADER */}
@@ -82,13 +112,14 @@ export default function Dashboard() {
               <h2>Welcome, {user.displayName} 👋</h2>
               <p>{user.email}</p>
             </div>
+
             <button style={styles.logout} onClick={handleLogout}>
               Logout
             </button>
           </div>
 
           {/* INPUT */}
-          <div style={styles.card}>
+          <motion.div style={styles.card}>
             <textarea
               placeholder="Paste your resume..."
               value={resumeText}
@@ -96,10 +127,14 @@ export default function Dashboard() {
               style={styles.textarea}
             />
 
-            <button style={styles.btn} onClick={handleAnalyze}>
+            <motion.button
+              style={styles.btn}
+              onClick={handleAnalyze}
+              whileHover={{ scale: 1.05 }}
+            >
               {loading ? "Analyzing..." : "Analyze Resume 🧠"}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           {/* RESULT */}
           {result && (
@@ -120,7 +155,7 @@ export default function Dashboard() {
                 <p>/100</p>
               </div>
 
-              {/* PROGRESS BAR */}
+              {/* PROGRESS */}
               <div style={styles.progressBg}>
                 <motion.div
                   style={{
@@ -133,7 +168,7 @@ export default function Dashboard() {
               </div>
 
               {/* FEEDBACK */}
-              <p style={{ marginTop: "20px" }}>
+              <p style={{ marginTop: "20px", lineHeight: "1.6" }}>
                 {result.feedback}
               </p>
             </motion.div>
@@ -144,6 +179,7 @@ export default function Dashboard() {
   );
 }
 
+// 🎨 STYLES
 const styles = {
   page: {
     minHeight: "100vh",
@@ -173,6 +209,8 @@ const styles = {
     width: "100%",
     height: "150px",
     marginBottom: "10px",
+    padding: "10px",
+    borderRadius: "8px",
   },
 
   btn: {
@@ -181,13 +219,15 @@ const styles = {
     padding: "10px",
     border: "none",
     borderRadius: "8px",
+    cursor: "pointer",
   },
 
   logout: {
-    background: "red",
+    background: "#ef4444",
     color: "#fff",
     padding: "8px",
     borderRadius: "6px",
+    border: "none",
   },
 
   resultCard: {
@@ -219,5 +259,12 @@ const styles = {
     height: "100%",
     background: "#22c55e",
     borderRadius: "10px",
+  },
+
+  center: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
 };
