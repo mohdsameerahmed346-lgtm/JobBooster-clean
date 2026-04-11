@@ -2,14 +2,18 @@ export async function POST(req) {
   try {
     const { text } = await req.json();
 
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json({ error: "API key not found in environment variables" });
+    }
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer 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
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo", // ✅ safer model
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
@@ -42,4 +46,4 @@ export async function POST(req) {
     console.error("API ERROR:", error);
     return Response.json({ error: error.message });
   }
-        }
+            }
