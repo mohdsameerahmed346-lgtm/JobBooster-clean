@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // 🔐 LOGIN
   const handleLogin = async () => {
     try {
       const res = await signInWithPopup(auth, provider);
@@ -26,11 +27,13 @@ export default function Dashboard() {
     }
   };
 
+  // 🔓 LOGOUT
   const handleLogout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
+  // 🔥 AUTH STATE
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -39,6 +42,7 @@ export default function Dashboard() {
     return () => unsub();
   }, []);
 
+  // 🧠 ANALYZE
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume text first");
@@ -60,10 +64,19 @@ export default function Dashboard() {
         return;
       }
 
+      // 🔥 FIX: EXTRACT JSON FROM AI RESPONSE
       let parsed;
       try {
-        parsed = JSON.parse(data.result);
-      } catch {
+        const jsonMatch = data.result.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+          alert("AI response not valid JSON");
+          return;
+        }
+
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch (err) {
+        console.error(err);
         alert("AI response format error");
         return;
       }
@@ -78,18 +91,20 @@ export default function Dashboard() {
     }
   };
 
+  // ⏳ LOADING SCREEN
   if (checking) {
-    return <div style={{ color: "#fff" }}>Loading...</div>;
+    return <div style={styles.center}>Loading...</div>;
   }
 
   return (
     <div style={styles.page}>
       {!user ? (
         <motion.button style={styles.btn} onClick={handleLogin}>
-          Login 🚀
+          Login with Google 🚀
         </motion.button>
       ) : (
         <div style={styles.container}>
+          {/* HEADER */}
           <div style={styles.header}>
             <div>
               <h2>Welcome, {user.displayName} 👋</h2>
@@ -101,7 +116,8 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div style={styles.card}>
+          {/* INPUT */}
+          <motion.div style={styles.card}>
             <textarea
               placeholder="Paste your resume..."
               value={resumeText}
@@ -109,18 +125,29 @@ export default function Dashboard() {
               style={styles.textarea}
             />
 
-            <button style={styles.btn} onClick={handleAnalyze}>
+            <motion.button
+              style={styles.btn}
+              onClick={handleAnalyze}
+              whileHover={{ scale: 1.05 }}
+            >
               {loading ? "Analyzing..." : "Analyze Resume 🧠"}
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
+          {/* RESULT */}
           {result && (
-            <motion.div style={styles.resultCard}>
+            <motion.div
+              style={styles.resultCard}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {/* SCORE */}
               <div style={styles.scoreBox}>
                 <h1 style={styles.score}>{result.score}</h1>
                 <p>/100</p>
               </div>
 
+              {/* PROGRESS */}
               <div style={styles.progressBg}>
                 <div
                   style={{
@@ -130,7 +157,38 @@ export default function Dashboard() {
                 />
               </div>
 
+              {/* FEEDBACK */}
               <p style={{ marginTop: "20px" }}>{result.feedback}</p>
+
+              {/* STRENGTHS */}
+              <div style={styles.section}>
+                <h3>✅ Strengths</h3>
+                <ul>
+                  {result.strengths?.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* WEAKNESSES */}
+              <div style={styles.section}>
+                <h3>⚠️ Weaknesses</h3>
+                <ul>
+                  {result.weaknesses?.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* IMPROVEMENTS */}
+              <div style={styles.section}>
+                <h3>🚀 Improvements</h3>
+                <ul>
+                  {result.improvements?.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </motion.div>
           )}
         </div>
@@ -139,6 +197,7 @@ export default function Dashboard() {
   );
 }
 
+// 🎨 STYLES
 const styles = {
   page: {
     minHeight: "100vh",
@@ -146,7 +205,10 @@ const styles = {
     color: "#fff",
     padding: "20px",
   },
-  container: { maxWidth: "800px", margin: "auto" },
+  container: {
+    maxWidth: "800px",
+    margin: "auto",
+  },
   header: {
     display: "flex",
     justifyContent: "space-between",
@@ -161,19 +223,23 @@ const styles = {
     width: "100%",
     height: "150px",
     marginBottom: "10px",
+    padding: "10px",
+    borderRadius: "8px",
   },
   btn: {
     background: "#3b82f6",
-    padding: "10px",
     color: "#fff",
+    padding: "10px",
     border: "none",
     borderRadius: "8px",
+    cursor: "pointer",
   },
   logout: {
-    background: "red",
-    padding: "8px",
+    background: "#ef4444",
     color: "#fff",
+    padding: "8px",
     borderRadius: "6px",
+    border: "none",
   },
   resultCard: {
     marginTop: "20px",
@@ -200,5 +266,14 @@ const styles = {
     height: "100%",
     background: "#22c55e",
     borderRadius: "10px",
+  },
+  section: {
+    marginTop: "20px",
+  },
+  center: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
   },
 };
