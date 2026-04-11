@@ -6,7 +6,7 @@ export async function POST(req) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer YOUR_OPENAI_API_KEY`,
+        Authorization: `Bearer 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
       },
       body: JSON.stringify({
         model: "gpt-3.5-turbo", // ✅ safer model
