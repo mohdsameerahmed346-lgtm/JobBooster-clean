@@ -9,12 +9,12 @@ export async function POST(req) {
         Authorization: `Bearer YOUR_OPENAI_API_KEY`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo", // ✅ safer model
         messages: [
           {
             role: "system",
             content:
-              "Analyze this resume and return ONLY JSON in this format: {\"score\": number (0-100), \"feedback\": \"detailed improvements\"}",
+              "Analyze this resume and return ONLY JSON like this: {\"score\": number (0-100), \"feedback\": \"clear suggestions\"}",
           },
           {
             role: "user",
@@ -26,11 +26,20 @@ export async function POST(req) {
 
     const data = await response.json();
 
+    // 🔥 HANDLE OPENAI ERROR
+    if (!response.ok) {
+      console.error("OpenAI Error:", data);
+      return Response.json({
+        error: data.error?.message || "OpenAI API failed",
+      });
+    }
+
     const result = data.choices[0].message.content;
 
     return Response.json({ result });
+
   } catch (error) {
-    console.error(error);
-    return Response.json({ error: "AI failed" });
+    console.error("API ERROR:", error);
+    return Response.json({ error: error.message });
   }
-}
+        }
