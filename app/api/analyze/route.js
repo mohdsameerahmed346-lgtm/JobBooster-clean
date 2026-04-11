@@ -13,7 +13,7 @@ export async function POST(req) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3-8b-instruct", // ✅ stable free model
+        model: "meta-llama/llama-3-8b-instruct",
         messages: [
           {
             role: "system",
@@ -37,7 +37,13 @@ Rules:
 - Suggest measurable improvements (numbers, impact, results)
 - Avoid generic words like "hardworking", "team player"
 - Think like a recruiter hiring for a real job
-- Return ONLY pure JSON (no extra text before or after)
+
+🔥 STRICT RULES:
+- Do not assume missing information
+- Only analyze based on given resume content
+- Every weakness must be based on visible resume data
+
+⚠️ Return ONLY pure JSON (no extra text before or after)
 `,
           },
           {
@@ -70,4 +76,4 @@ Rules:
     console.error("SERVER ERROR:", error);
     return Response.json({ error: error.message });
   }
-            }
+}
