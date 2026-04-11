@@ -25,23 +25,27 @@ Analyze this resume deeply and return ONLY JSON in this format:
 {
   "score": number (0-100),
   "feedback": "detailed professional evaluation",
-  "strengths": ["specific strength 1", "specific strength 2"],
-  "weaknesses": ["real weakness 1", "real weakness 2"],
-  "improvements": ["actionable improvement 1", "actionable improvement 2"]
+  "strengths": ["specific, evidence-based strength"],
+  "weaknesses": ["real weakness based on resume"],
+  "improvements": ["clear actionable improvement"]
 }
 
-Rules:
-- Do NOT copy strengths directly from resume
-- Give realistic hiring-level feedback
-- Be specific and critical
-- Suggest measurable improvements (numbers, impact, results)
-- Avoid generic words like "hardworking", "team player"
-- Think like a recruiter hiring for a real job
-
 🔥 STRICT RULES:
+
+- Do NOT copy strengths directly from resume
+- Do NOT use generic terms like "hardworking", "team player", "good communication"
+- ONLY mention strengths that are clearly proven by resume content
+- PRIORITIZE measurable achievements (%, numbers, impact)
+
+- If metrics (like %, numbers, improvements) are present → MUST highlight them as strengths
+- If metrics are missing → mention it as a weakness
+
 - Do not assume missing information
 - Only analyze based on given resume content
-- Every weakness must be based on visible resume data
+- Every weakness MUST be based on visible resume data
+
+- Be critical but fair (like a real recruiter)
+- Give practical suggestions for getting hired
 
 ⚠️ Return ONLY pure JSON (no extra text before or after)
 `,
@@ -76,4 +80,4 @@ Rules:
     console.error("SERVER ERROR:", error);
     return Response.json({ error: error.message });
   }
-}
+  }
