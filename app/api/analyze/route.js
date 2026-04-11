@@ -13,25 +13,31 @@ export async function POST(req) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3-8b-instruct", // ✅ FREE WORKING MODEL
+        model: "meta-llama/llama-3-8b-instruct", // ✅ stable free model
         messages: [
           {
             role: "system",
             content: `
-Analyze this resume deeply and return ONLY JSON:
+You are an expert HR recruiter.
+
+Analyze this resume deeply and return ONLY JSON in this format:
 
 {
   "score": number (0-100),
-  "feedback": "detailed paragraph explaining overall quality",
-  "strengths": ["point 1", "point 2", "point 3"],
-  "weaknesses": ["point 1", "point 2"],
-  "improvements": ["specific action 1", "specific action 2", "specific action 3"]
+  "feedback": "detailed professional evaluation",
+  "strengths": ["specific strength 1", "specific strength 2"],
+  "weaknesses": ["real weakness 1", "real weakness 2"],
+  "improvements": ["actionable improvement 1", "actionable improvement 2"]
 }
 
 Rules:
-- Be professional and realistic
-- Score should reflect actual resume quality
-- Give practical suggestions for getting a job
+- Do NOT copy strengths directly from resume
+- Give realistic hiring-level feedback
+- Be specific and critical
+- Suggest measurable improvements (numbers, impact, results)
+- Avoid generic words like "hardworking", "team player"
+- Think like a recruiter hiring for a real job
+- Return ONLY pure JSON (no extra text before or after)
 `,
           },
           {
@@ -64,4 +70,4 @@ Rules:
     console.error("SERVER ERROR:", error);
     return Response.json({ error: error.message });
   }
-                                 }
+            }
