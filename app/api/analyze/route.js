@@ -9,7 +9,7 @@ export async function POST(req) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openchat/openchat-3.5", // ✅ FREE model
+        model: "meta-llama/llama-3-8b-instruct", // ✅ WORKING MODEL
         messages: [
           {
             role: "system",
@@ -39,4 +39,4 @@ export async function POST(req) {
   } catch (error) {
     return Response.json({ error: error.message });
   }
-  }
+            }
