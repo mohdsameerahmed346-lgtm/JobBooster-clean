@@ -7,7 +7,6 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
@@ -16,6 +15,10 @@ export default function Dashboard() {
   const [resumeText, setResumeText] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // 🔥 NEW STATES
+  const [usage, setUsage] = useState(0);
+  const [isPremium, setIsPremium] = useState(false);
 
   // 🔐 LOGIN
   const handleLogin = async () => {
@@ -42,10 +45,49 @@ export default function Dashboard() {
     return () => unsub();
   }, []);
 
+  // 🔥 MONTHLY USAGE SYSTEM
+  useEffect(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const saved = JSON.parse(localStorage.getItem("usageData"));
+
+    if (
+      saved &&
+      saved.month === currentMonth &&
+      saved.year === currentYear
+    ) {
+      setUsage(saved.count);
+    } else {
+      localStorage.setItem(
+        "usageData",
+        JSON.stringify({
+          month: currentMonth,
+          year: currentYear,
+          count: 0,
+        })
+      );
+      setUsage(0);
+    }
+
+    // premium check
+    const premium = localStorage.getItem("premium");
+    if (premium === "true") {
+      setIsPremium(true);
+    }
+  }, []);
+
   // 🧠 ANALYZE
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume text first");
+      return;
+    }
+
+    // 🚫 LIMIT CHECK (3 per month)
+    if (!isPremium && usage >= 3) {
+      alert("Free limit reached (3/month). Upgrade to Premium 💎");
       return;
     }
 
@@ -64,7 +106,7 @@ export default function Dashboard() {
         return;
       }
 
-      // 🔥 FIX: EXTRACT JSON FROM AI RESPONSE
+      // 🔥 SAFE JSON PARSE
       let parsed;
       try {
         const jsonMatch = data.result.match(/\{[\s\S]*\}/);
@@ -83,6 +125,25 @@ export default function Dashboard() {
 
       setResult(parsed);
 
+      // 🔥 UPDATE MONTHLY USAGE
+      if (!isPremium) {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const newUsage = usage + 1;
+        setUsage(newUsage);
+
+        localStorage.setItem(
+          "usageData",
+          JSON.stringify({
+            month: currentMonth,
+            year: currentYear,
+            count: newUsage,
+          })
+        );
+      }
+
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -91,7 +152,7 @@ export default function Dashboard() {
     }
   };
 
-  // ⏳ LOADING SCREEN
+  // ⏳ LOADING
   if (checking) {
     return <div style={styles.center}>Loading...</div>;
   }
@@ -109,11 +170,34 @@ export default function Dashboard() {
             <div>
               <h2>Welcome, {user.displayName} 👋</h2>
               <p>{user.email}</p>
+
+              {/* 🔥 USAGE DISPLAY */}
+              <p>
+                {isPremium
+                  ? "💎 Premium User"
+                  : `Free usage: ${usage}/3 this month`}
+              </p>
             </div>
 
-            <button style={styles.logout} onClick={handleLogout}>
-              Logout
-            </button>
+            <div>
+              <button style={styles.logout} onClick={handleLogout}>
+                Logout
+              </button>
+
+              {/* 💎 PREMIUM BUTTON */}
+              {!isPremium && (
+                <button
+                  onClick={() => {
+                    localStorage.setItem("premium", "true");
+                    setIsPremium(true);
+                    alert("Premium activated 🚀");
+                  }}
+                  style={styles.premium}
+                >
+                  Upgrade 💎
+                </button>
+              )}
+            </div>
           </div>
 
           {/* INPUT */}
@@ -138,57 +222,32 @@ export default function Dashboard() {
           {result && (
             <motion.div
               style={styles.resultCard}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              {/* SCORE */}
-              <div style={styles.scoreBox}>
-                <h1 style={styles.score}>{result.score}</h1>
-                <p>/100</p>
-              </div>
+              <h1 style={styles.score}>{result.score}/100</h1>
+              <p>{result.feedback}</p>
 
-              {/* PROGRESS */}
-              <div style={styles.progressBg}>
-                <div
-                  style={{
-                    ...styles.progressFill,
-                    width: `${result.score}%`,
-                  }}
-                />
-              </div>
+              <h3>✅ Strengths</h3>
+              <ul>
+                {result.strengths?.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
 
-              {/* FEEDBACK */}
-              <p style={{ marginTop: "20px" }}>{result.feedback}</p>
+              <h3>⚠️ Weaknesses</h3>
+              <ul>
+                {result.weaknesses?.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
 
-              {/* STRENGTHS */}
-              <div style={styles.section}>
-                <h3>✅ Strengths</h3>
-                <ul>
-                  {result.strengths?.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* WEAKNESSES */}
-              <div style={styles.section}>
-                <h3>⚠️ Weaknesses</h3>
-                <ul>
-                  {result.weaknesses?.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* IMPROVEMENTS */}
-              <div style={styles.section}>
-                <h3>🚀 Improvements</h3>
-                <ul>
-                  {result.improvements?.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
+              <h3>🚀 Improvements</h3>
+              <ul>
+                {result.improvements?.map((imp, i) => (
+                  <li key={i}>{imp}</li>
+                ))}
+              </ul>
             </motion.div>
           )}
         </div>
@@ -201,8 +260,8 @@ export default function Dashboard() {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg,#0f172a,#1e293b)",
-    color: "#fff",
+    background: "#0f172a",
+    color: "white",
     padding: "20px",
   },
   container: {
@@ -215,60 +274,48 @@ const styles = {
     marginBottom: "20px",
   },
   card: {
-    background: "#111",
+    background: "#1e293b",
     padding: "20px",
-    borderRadius: "12px",
+    borderRadius: "10px",
   },
   textarea: {
     width: "100%",
     height: "150px",
     marginBottom: "10px",
     padding: "10px",
-    borderRadius: "8px",
+    borderRadius: "6px",
   },
   btn: {
     background: "#3b82f6",
-    color: "#fff",
+    color: "white",
     padding: "10px",
+    borderRadius: "6px",
     border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
   },
   logout: {
     background: "#ef4444",
-    color: "#fff",
+    color: "white",
+    marginRight: "10px",
+    padding: "8px",
+    border: "none",
+    borderRadius: "6px",
+  },
+  premium: {
+    background: "#22c55e",
+    color: "white",
     padding: "8px",
     borderRadius: "6px",
     border: "none",
   },
   resultCard: {
     marginTop: "20px",
-    padding: "20px",
     background: "#020617",
-    borderRadius: "12px",
-  },
-  scoreBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
+    padding: "20px",
+    borderRadius: "10px",
   },
   score: {
-    fontSize: "48px",
+    fontSize: "40px",
     color: "#22c55e",
-  },
-  progressBg: {
-    height: "10px",
-    background: "#333",
-    borderRadius: "10px",
-    marginTop: "10px",
-  },
-  progressFill: {
-    height: "100%",
-    background: "#22c55e",
-    borderRadius: "10px",
-  },
-  section: {
-    marginTop: "20px",
   },
   center: {
     minHeight: "100vh",
