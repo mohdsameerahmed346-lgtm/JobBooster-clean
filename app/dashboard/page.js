@@ -12,19 +12,13 @@ import Menu from "../../components/Menu";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
-
-  // 🔥 usage + premium
   const [usage, setUsage] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
 
   // 🔐 LOGIN
   const handleLogin = async () => {
-    try {
-      const res = await signInWithPopup(auth, provider);
-      setUser(res.user);
-    } catch {
-      alert("Login failed");
-    }
+    const res = await signInWithPopup(auth, provider);
+    setUser(res.user);
   };
 
   // 🔓 LOGOUT
@@ -33,7 +27,7 @@ export default function Dashboard() {
     setUser(null);
   };
 
-  // 🔥 AUTH
+  // AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -42,7 +36,7 @@ export default function Dashboard() {
     return () => unsub();
   }, []);
 
-  // 🔥 USAGE SYSTEM
+  // USAGE SYSTEM
   useEffect(() => {
     const now = new Date();
     const month = now.getMonth();
@@ -60,15 +54,14 @@ export default function Dashboard() {
       setUsage(0);
     }
 
-    const premium = localStorage.getItem("premium");
-    if (premium === "true") setIsPremium(true);
+    if (localStorage.getItem("premium") === "true") {
+      setIsPremium(true);
+    }
   }, []);
 
-  // 💎 UPGRADE
   const handleUpgrade = () => {
     localStorage.setItem("premium", "true");
     setIsPremium(true);
-    alert("Premium activated 🚀");
   };
 
   if (checking) return <div style={styles.center}>Loading...</div>;
@@ -79,74 +72,78 @@ export default function Dashboard() {
 
       {!user ? (
         <div style={styles.center}>
-          <button style={styles.btn} onClick={handleLogin}>
-            Login with Google 🚀
+          <button style={styles.primaryBtn} onClick={handleLogin}>
+            Continue with Google
           </button>
         </div>
       ) : (
-        <div style={styles.container}>
+        <div style={styles.wrapper}>
           {/* HEADER */}
-          <div style={styles.header}>
+          <div style={styles.topBar}>
             <div>
-              <h2>Welcome, {user.displayName} 👋</h2>
-              <p>{user.email}</p>
-              <p>
-                {isPremium
-                  ? "💎 Premium Plan"
-                  : `Free Plan: ${usage}/3 used`}
-              </p>
+              <h2 style={styles.title}>Dashboard</h2>
+              <p style={styles.subtitle}>Welcome back, {user.displayName}</p>
             </div>
 
             <div style={styles.actions}>
-              <button style={styles.logout} onClick={handleLogout}>
-                Logout
-              </button>
-
               {!isPremium && (
-                <button style={styles.premium} onClick={handleUpgrade}>
-                  Upgrade 💎
+                <button style={styles.upgradeBtn} onClick={handleUpgrade}>
+                  Upgrade
                 </button>
               )}
+              <button style={styles.logoutBtn} onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </div>
 
           {/* STATS */}
           <div style={styles.grid}>
             <div style={styles.card}>
-              <h3>📊 Usage</h3>
-              <p>{isPremium ? "Unlimited" : `${usage}/3 this month`}</p>
+              <p style={styles.cardLabel}>Plan</p>
+              <h3>{isPremium ? "Premium" : "Free"}</h3>
             </div>
 
             <div style={styles.card}>
-              <h3>🎯 Goal</h3>
-              <p>Practice daily interviews</p>
+              <p style={styles.cardLabel}>Usage</p>
+              <h3>{isPremium ? "Unlimited" : `${usage}/3`}</h3>
             </div>
 
             <div style={styles.card}>
-              <h3>⚡ Status</h3>
-              <p>{isPremium ? "Premium Active" : "Free User"}</p>
+              <p style={styles.cardLabel}>Status</p>
+              <h3>{isPremium ? "Active" : "Limited"}</h3>
             </div>
           </div>
 
-          {/* ACTIONS */}
-          <div style={styles.card}>
-            <h3>🚀 Quick Actions</h3>
-            <ul>
-              <li>👉 Go to Analyze → Start Interview Practice</li>
-              <li>👉 Answer questions & get feedback</li>
-              <li>👉 Check History → Track improvement</li>
-            </ul>
+          {/* MAIN CARD */}
+          <div style={styles.mainCard}>
+            <h3>🚀 Start Practicing</h3>
+            <p>
+              Go to Analyze section and generate AI-powered interview questions
+              based on your job role.
+            </p>
+
+            <button style={styles.primaryBtn}>
+              Go to Analyze →
+            </button>
           </div>
 
           {/* FEATURES */}
-          <div style={styles.card}>
-            <h3>💡 Features</h3>
-            <ul>
-              <li>AI-generated interview questions</li>
-              <li>Answer evaluation with score</li>
-              <li>Personalized feedback</li>
-              <li>Progress tracking</li>
-            </ul>
+          <div style={styles.features}>
+            <div style={styles.featureCard}>
+              <h4>AI Interview Questions</h4>
+              <p>Personalized based on your job role</p>
+            </div>
+
+            <div style={styles.featureCard}>
+              <h4>Answer Feedback</h4>
+              <p>Get score + improvement tips</p>
+            </div>
+
+            <div style={styles.featureCard}>
+              <h4>Progress Tracking</h4>
+              <p>View your history & growth</p>
+            </div>
           </div>
         </div>
       )}
@@ -154,22 +151,30 @@ export default function Dashboard() {
   );
 }
 
-// 🎨 STYLES
+// 🎨 MODERN STYLES
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#0f172a",
-    color: "white",
+    background: "#0b0f19",
+    color: "#e5e7eb",
     padding: "20px",
   },
-  container: {
-    maxWidth: "900px",
+  wrapper: {
+    maxWidth: "1000px",
     margin: "auto",
   },
-  header: {
+  topBar: {
     display: "flex",
     justifyContent: "space-between",
-    marginBottom: "20px",
+    alignItems: "center",
+    marginBottom: "25px",
+  },
+  title: {
+    fontSize: "26px",
+    fontWeight: "600",
+  },
+  subtitle: {
+    color: "#9ca3af",
   },
   actions: {
     display: "flex",
@@ -179,33 +184,57 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
     gap: "15px",
-    marginBottom: "20px",
+    marginBottom: "25px",
   },
   card: {
-    background: "#020617",
+    background: "#111827",
     padding: "20px",
-    borderRadius: "10px",
+    borderRadius: "12px",
   },
-  btn: {
-    background: "#3b82f6",
-    color: "white",
-    padding: "10px",
-    borderRadius: "6px",
+  cardLabel: {
+    fontSize: "12px",
+    color: "#9ca3af",
+  },
+  mainCard: {
+    background: "#111827",
+    padding: "25px",
+    borderRadius: "12px",
+    marginBottom: "25px",
+  },
+  features: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "15px",
+  },
+  featureCard: {
+    background: "#111827",
+    padding: "20px",
+    borderRadius: "12px",
+  },
+  primaryBtn: {
+    marginTop: "10px",
+    background: "#6366f1",
     border: "none",
-  },
-  logout: {
-    background: "#ef4444",
-    padding: "8px",
-    borderRadius: "6px",
-    border: "none",
+    padding: "10px 16px",
+    borderRadius: "8px",
     color: "white",
+    cursor: "pointer",
   },
-  premium: {
+  upgradeBtn: {
     background: "#22c55e",
-    padding: "8px",
-    borderRadius: "6px",
     border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
     color: "white",
+    cursor: "pointer",
+  },
+  logoutBtn: {
+    background: "#ef4444",
+    border: "none",
+    padding: "8px 14px",
+    borderRadius: "8px",
+    color: "white",
+    cursor: "pointer",
   },
   center: {
     minHeight: "100vh",
