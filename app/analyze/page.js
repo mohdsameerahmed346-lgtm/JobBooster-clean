@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import Menu from "@/components/Menu";
+import Menu from "../../components/Menu"; // ✅ FIXED PATH
 
 export default function AnalyzePage() {
   const [resumeText, setResumeText] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🧠 ANALYZE FUNCTION
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume first");
@@ -31,24 +30,9 @@ export default function AnalyzePage() {
         return;
       }
 
-      // 🔥 SAFE JSON PARSE
-      let parsed;
-      try {
-        const match = data.result.match(/\{[\s\S]*\}/);
+      // ✅ FIXED (NO PARSE NEEDED)
+      setResult(data.result);
 
-        if (!match) {
-          alert("AI response not valid JSON");
-          return;
-        }
-
-        parsed = JSON.parse(match[0]);
-      } catch (err) {
-        console.error(err);
-        alert("AI response format error");
-        return;
-      }
-
-      setResult(parsed);
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -64,17 +48,13 @@ export default function AnalyzePage() {
       <div style={styles.container}>
         <h1>📄 Resume Analyzer</h1>
 
-        {/* TEXTAREA */}
         <motion.textarea
           placeholder="Paste your resume here..."
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
           style={styles.textarea}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
         />
 
-        {/* BUTTON */}
         <motion.button
           style={styles.button}
           onClick={handleAnalyze}
@@ -83,13 +63,8 @@ export default function AnalyzePage() {
           {loading ? "Analyzing..." : "Analyze Resume 🧠"}
         </motion.button>
 
-        {/* RESULT */}
         {result && (
-          <motion.div
-            style={styles.resultBox}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div style={styles.resultBox}>
             <h2 style={styles.score}>{result.score}/100</h2>
             <p>{result.feedback}</p>
 
@@ -120,7 +95,6 @@ export default function AnalyzePage() {
   );
 }
 
-// 🎨 STYLES
 const styles = {
   page: {
     minHeight: "100vh",
