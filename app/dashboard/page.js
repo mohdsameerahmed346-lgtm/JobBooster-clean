@@ -9,6 +9,9 @@ import {
 } from "firebase/auth";
 import { motion } from "framer-motion";
 
+// ✅ FIXED IMPORT (IMPORTANT)
+import Menu from "../../components/Menu";
+
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
@@ -16,11 +19,9 @@ export default function Dashboard() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 🔥 NEW STATES
   const [usage, setUsage] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
 
-  // 🔐 LOGIN
   const handleLogin = async () => {
     try {
       const res = await signInWithPopup(auth, provider);
@@ -30,13 +31,11 @@ export default function Dashboard() {
     }
   };
 
-  // 🔓 LOGOUT
   const handleLogout = async () => {
     await signOut(auth);
     setUser(null);
   };
 
-  // 🔥 AUTH STATE
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -45,7 +44,6 @@ export default function Dashboard() {
     return () => unsub();
   }, []);
 
-  // 🔥 MONTHLY USAGE SYSTEM
   useEffect(() => {
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -71,21 +69,18 @@ export default function Dashboard() {
       setUsage(0);
     }
 
-    // premium check
     const premium = localStorage.getItem("premium");
     if (premium === "true") {
       setIsPremium(true);
     }
   }, []);
 
-  // 🧠 ANALYZE
   const handleAnalyze = async () => {
     if (!resumeText) {
       alert("Paste resume text first");
       return;
     }
 
-    // 🚫 LIMIT CHECK (3 per month)
     if (!isPremium && usage >= 3) {
       alert("Free limit reached (3/month). Upgrade to Premium 💎");
       return;
@@ -106,26 +101,9 @@ export default function Dashboard() {
         return;
       }
 
-      // 🔥 SAFE JSON PARSE
-      let parsed;
-      try {
-        const jsonMatch = data.result.match(/\{[\s\S]*\}/);
+      // ✅ FIXED (NO DOUBLE PARSE)
+      setResult(data.result);
 
-        if (!jsonMatch) {
-          alert("AI response not valid JSON");
-          return;
-        }
-
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch (err) {
-        console.error(err);
-        alert("AI response format error");
-        return;
-      }
-
-      setResult(parsed);
-
-      // 🔥 UPDATE MONTHLY USAGE
       if (!isPremium) {
         const now = new Date();
         const currentMonth = now.getMonth();
@@ -143,7 +121,6 @@ export default function Dashboard() {
           })
         );
       }
-
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -152,26 +129,25 @@ export default function Dashboard() {
     }
   };
 
-  // ⏳ LOADING
   if (checking) {
     return <div style={styles.center}>Loading...</div>;
   }
 
   return (
     <div style={styles.page}>
+      <Menu /> {/* ✅ ADDED MENU */}
+
       {!user ? (
         <motion.button style={styles.btn} onClick={handleLogin}>
           Login with Google 🚀
         </motion.button>
       ) : (
         <div style={styles.container}>
-          {/* HEADER */}
           <div style={styles.header}>
             <div>
               <h2>Welcome, {user.displayName} 👋</h2>
               <p>{user.email}</p>
 
-              {/* 🔥 USAGE DISPLAY */}
               <p>
                 {isPremium
                   ? "💎 Premium User"
@@ -184,7 +160,6 @@ export default function Dashboard() {
                 Logout
               </button>
 
-              {/* 💎 PREMIUM BUTTON */}
               {!isPremium && (
                 <button
                   onClick={() => {
@@ -200,7 +175,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* INPUT */}
           <motion.div style={styles.card}>
             <textarea
               placeholder="Paste your resume..."
@@ -218,13 +192,8 @@ export default function Dashboard() {
             </motion.button>
           </motion.div>
 
-          {/* RESULT */}
           {result && (
-            <motion.div
-              style={styles.resultCard}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div style={styles.resultCard}>
               <h1 style={styles.score}>{result.score}/100</h1>
               <p>{result.feedback}</p>
 
@@ -256,7 +225,6 @@ export default function Dashboard() {
   );
 }
 
-// 🎨 STYLES
 const styles = {
   page: {
     minHeight: "100vh",
