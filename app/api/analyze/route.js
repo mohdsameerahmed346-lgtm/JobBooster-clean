@@ -1,12 +1,33 @@
+import { NextResponse } from "next/server";
+
+// 🔥 IMPORTANT: use your firebase ADMIN (not client)
+import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
+
+// ✅ INIT FIREBASE ADMIN (ONLY ONCE)
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    }),
+  });
+}
+
+const db = getFirestore();
+
+// 🚀 MAIN API
 export async function POST(req) {
   try {
     const { text } = await req.json();
 
     if (!text) {
-      return Response.json({ error: "No resume text provided" });
+      return NextResponse.json({ error: "No resume text" });
     }
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    // 🔥 AI CALL (OpenRouter example)
+    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -18,37 +39,24 @@ export async function POST(req) {
           {
             role: "system",
             content: `
-You are an expert HR recruiter.
+You are a resume analyzer.
 
-Analyze this resume deeply and return ONLY JSON in this format:
+Return ONLY valid JSON.
 
-{
-  "score": number (0-100),
-  "feedback": "detailed professional evaluation",
-  "strengths": ["specific, evidence-based strength"],
-  "weaknesses": ["real weakness based on resume"],
-  "improvements": ["clear actionable improvement"]
-}
-
-🔥 STRICT RULES:
-
-- Do NOT copy strengths directly from resume
-- Do NOT use generic terms like "hardworking", "team player", "good communication"
-- ONLY mention strengths that are clearly proven by resume content
-- PRIORITIZE measurable achievements (%, numbers, impact)
-
-- If metrics (like %, numbers, improvements) are present → MUST highlight them as strengths
-- If metrics are missing → mention it as a weakness
-
+Rules:
 - Do not assume missing information
-- Only analyze based on given resume content
-- Every weakness MUST be based on visible resume data
+- Only analyze based on given resume
+- Every weakness must be based on resume evidence
 
-- Be critical but fair (like a real recruiter)
-- Give practical suggestions for getting hired
-
-⚠️ Return ONLY pure JSON (no extra text before or after)
-`,
+Format:
+{
+  "score": number,
+  "feedback": "string",
+  "strengths": ["..."],
+  "weaknesses": ["..."],
+  "improvements": ["..."]
+}
+            `,
           },
           {
             role: "user",
@@ -58,33 +66,44 @@ Analyze this resume deeply and return ONLY JSON in this format:
       }),
     });
 
-    const data = await response.json();
+    const aiData = await aiRes.json();
 
-    // 🔥 HANDLE API ERRORS
-    if (!response.ok) {
-      console.error("API Error:", data);
-      return Response.json({
-        error: data.error?.message || "AI request failed",
-      });
+    const raw = aiData.choices?.[0]?.message?.content;
+
+    if (!raw) {
+      return NextResponse.json({ error: "AI failed" });
     }
 
-    let result = data.choices?.[0]?.message?.content;
+    // 🔥 SAFE JSON EXTRACT
+    let result;
+    try {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) {
+        return NextResponse.json({ error: "Invalid AI format" });
+      }
 
-if (!result) {
-  return Response.json({ error: "Invalid AI response" });
-}
+      result = JSON.parse(match[0]);
+    } catch (err) {
+      console.error(err);
+      return NextResponse.json({ error: "JSON parse failed" });
+    }
 
-// 🔥 CLEAN JSON FROM RESPONSE
-const jsonMatch = result.match(/\{[\s\S]*\}/);
+    // 🔥 SAVE HISTORY (THIS IS THE CORRECT PLACE)
+    await db
+      .collection("users")
+      .doc("demo-user") // ⚠️ replace later with real user.uid
+      .collection("history")
+      .add({
+        score: result.score || 0,
+        feedback: result.feedback || "",
+        createdAt: Date.now(),
+      });
 
-if (!jsonMatch) {
-  return Response.json({ error: "AI did not return valid JSON" });
-}
+    // ✅ RETURN RESULT
+    return NextResponse.json({ result });
 
-return Response.json({ result: jsonMatch[0] });
-
-  } catch (error) {
-    console.error("SERVER ERROR:", error);
-    return Response.json({ error: error.message });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Server error" });
   }
-  }
+            }
