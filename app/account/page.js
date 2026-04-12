@@ -2,27 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { auth } from "../../lib/firebase";
-import Menu from "@/components/Menu";
+import { onAuthStateChanged } from "firebase/auth";
+import Menu from "../../components/Menu"; // ✅ FIXED PATH
 import { motion } from "framer-motion";
 
 export default function AccountPage() {
   const [user, setUser] = useState(null);
   const [isPremium, setIsPremium] = useState(false);
 
+  // ✅ FIXED AUTH LISTENER
   useEffect(() => {
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      setUser(currentUser);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
 
-    // 🔥 TEMP premium check (localStorage)
+    // 🔥 PREMIUM CHECK
     const premium = localStorage.getItem("premium");
     if (premium === "true") {
       setIsPremium(true);
     }
+
+    return () => unsubscribe();
   }, []);
 
-  // 💎 UPGRADE (TEMP)
+  // 💎 TEMP UPGRADE
   const handleUpgrade = () => {
     localStorage.setItem("premium", "true");
     setIsPremium(true);
@@ -39,8 +42,8 @@ export default function AccountPage() {
         {/* USER INFO */}
         <motion.div style={styles.card}>
           <h2>User Info</h2>
-          <p><strong>Name:</strong> {user?.displayName}</p>
-          <p><strong>Email:</strong> {user?.email}</p>
+          <p><strong>Name:</strong> {user?.displayName || "Not logged in"}</p>
+          <p><strong>Email:</strong> {user?.email || "Not available"}</p>
         </motion.div>
 
         {/* PLAN INFO */}
