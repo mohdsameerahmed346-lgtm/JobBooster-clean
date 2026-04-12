@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { auth } from "../../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -9,44 +10,52 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import Menu from "@/components/Menu";
+import Menu from "../../components/Menu"; // ✅ FIXED
 import { motion } from "framer-motion";
 
 export default function HistoryPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 📊 FETCH HISTORY
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
+    let unsubscribe;
 
-        const db = getFirestore();
+    const init = () => {
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        try {
+          if (!user) {
+            setLoading(false);
+            return;
+          }
 
-        const q = query(
-          collection(db, "users", user.uid, "history"),
-          orderBy("createdAt", "desc")
-        );
+          const db = getFirestore();
 
-        const snap = await getDocs(q);
+          // ⚠️ TEMP FIX (matches your API)
+          const q = query(
+            collection(db, "users", "demo-user", "history"),
+            orderBy("createdAt", "desc")
+          );
 
-        const results = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+          const snap = await getDocs(q);
 
-        setData(results);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load history");
-      } finally {
-        setLoading(false);
-      }
+          const results = snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          setData(results);
+        } catch (err) {
+          console.error(err);
+          alert("Failed to load history");
+        } finally {
+          setLoading(false);
+        }
+      });
     };
 
-    fetchHistory();
+    init();
+
+    return () => unsubscribe && unsubscribe();
   }, []);
 
   return (
@@ -74,7 +83,9 @@ export default function HistoryPage() {
               <p>{item.feedback}</p>
 
               <small style={styles.date}>
-                {new Date(item.createdAt).toLocaleString()}
+                {item.createdAt
+                  ? new Date(item.createdAt).toLocaleString()
+                  : "No date"}
               </small>
             </motion.div>
           ))
