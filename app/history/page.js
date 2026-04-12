@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { auth } from "../../lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -10,52 +8,39 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import Menu from "../../components/Menu"; // ✅ FIXED
-import { motion } from "framer-motion";
+import Menu from "../../components/Menu";
 
 export default function HistoryPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe;
+    const fetchData = async () => {
+      try {
+        const db = getFirestore();
 
-    const init = () => {
-      unsubscribe = onAuthStateChanged(auth, async (user) => {
-        try {
-          if (!user) {
-            setLoading(false);
-            return;
-          }
+        const q = query(
+          collection(db, "users", "demo-user", "history"),
+          orderBy("createdAt", "desc")
+        );
 
-          const db = getFirestore();
+        const snap = await getDocs(q);
 
-          // ⚠️ TEMP FIX (matches your API)
-          const q = query(
-            collection(db, "users", "demo-user", "history"),
-            orderBy("createdAt", "desc")
-          );
+        const results = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-          const snap = await getDocs(q);
-
-          const results = snap.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-
-          setData(results);
-        } catch (err) {
-          console.error(err);
-          alert("Failed to load history");
-        } finally {
-          setLoading(false);
-        }
-      });
+        setData(results);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load history");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    init();
-
-    return () => unsubscribe && unsubscribe();
+    fetchData();
   }, []);
 
   return (
@@ -63,7 +48,7 @@ export default function HistoryPage() {
       <Menu />
 
       <div style={styles.container}>
-        <h1>📊 Analysis History</h1>
+        <h1>📊 Interview History</h1>
 
         {loading ? (
           <p>Loading...</p>
@@ -71,23 +56,30 @@ export default function HistoryPage() {
           <p>No history yet</p>
         ) : (
           data.map((item, i) => (
-            <motion.div
-              key={item.id}
-              style={styles.card}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <h2 style={styles.score}>{item.score}/100</h2>
+            <div key={item.id} style={styles.card}>
+              <h3>{item.role}</h3>
+              <p><strong>Skills:</strong> {item.skills}</p>
 
-              <p>{item.feedback}</p>
+              {item.score && (
+                <p><strong>Score:</strong> {item.score}/100</p>
+              )}
+
+              {item.feedback && <p>{item.feedback}</p>}
+
+              {item.questions && (
+                <ul>
+                  {item.questions.map((q, index) => (
+                    <li key={index}>{q}</li>
+                  ))}
+                </ul>
+              )}
 
               <small style={styles.date}>
                 {item.createdAt
                   ? new Date(item.createdAt).toLocaleString()
-                  : "No date"}
+                  : ""}
               </small>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
@@ -113,12 +105,8 @@ const styles = {
     borderRadius: "10px",
     marginBottom: "15px",
   },
-  score: {
-    fontSize: "28px",
-    color: "#22c55e",
-  },
   date: {
-    color: "#94a3b8",
     fontSize: "12px",
+    color: "#94a3b8",
   },
 };
