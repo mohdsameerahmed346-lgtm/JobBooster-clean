@@ -1,42 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-  orderBy,
-} from "firebase/firestore";
 import Menu from "../../components/Menu";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
 
 export default function HistoryPage() {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const db = getFirestore();
 
-        const q = query(
-          collection(db, "users", "demo-user", "history"),
-          orderBy("createdAt", "desc")
+        const snap = await getDocs(
+          collection(db, "users", "demo-user", "history")
         );
 
-        const snap = await getDocs(q);
-
-        const results = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setData(results);
+        setData(snap.docs.map((doc) => doc.data()));
       } catch (err) {
         console.error(err);
         alert("Failed to load history");
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -44,69 +27,31 @@ export default function HistoryPage() {
   }, []);
 
   return (
-    <div style={styles.page}>
+    <div className="flex">
       <Menu />
 
-      <div style={styles.container}>
-        <h1>📊 Interview History</h1>
+      <div className="ml-64 p-8 w-full">
+        <h1 className="text-2xl font-bold mb-6">
+          📊 Interview History
+        </h1>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : data.length === 0 ? (
-          <p>No history yet</p>
+        {data.length === 0 ? (
+          <p className="text-slate-400">No history yet</p>
         ) : (
           data.map((item, i) => (
-            <div key={item.id} style={styles.card}>
-              <h3>{item.role}</h3>
-              <p><strong>Skills:</strong> {item.skills}</p>
+            <div
+              key={i}
+              className="bg-slate-900 p-4 rounded mb-3"
+            >
+              <p className="text-sm text-slate-400">
+                {new Date(item.createdAt).toLocaleString()}
+              </p>
 
-              {item.score && (
-                <p><strong>Score:</strong> {item.score}/100</p>
-              )}
-
-              {item.feedback && <p>{item.feedback}</p>}
-
-              {item.questions && (
-                <ul>
-                  {item.questions.map((q, index) => (
-                    <li key={index}>{q}</li>
-                  ))}
-                </ul>
-              )}
-
-              <small style={styles.date}>
-                {item.createdAt
-                  ? new Date(item.createdAt).toLocaleString()
-                  : ""}
-              </small>
+              <p className="mt-2">{item.feedback}</p>
             </div>
           ))
         )}
       </div>
     </div>
   );
-}
-
-// 🎨 STYLES
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#0f172a",
-    color: "white",
-    padding: "20px",
-  },
-  container: {
-    maxWidth: "800px",
-    margin: "auto",
-  },
-  card: {
-    background: "#020617",
-    padding: "15px",
-    borderRadius: "10px",
-    marginBottom: "15px",
-  },
-  date: {
-    fontSize: "12px",
-    color: "#94a3b8",
-  },
-};
+    }
