@@ -4,66 +4,71 @@ import { useState } from "react";
 import Menu from "../../components/Menu";
 
 export default function AnalyzePage() {
-  const [role, setRole] = useState("");
-  const [skills, setSkills] = useState("");
+  const [job, setJob] = useState("");
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [evaluation, setEvaluation] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const generateQuestions = async () => {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({ role, skills }),
-    });
+  const generate = async () => {
+    if (!job) {
+      alert("Enter job role");
+      return;
+    }
 
-    const data = await res.json();
-    setQuestions(data.result.questions);
-  };
+    try {
+      setLoading(true);
 
-  const evaluateAnswer = async (q) => {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({
-        role,
-        skills,
-        question: q,
-        answer: answers[q],
-      }),
-    });
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({ text: job }),
+      });
 
-    const data = await res.json();
-    setEvaluation(data.result);
+      const data = await res.json();
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      setQuestions(data.result?.questions || []);
+    } catch (err) {
+      console.error(err);
+      alert("Error generating questions");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="flex">
       <Menu />
 
-      <h1>🎤 AI Interview Trainer</h1>
+      <div className="ml-64 p-8 w-full">
+        <h1 className="text-2xl font-bold mb-4">
+          🎯 AI Interview Trainer
+        </h1>
 
-      <input placeholder="Job Role" onChange={(e) => setRole(e.target.value)} />
-      <input placeholder="Skills" onChange={(e) => setSkills(e.target.value)} />
+        <textarea
+          placeholder="Enter job role (Frontend Developer...)"
+          value={job}
+          onChange={(e) => setJob(e.target.value)}
+          className="w-full p-4 bg-slate-900 rounded-lg mb-4"
+        />
 
-      <button onClick={generateQuestions}>Generate Questions</button>
+        <button
+          onClick={generate}
+          className="bg-indigo-600 px-5 py-2 rounded"
+        >
+          {loading ? "Generating..." : "Generate Questions"}
+        </button>
 
-      {questions.map((q, i) => (
-        <div key={i}>
-          <p>{q}</p>
-          <textarea
-            onChange={(e) =>
-              setAnswers({ ...answers, [q]: e.target.value })
-            }
-          />
-          <button onClick={() => evaluateAnswer(q)}>Submit Answer</button>
+        <div className="mt-6 space-y-3">
+          {questions.map((q, i) => (
+            <div key={i} className="bg-slate-900 p-4 rounded">
+              {q}
+            </div>
+          ))}
         </div>
-      ))}
-
-      {evaluation && (
-        <div>
-          <h2>{evaluation.score}/100</h2>
-          <p>{evaluation.feedback}</p>
-        </div>
-      )}
+      </div>
     </div>
   );
-    }
+        }
