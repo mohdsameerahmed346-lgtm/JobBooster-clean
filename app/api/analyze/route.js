@@ -1,58 +1,74 @@
 import { NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-
-// 🔥 INIT FIREBASE ADMIN
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    }),
-  });
-}
-
-const db = getFirestore();
 
 export async function POST(req) {
   try {
-    const { role, skills, answer, question } = await req.json();
+    const { mode, text } = await req.json();
 
-    if (!role || !skills) {
-      return NextResponse.json({ error: "Missing job details" });
+    if (!mode || !text) {
+      return NextResponse.json({ error: "Missing input" });
     }
 
-    // 🧠 PROMPT
-    const prompt = `
-You are an AI interview coach.
+    let prompt = "";
 
-Job Role: ${role}
-Skills: ${skills}
+    // 🧠 MODE SWITCH
+    if (mode === "resume") {
+      prompt = `
+You are a resume analyzer.
 
-${question ? `Question: ${question}\nUser Answer: ${answer}` : ""}
+Return ONLY valid JSON.
 
-TASK:
-${question ? "Evaluate the answer." : "Generate 5 interview questions."}
+Rules:
+- Do not assume missing information
+- Only analyze based on given resume
+- Every weakness must be based on resume evidence
 
-STRICT RULES:
-- Do NOT assume missing information
-- Only use given job details
-
-RETURN JSON:
-
-${
-  question
-    ? `{
+Format:
+{
   "score": number,
   "feedback": "string",
+  "strengths": ["..."],
+  "weaknesses": ["..."],
   "improvements": ["..."]
-}`
-    : `{
-  "questions": ["..."]
-}`
 }
+
+Resume:
+${text}
 `;
+    }
+
+    else if (mode === "interview") {
+      prompt = `
+You are an interview expert.
+
+Generate 5 real interview questions.
+
+Return ONLY JSON:
+
+{
+  "questions": ["...", "...", "..."]
+}
+
+Job Role:
+${text}
+`;
+    }
+
+    else if (mode === "improve") {
+      prompt = `
+You are a resume writing expert.
+
+Improve the given resume bullet.
+
+Return ONLY JSON:
+
+{
+  "improved": "better version"
+}
+
+Text:
+${text}
+`;
+    }
 
     const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -63,34 +79,27 @@ ${
       body: JSON.stringify({
         model: "meta-llama/llama-3-8b-instruct",
         messages: [
-          { role: "system", content: "You are a helpful AI." },
+          { role: "system", content: "You always return valid JSON only." },
           { role: "user", content: prompt },
         ],
       }),
     });
 
-    const aiData = await aiRes.json();
-    const raw = aiData.choices?.[0]?.message?.content;
+    const data = await aiRes.json();
+    const raw = data.choices?.[0]?.message?.content;
 
     if (!raw) {
       return NextResponse.json({ error: "AI failed" });
     }
 
+    // ✅ SAFE JSON PARSE
     let result;
     try {
       const match = raw.match(/\{[\s\S]*\}/);
       result = JSON.parse(match[0]);
     } catch {
-      return NextResponse.json({ error: "Invalid AI JSON" });
+      return NextResponse.json({ error: "Invalid JSON from AI" });
     }
-
-    // 🔥 SAVE HISTORY
-    await db.collection("users").doc("demo-user").collection("history").add({
-      role,
-      skills,
-      ...result,
-      createdAt: Date.now(),
-    });
 
     return NextResponse.json({ result });
 
@@ -98,4 +107,4 @@ ${
     console.error(err);
     return NextResponse.json({ error: "Server error" });
   }
-  }
+          }
