@@ -6,15 +6,39 @@ import Menu from "../../components/Menu";
 export default function InterviewPage() {
   const [role, setRole] = useState("");
   const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const generateQuestions = async () => {
-    const res = await fetch("/api/interview", {
-      method: "POST",
-      body: JSON.stringify({ role }),
-    });
+  const generate = async () => {
+    if (!role) {
+      alert("Enter job role");
+      return;
+    }
 
-    const data = await res.json();
-    setQuestions(data.questions || []);
+    try {
+      setLoading(true);
+      setQuestions([]);
+
+      const isPremium = localStorage.getItem("premium") === "true";
+
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        body: JSON.stringify({ role, isPremium }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      setQuestions(data.questions || []);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -22,29 +46,38 @@ export default function InterviewPage() {
       <Menu />
 
       <div className="ml-0 md:ml-64 w-full p-8">
-        <h1 className="text-3xl mb-6">🎤 Interview Practice</h1>
+        <h1 className="text-3xl font-semibold mb-6">
+          🎤 Interview Practice
+        </h1>
 
+        {/* INPUT */}
         <input
-          placeholder="Enter job role (e.g. Frontend Developer)"
-          className="w-full p-3 bg-gray-800 rounded mb-4"
+          placeholder="Enter job role (e.g. Web Developer)"
+          value={role}
           onChange={(e) => setRole(e.target.value)}
+          className="w-full p-3 bg-[#020617] border border-gray-800 rounded-lg mb-4"
         />
 
+        {/* BUTTON */}
         <button
-          onClick={generateQuestions}
-          className="bg-blue-600 px-5 py-2 rounded"
+          onClick={generate}
+          className="bg-blue-600 px-6 py-2 rounded-lg hover:bg-blue-700 transition"
         >
-          Generate Questions
+          {loading ? "Generating..." : "Generate Questions"}
         </button>
 
-        <div className="mt-6 space-y-3">
+        {/* QUESTIONS */}
+        <div className="mt-6 space-y-4">
           {questions.map((q, i) => (
-            <div key={i} className="bg-gray-800 p-4 rounded">
-              {q}
+            <div
+              key={i}
+              className="bg-[#020617] border border-gray-800 p-5 rounded-xl hover:border-blue-500 transition"
+            >
+              <p className="text-gray-300">{q}</p>
             </div>
           ))}
         </div>
       </div>
     </div>
   );
-    }
+        }
