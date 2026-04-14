@@ -1,37 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 
 export default function Menu() {
-  const [open, setOpen] = useState(false);
-
   return (
-    <>
-      {/* Mobile Toggle */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="md:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white px-3 py-2 rounded-lg"
-      >
-        ☰
-      </button>
+    <div className="fixed top-0 left-0 h-full w-64 bg-[#020617] border-r border-gray-800 p-6 hidden md:flex flex-col">
+      <h1 className="text-2xl font-bold mb-8">🚀 JobBooster</h1>
 
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 left-0 h-full w-64 bg-gray-950 text-white p-5 transform ${
-          open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform`}
-      >
-        <h1 className="text-2xl font-bold mb-8">🚀 JobBooster</h1>
-
-        <nav className="flex flex-col gap-4">
-          <Link href="/dashboard">🏠 Dashboard</Link>
-          <Link href="/analyze">📄 Analyze</Link>
-          <Link href="/interview">🎤 Interview</Link>
-          <Link href="/history">📊 History</Link>
-          <Link href="/account">⚙️ Account</Link>
-        </nav>
-      </div>
-    </>
+      <nav className="flex flex-col gap-4 text-gray-400">
+        <Link href="/dashboard" className="hover:text-white">🏠 Dashboard</Link>
+        <Link href="/analyze" className="hover:text-white">📄 Analyze</Link>
+        <Link href="/interview" className="hover:text-white">🎤 Interview</Link>
+        <Link href="/history" className="hover:text-white">📊 History</Link>
+        <Link href="/account" className="hover:text-white">⚙️ Account</Link>
+      </nav>
+    </div>
   );
-          }
+    }
