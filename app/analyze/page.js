@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Menu from "@/components/Menu";
+import Menu from "../../components/Menu";
 
 export default function AnalyzePage() {
   const [text, setText] = useState("");
