@@ -9,16 +9,34 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
 
   const handleAnalyze = async () => {
-    setLoading(true);
+    if (!text) {
+      alert("Paste resume first");
+      return;
+    }
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      body: JSON.stringify({ text, isPremium: false }),
-    });
+    try {
+      setLoading(true);
+      setResult(null);
 
-    const data = await res.json();
-    setResult(data.result);
-    setLoading(false);
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      setResult(data.result);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,30 +44,28 @@ export default function AnalyzePage() {
       <Menu />
 
       <div className="ml-0 md:ml-64 w-full p-8">
-        <h1 className="text-2xl font-semibold mb-6">Resume Analyzer</h1>
+        <h1 className="text-2xl mb-4">Resume Analyzer</h1>
 
         <textarea
-          className="w-full bg-[#020617] border border-gray-800 p-4 rounded-lg mb-4"
-          placeholder="Paste your resume..."
+          className="w-full p-4 bg-gray-800 rounded mb-4"
+          placeholder="Paste resume..."
           onChange={(e) => setText(e.target.value)}
         />
 
         <button
           onClick={handleAnalyze}
-          className="bg-blue-600 px-5 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 px-5 py-2 rounded"
         >
-          {loading ? "Analyzing..." : "Analyze Resume"}
+          {loading ? "Analyzing..." : "Analyze"}
         </button>
 
         {result && (
-          <div className="mt-6 bg-[#020617] border border-gray-800 p-6 rounded-xl">
-            <h2 className="text-3xl font-bold text-green-400">
-              {result.score}/100
-            </h2>
-            <p className="mt-2 text-gray-300">{result.feedback}</p>
+          <div className="mt-6 bg-gray-800 p-5 rounded">
+            <h2 className="text-2xl">{result.score}/100</h2>
+            <p>{result.feedback}</p>
           </div>
         )}
       </div>
     </div>
   );
-            }
+  }
