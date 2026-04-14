@@ -1,128 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import Menu from "../../components/Menu";
+import Menu from "@/components/Menu";
 
 export default function AnalyzePage() {
-  const [mode, setMode] = useState("resume");
-  const [input, setInput] = useState("");
+  const [text, setText] = useState("");
+  const [job, setJob] = useState("");
   const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!input) {
-      alert("Enter input");
-      return;
-    }
+  const handleAnalyze = async () => {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      body: JSON.stringify({ text, job }),
+    });
 
-    try {
-      setLoading(true);
-      setResult(null);
-
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        body: JSON.stringify({ mode, text: input }),
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        alert(data.error);
-        return;
-      }
-
-      setResult(data.result);
-    } catch (err) {
-      console.error(err);
-      alert("Error");
-    } finally {
-      setLoading(false);
-    }
+    const data = await res.json();
+    setResult(data.result);
   };
 
   return (
     <div className="flex">
       <Menu />
 
-      <div className="ml-64 p-8 w-full">
-        <h1 className="text-2xl font-bold mb-6">
-          🧠 AI Job Toolkit
-        </h1>
+      <div className="ml-0 md:ml-64 w-full p-6 bg-gray-900 text-white min-h-screen">
+        <h1 className="text-2xl mb-4">📄 Resume Analyzer</h1>
 
-        {/* MODE SWITCH */}
-        <div className="flex gap-3 mb-6">
-          <button onClick={() => setMode("resume")} className="bg-slate-800 px-4 py-2 rounded">
-            Resume Analysis
-          </button>
-
-          <button onClick={() => setMode("interview")} className="bg-slate-800 px-4 py-2 rounded">
-            Interview Questions
-          </button>
-
-          <button onClick={() => setMode("improve")} className="bg-slate-800 px-4 py-2 rounded">
-            Improve Bullet
-          </button>
-        </div>
-
-        {/* INPUT */}
         <textarea
-          placeholder={
-            mode === "resume"
-              ? "Paste your resume..."
-              : mode === "interview"
-              ? "Enter job role..."
-              : "Paste resume bullet..."
-          }
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="w-full p-4 bg-slate-900 rounded-lg mb-4"
+          className="w-full p-3 rounded bg-gray-800 mb-3"
+          placeholder="Paste Resume..."
+          onChange={(e) => setText(e.target.value)}
+        />
+
+        <textarea
+          className="w-full p-3 rounded bg-gray-800 mb-3"
+          placeholder="Paste Job Description (optional)"
+          onChange={(e) => setJob(e.target.value)}
         />
 
         <button
-          onClick={handleSubmit}
-          className="bg-indigo-600 px-5 py-2 rounded"
+          onClick={handleAnalyze}
+          className="bg-blue-600 px-4 py-2 rounded"
         >
-          {loading ? "Processing..." : "Run AI"}
+          Analyze
         </button>
 
-        {/* RESULT */}
         {result && (
-          <div className="mt-6 bg-slate-900 p-5 rounded-lg">
-            {/* Resume */}
-            {mode === "resume" && (
-              <>
-                <h2 className="text-xl">{result.score}/100</h2>
-                <p>{result.feedback}</p>
-
-                <h3>✅ Strengths</h3>
-                <ul>{result.strengths?.map((s, i) => <li key={i}>{s}</li>)}</ul>
-
-                <h3>⚠️ Weaknesses</h3>
-                <ul>{result.weaknesses?.map((w, i) => <li key={i}>{w}</li>)}</ul>
-
-                <h3>🚀 Improvements</h3>
-                <ul>{result.improvements?.map((i, idx) => <li key={idx}>{i}</li>)}</ul>
-              </>
-            )}
-
-            {/* Interview */}
-            {mode === "interview" && (
-              <>
-                <h2>🎯 Questions</h2>
-                <ul>{result.questions?.map((q, i) => <li key={i}>{q}</li>)}</ul>
-              </>
-            )}
-
-            {/* Improve */}
-            {mode === "improve" && (
-              <>
-                <h2>✨ Improved Version</h2>
-                <p>{result.improved}</p>
-              </>
-            )}
+          <div className="mt-6 bg-gray-800 p-4 rounded">
+            <h2 className="text-xl">{result.score}/100</h2>
+            <p>{result.feedback}</p>
           </div>
         )}
       </div>
     </div>
   );
-    }
+  }
