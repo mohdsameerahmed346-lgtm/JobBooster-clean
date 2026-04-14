@@ -1,29 +1,39 @@
-export async function POST(req) {
-  const { role } = await req.json();
+import { NextResponse } from "next/server";
 
-  const prompt = `
-Generate interview questions for ${role} fresher.
-Include:
-- Technical
-- HR
-- Scenario questions
+export async function POST(req) {
+  try {
+    const { role } = await req.json();
+
+    if (!role) {
+      return NextResponse.json({ error: "No role provided" });
+    }
+
+    const prompt = `
+Generate 5 interview questions for ${role}.
+Return as JSON array.
 `;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3-8b-instruct",
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
 
-  const data = await response.json();
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content;
 
-  return Response.json({
-    result: data.choices[0].message.content,
-  });
-}
+    const match = raw.match(/\[[\s\S]*\]/);
+    const questions = match ? JSON.parse(match[0]) : [];
+
+    return NextResponse.json({ questions });
+
+  } catch (err) {
+    return NextResponse.json({ error: "Server error" });
+  }
+                    }
