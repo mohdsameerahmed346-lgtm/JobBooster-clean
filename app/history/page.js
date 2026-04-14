@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Menu from "@/components/Menu";
+import Menu from "../../components/Menu";
 
 export default function HistoryPage() {
   const [data, setData] = useState([]);
