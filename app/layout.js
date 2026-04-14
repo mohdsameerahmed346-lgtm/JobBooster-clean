@@ -1,7 +1,14 @@
+import "./globals.css";
+
+export const metadata = {
+  title: "JobBooster",
+  description: "AI Job Preparation SaaS",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "Arial" }}>
+      <body className="bg-gray-950 text-white">
         {children}
       </body>
     </html>
