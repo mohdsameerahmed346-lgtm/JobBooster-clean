@@ -1,39 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 export default function Menu() {
-  const path = usePathname();
-
-  const linkClass = (href) =>
-    `block px-4 py-2 rounded-lg transition ${
-      path === href
-        ? "bg-indigo-600 text-white"
-        : "text-slate-300 hover:bg-slate-800"
-    }`;
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed top-0 left-0 h-full w-64 bg-slate-900 border-r border-slate-800 p-5">
-      <h2 className="text-xl font-bold mb-8">🚀 JobBooster</h2>
+    <>
+      {/* Mobile Toggle */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="md:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white px-3 py-2 rounded-lg"
+      >
+        ☰
+      </button>
 
-      <nav className="flex flex-col gap-2">
-        <Link href="/dashboard" className={linkClass("/dashboard")}>
-          🏠 Dashboard
-        </Link>
+      {/* Sidebar */}
+      <div
+        className={`fixed top-0 left-0 h-full w-64 bg-gray-950 text-white p-5 transform ${
+          open ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 transition-transform`}
+      >
+        <h1 className="text-2xl font-bold mb-8">🚀 JobBooster</h1>
 
-        <Link href="/analyze" className={linkClass("/analyze")}>
-          🎯 Interview Trainer
-        </Link>
-
-        <Link href="/history" className={linkClass("/history")}>
-          📊 History
-        </Link>
-
-        <Link href="/account" className={linkClass("/account")}>
-          ⚙️ Account
-        </Link>
-      </nav>
-    </div>
+        <nav className="flex flex-col gap-4">
+          <Link href="/dashboard">🏠 Dashboard</Link>
+          <Link href="/analyze">📄 Analyze</Link>
+          <Link href="/interview">🎤 Interview</Link>
+          <Link href="/history">📊 History</Link>
+          <Link href="/account">⚙️ Account</Link>
+        </nav>
+      </div>
+    </>
   );
-    }
+          }
