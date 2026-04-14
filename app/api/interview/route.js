@@ -8,32 +8,18 @@ export async function POST(req) {
       return NextResponse.json({ error: "No role provided" });
     }
 
-    const prompt = `
-Generate 5 interview questions for ${role}.
-Return as JSON array.
-`;
-
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3-8b-instruct",
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content;
-
-    const match = raw.match(/\[[\s\S]*\]/);
-    const questions = match ? JSON.parse(match[0]) : [];
+    // 🔥 TEMP AI (WORKING VERSION)
+    const questions = [
+      `What are key skills required for a ${role}?`,
+      `Explain a real project you worked on as a ${role}.`,
+      `What challenges do ${role}s face?`,
+      `How do you stay updated in ${role}?`,
+      `Why should we hire you as a ${role}?`,
+    ];
 
     return NextResponse.json({ questions });
 
   } catch (err) {
     return NextResponse.json({ error: "Server error" });
   }
-                    }
+}
