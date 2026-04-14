@@ -2,20 +2,76 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    const { text } = await req.json();
+    const { text, isPremium } = await req.json();
 
     if (!text) {
       return NextResponse.json({ error: "No text provided" });
     }
 
-    // 🔥 TEMP WORKING AI (no external API)
-    const result = {
-      score: Math.floor(Math.random() * 40) + 60,
-      feedback: "Your resume is decent but can be improved with better structure.",
-      strengths: ["Clear formatting", "Relevant skills"],
-      weaknesses: ["Lacks metrics", "Generic summary"],
-      improvements: ["Add numbers", "Customize for job"],
-    };
+    let aiResponse;
+
+    // 💎 PREMIUM → OPENAI
+    if (isPremium) {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: "You are a resume analyzer. Return JSON only.",
+            },
+            {
+              role: "user",
+              content: text,
+            },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+      aiResponse = data.choices?.[0]?.message?.content;
+    }
+
+    // 🆓 FREE → OPENROUTER
+    else {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3-8b-instruct",
+          messages: [
+            {
+              role: "system",
+              content: "You are a resume analyzer. Return JSON only.",
+            },
+            {
+              role: "user",
+              content: text,
+            },
+          ],
+        }),
+      });
+
+      const data = await res.json();
+      aiResponse = data.choices?.[0]?.message?.content;
+    }
+
+    // 🔥 SAFE PARSE
+    let result;
+    try {
+      const match = aiResponse.match(/\{[\s\S]*\}/);
+      result = JSON.parse(match[0]);
+    } catch {
+      return NextResponse.json({ error: "Invalid AI response" });
+    }
 
     return NextResponse.json({ result });
 
@@ -23,4 +79,4 @@ export async function POST(req) {
     console.error(err);
     return NextResponse.json({ error: "Server error" });
   }
-      }
+          }
