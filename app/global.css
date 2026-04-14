@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* custom background */
 body {
   @apply bg-slate-950 text-white;
 }
