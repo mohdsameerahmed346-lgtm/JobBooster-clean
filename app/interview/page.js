@@ -41,6 +41,30 @@ export default function InterviewPage() {
     }
   };
 
+  const handleEvaluate = async (question, answer) => {
+    if (!answer) return;
+
+    const isPremium = localStorage.getItem("premium") === "true";
+
+    const res = await fetch("/api/evaluate", {
+      method: "POST",
+      body: JSON.stringify({
+        question,
+        answer,
+        isPremium,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    alert(`Score: ${data.score}\n${data.feedback}`);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <Menu />
@@ -69,31 +93,23 @@ export default function InterviewPage() {
         {/* QUESTIONS */}
         <div className="mt-6 space-y-4">
           {questions.map((q, i) => (
-  <div
-    key={i}
-    className="bg-[#020617] border border-gray-800 p-5 rounded-xl"
-  >
-    <p className="mb-3">{q}</p>
+            <div
+              key={i}
+              className="bg-[#020617] border border-gray-800 p-5 rounded-xl"
+            >
+              <p className="mb-3 text-gray-300">{q}</p>
 
-    <textarea
-      placeholder="Write your answer..."
-      className="w-full p-2 bg-gray-800 rounded mb-2"
-      onBlur={async (e) => {
-        const isPremium =
-          localStorage.getItem("premium") === "true";
-
-        const res = await fetch("/api/evaluate", {
-          method: "POST",
-          body: JSON.stringify({
-            question: q,
-            answer: e.target.value,
-            isPremium,
-          }),
-        });
-
-        const data = await res.json();
-        alert(`Score: ${data.score}\n${data.feedback}`);
-      }}
-    />
-  </div>
-))}
+              <textarea
+                placeholder="Write your answer..."
+                className="w-full p-3 bg-gray-800 rounded mb-2"
+                onBlur={(e) =>
+                  handleEvaluate(q, e.target.value)
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+  }
