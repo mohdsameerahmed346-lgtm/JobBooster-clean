@@ -9,34 +9,47 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl mb-6">🏠 Dashboard</h1>
+      <h1 className="text-3xl font-semibold mb-8">
+        Welcome back 👋
+      </h1>
 
-      {/* PLAN */}
-      <div className="bg-[#020617] border border-gray-800 p-5 rounded-xl mb-6">
+      {/* PLAN CARD */}
+      <div className="bg-white/5 border border-white/10 p-6 rounded-2xl mb-8 backdrop-blur">
         <p className="text-lg">
           Plan: {isPremium ? "💎 Premium" : "🆓 Free"}
         </p>
         <p className="text-gray-400 text-sm">
-          Free users have limited usage
+          {isPremium
+            ? "Unlimited AI access"
+            : "Limited usage available"}
         </p>
       </div>
 
       {/* FEATURES */}
       <div className="grid md:grid-cols-3 gap-6">
 
-        <Link href="/analyze" className="bg-gray-900 p-6 rounded-xl hover:scale-105 transition">
-          <h2>📄 Resume Analyzer</h2>
+        <Link href="/analyze" className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:scale-105 transition">
+          <h2 className="text-lg mb-2">📄 Resume Analyzer</h2>
+          <p className="text-gray-400 text-sm">
+            Improve your resume instantly
+          </p>
         </Link>
 
-        <Link href="/interview" className="bg-gray-900 p-6 rounded-xl hover:scale-105 transition">
-          <h2>🎤 Interview Practice</h2>
+        <Link href="/interview" className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:scale-105 transition">
+          <h2 className="text-lg mb-2">🎤 Interview Practice</h2>
+          <p className="text-gray-400 text-sm">
+            Practice with AI questions
+          </p>
         </Link>
 
-        <Link href="/skill-gap" className="bg-gray-900 p-6 rounded-xl hover:scale-105 transition">
-          <h2>📉 Skill Gap</h2>
+        <Link href="/skill-gap" className="bg-white/5 border border-white/10 p-6 rounded-2xl hover:scale-105 transition">
+          <h2 className="text-lg mb-2">📉 Skill Gap</h2>
+          <p className="text-gray-400 text-sm">
+            Find missing skills
+          </p>
         </Link>
 
       </div>
     </div>
   );
-    }
+}
