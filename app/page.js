@@ -1,45 +1,69 @@
-export default function Home() {
+"use client";
+
+import Link from "next/link";
+
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white text-center p-6">
+    <div className="min-h-screen bg-slate-950 text-white p-6">
 
-      <h1 className="text-4xl font-bold mb-4">
-        🚀 JobBoost AI
-      </h1>
+      {/* HERO */}
+      <div className="max-w-4xl mx-auto text-center mt-16">
+        <h1 className="text-4xl font-bold mb-4">
+          🚀 JobBooster AI
+        </h1>
 
-      <p className="text-lg text-gray-600 mb-6">
-        Improve your resume, skills & interviews using AI
-      </p>
+        <p className="text-gray-400 mb-6">
+          Prepare for jobs with AI-powered resume analysis,
+          interview questions, and skill gap insights.
+        </p>
 
-      <a
-        href="/dashboard"
-        className="bg-black text-white px-6 py-3 rounded-xl"
-      >
-        Start Free →
-      </a>
+        <div className="flex justify-center gap-4">
+          <Link href="/dashboard" className="bg-blue-600 px-6 py-2 rounded">
+            Get Started
+          </Link>
 
-      <div className="mt-10 text-gray-500">
-        <p>🔥 Built for students & freshers</p>
+          <Link href="/pricing" className="bg-gray-800 px-6 py-2 rounded">
+            View Pricing
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-12 space-y-6">
+      {/* WARNING */}
+      <div className="max-w-3xl mx-auto mt-12 bg-yellow-900/20 border border-yellow-700 p-5 rounded-lg">
+        <h2 className="text-yellow-400 font-semibold mb-2">
+          ⚠️ Important Notice
+        </h2>
 
-        <div>
-          <h2 className="text-xl font-semibold">📄 Resume Scanner</h2>
-          <p>Get ATS score instantly</p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold">📊 Skill Gap</h2>
-          <p>Find missing skills for your role</p>
-        </div>
-
-        <div>
-          <h2 className="text-xl font-semibold">🎯 Interview AI</h2>
-          <p>Practice real questions</p>
-        </div>
-
+        <ul className="text-gray-300 text-sm space-y-1">
+          <li>• Free users have limited usage</li>
+          <li>• AI responses may not be 100% accurate</li>
+          <li>• Premium users get better AI models</li>
+        </ul>
       </div>
 
+      {/* FEATURES */}
+      <div className="max-w-5xl mx-auto mt-12 grid md:grid-cols-3 gap-6">
+        <div className="bg-[#020617] p-6 rounded-xl">
+          <h3 className="text-lg mb-2">📄 Resume Analyzer</h3>
+          <p className="text-gray-400 text-sm">
+            Analyze your resume and improve it instantly.
+          </p>
+        </div>
+
+        <div className="bg-[#020617] p-6 rounded-xl">
+          <h3 className="text-lg mb-2">🎤 Interview Practice</h3>
+          <p className="text-gray-400 text-sm">
+            Get real interview questions and feedback.
+          </p>
+        </div>
+
+        <div className="bg-[#020617] p-6 rounded-xl">
+          <h3 className="text-lg mb-2">📉 Skill Gap</h3>
+          <p className="text-gray-400 text-sm">
+            Discover missing skills for your dream job.
+          </p>
+        </div>
+      </div>
     </div>
   );
-    }
+}
