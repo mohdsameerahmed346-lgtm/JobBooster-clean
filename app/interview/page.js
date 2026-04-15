@@ -42,10 +42,10 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white">
       <Menu />
 
-      <div className="ml-0 md:ml-64 w-full p-8">
+      <div className="md:ml-64 p-6 md:p-8">
         <h1 className="text-3xl font-semibold mb-6">
           🎤 Interview Practice
         </h1>
