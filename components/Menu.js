@@ -16,10 +16,11 @@ export default function Menu() {
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-black/80 backdrop-blur-lg border-r border-gray-800 p-6 transform ${
+        className={`fixed top-0 left-0 h-full w-64 bg-black border-r border-gray-800 p-6 transform ${
           open ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0 transition duration-300`}
       >
+        {/* DESKTOP TITLE ONLY */}
         <h1 className="text-2xl font-bold mb-10 hidden md:block">
           🚀 JobBooster
         </h1>
