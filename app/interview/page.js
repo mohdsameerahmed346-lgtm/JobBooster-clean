@@ -69,15 +69,31 @@ export default function InterviewPage() {
         {/* QUESTIONS */}
         <div className="mt-6 space-y-4">
           {questions.map((q, i) => (
-            <div
-              key={i}
-              className="bg-[#020617] border border-gray-800 p-5 rounded-xl hover:border-blue-500 transition"
-            >
-              <p className="text-gray-300">{q}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-        }
+  <div
+    key={i}
+    className="bg-[#020617] border border-gray-800 p-5 rounded-xl"
+  >
+    <p className="mb-3">{q}</p>
+
+    <textarea
+      placeholder="Write your answer..."
+      className="w-full p-2 bg-gray-800 rounded mb-2"
+      onBlur={async (e) => {
+        const isPremium =
+          localStorage.getItem("premium") === "true";
+
+        const res = await fetch("/api/evaluate", {
+          method: "POST",
+          body: JSON.stringify({
+            question: q,
+            answer: e.target.value,
+            isPremium,
+          }),
+        });
+
+        const data = await res.json();
+        alert(`Score: ${data.score}\n${data.feedback}`);
+      }}
+    />
+  </div>
+))}
