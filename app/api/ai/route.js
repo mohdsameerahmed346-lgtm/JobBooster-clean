@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 export async function POST(req) {
   const { resume, jobDesc } = await req.json();
 
