@@ -1,5 +1,6 @@
 "use client";
 
+export const dynamic = "force-dynamic";
 export default function Account() {
   const upgrade = () => {
     localStorage.setItem("premium", "true");
