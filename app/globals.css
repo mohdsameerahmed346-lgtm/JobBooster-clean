@@ -3,6 +3,5 @@
 @tailwind utilities;
 
 body {
-  background-color: #020617;
-  color: white;
+  @apply bg-slate-950 text-white;
 }
