@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { db } from "@/lib/firebaseAdmin";
+import { db } from "../../../lib/firebaseAdmin";
 
 // SAVE HISTORY
 export async function POST(req) {
