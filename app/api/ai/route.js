@@ -1,48 +1,40 @@
 export const dynamic = "force-dynamic";
+
 export async function POST(req) {
-  const { resume, jobDesc } = await req.json();
+  const { role, answer } = await req.json();
+
+  const prompt = `Evaluate this interview answer for a ${role}.
+
+Answer:
+${answer}
+
+Return response in this format:
+Score: X/10
+Strengths: ...
+Weaknesses: ...
+Improvements: ...
+`;
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a professional resume optimizer. Improve resumes for ATS and job matching.",
-          },
-          {
-            role: "user",
-            content: `
-Resume:
-${resume}
-
-Job Description:
-${jobDesc}
-
-Give:
-1. Improved resume
-2. Missing keywords
-3. Suggestions
-4. ATS score out of 100
-            `,
-          },
-        ],
+        model: "openai/gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     const data = await response.json();
 
     return Response.json({
-      result: data.choices[0].message.content,
+      result: data.choices?.[0]?.message?.content || "No response",
     });
-  } catch (err) {
-    return Response.json({ error: "AI failed" }, { status: 500 });
+
+  } catch (error) {
+    return Response.json({ result: "Error generating feedback" });
   }
-}
+        }
