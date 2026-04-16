@@ -33,9 +33,18 @@ export default function SkillGap() {
 
       {data && (
         <div className="mt-6">
-          <p>{JSON.stringify(data)}</p>
-        </div>
-      )}
+          {data && (
+  <div className="mt-6 space-y-4">
+
+    <div className="bg-gray-900 p-4 rounded">
+      <h2 className="text-lg mb-2">📉 Missing Skills</h2>
+      <p>{data.missingSkills}</p>
     </div>
-  );
-          }
+
+    <div className="bg-gray-900 p-4 rounded">
+      <h2 className="text-lg mb-2">📚 Learning Plan</h2>
+      <p>{data.learningPlan}</p>
+    </div>
+
+  </div>
+)}
