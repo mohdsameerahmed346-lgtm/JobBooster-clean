@@ -23,16 +23,32 @@ export default function InterviewPage() {
   const evaluate = async () => {
     setLoading(true);
 
+    const isPremium = localStorage.getItem("premium") === "true";
+
     const res = await fetch("/api/ai", {
       method: "POST",
       body: JSON.stringify({
         role,
         answer,
+        isPremium,
       }),
     });
 
     const data = await res.json();
     setFeedback(data.result);
+
+    // SAVE TO HISTORY
+    await fetch("/api/history", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "interview",
+        content: {
+          role,
+          answer,
+          feedback: data.result,
+        },
+      }),
+    });
 
     setLoading(false);
   };
@@ -54,7 +70,6 @@ export default function InterviewPage() {
         Generate Questions
       </button>
 
-      {/* QUESTIONS */}
       <div className="mt-6 space-y-4">
         {questions.map((q, i) => (
           <div
@@ -66,7 +81,6 @@ export default function InterviewPage() {
         ))}
       </div>
 
-      {/* ANSWER INPUT */}
       {questions.length > 0 && (
         <>
           <textarea
@@ -84,17 +98,14 @@ export default function InterviewPage() {
         </>
       )}
 
-      {/* FEEDBACK */}
       {feedback && (
         <div className="mt-6 bg-gradient-to-br from-purple-900 to-black p-6 rounded-xl border border-purple-700">
           <h2 className="text-xl mb-4">🤖 AI Feedback</h2>
 
-          {/* SCORE */}
           <div className="mb-4 text-green-400 font-semibold">
             {feedback.match(/Score:.*?/)}
           </div>
 
-          {/* FULL TEXT */}
           <div className="text-gray-300 whitespace-pre-line text-sm">
             {feedback}
           </div>
@@ -102,4 +113,4 @@ export default function InterviewPage() {
       )}
     </div>
   );
-}
+    }
