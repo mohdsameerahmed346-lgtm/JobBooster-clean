@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
@@ -24,20 +23,20 @@ export default function SkillGap() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
 
       <input
         placeholder="Enter role"
-        className="w-full p-3 bg-black border border-gray-700 rounded"
+        className="input"
         onChange={(e) => setRole(e.target.value)}
       />
 
-      <button onClick={analyze} className="bg-purple-600 px-4 py-2 rounded">
+      <button onClick={analyze} className="btn">
         Analyze Skill Gap
       </button>
 
       {result && (
-        <div className="bg-gray-900 p-4 rounded whitespace-pre-line">
+        <div className="card whitespace-pre-line">
           {result}
         </div>
       )}
