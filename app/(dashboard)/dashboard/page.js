@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   return (
@@ -9,34 +10,43 @@ export default function Dashboard() {
 
       <div className="grid md:grid-cols-3 gap-6">
 
-        {/* ANALYZE */}
         <Link href="/analyze">
-          <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-blue-500 hover:scale-[1.02] transition cursor-pointer">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-gray-900 p-6 rounded-xl border border-gray-800 cursor-pointer"
+          >
             <h2 className="text-lg mb-2">📄 Resume Analyzer</h2>
             <p className="text-gray-400 text-sm">
               Improve your resume instantly
             </p>
-          </div>
+          </motion.div>
         </Link>
 
-        {/* INTERVIEW */}
         <Link href="/interview">
-          <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-green-500 hover:scale-[1.02] transition cursor-pointer">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-gray-900 p-6 rounded-xl border border-gray-800 cursor-pointer"
+          >
             <h2 className="text-lg mb-2">🎤 Interview Practice</h2>
             <p className="text-gray-400 text-sm">
               Practice with AI questions
             </p>
-          </div>
+          </motion.div>
         </Link>
 
-        {/* SKILL GAP */}
         <Link href="/skill-gap">
-          <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-purple-500 hover:scale-[1.02] transition cursor-pointer">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="bg-gray-900 p-6 rounded-xl border border-gray-800 cursor-pointer"
+          >
             <h2 className="text-lg mb-2">📉 Skill Gap</h2>
             <p className="text-gray-400 text-sm">
               Find missing skills
             </p>
-          </div>
+          </motion.div>
         </Link>
 
       </div>
