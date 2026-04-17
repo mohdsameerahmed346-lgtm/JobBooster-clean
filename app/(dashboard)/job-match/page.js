@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 
 export default function JobMatch() {
@@ -23,26 +24,26 @@ export default function JobMatch() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
 
       <textarea
         placeholder="Paste Resume"
-        className="w-full p-3 bg-black border border-gray-700 rounded"
+        className="input"
         onChange={(e) => setResume(e.target.value)}
       />
 
       <textarea
         placeholder="Paste Job Description"
-        className="w-full p-3 bg-black border border-gray-700 rounded"
+        className="input"
         onChange={(e) => setJd(e.target.value)}
       />
 
-      <button onClick={match} className="bg-blue-600 px-4 py-2 rounded">
+      <button onClick={match} className="btn">
         Match Job
       </button>
 
       {result && (
-        <div className="bg-gray-900 p-4 rounded whitespace-pre-line">
+        <div className="card whitespace-pre-line">
           {result}
         </div>
       )}
