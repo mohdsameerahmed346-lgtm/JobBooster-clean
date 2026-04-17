@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function InterviewPage() {
   const [role, setRole] = useState("");
@@ -52,14 +53,14 @@ export default function InterviewPage() {
         <h2 className="text-lg mb-3">🎯 Target Role</h2>
 
         <input
-          placeholder="Enter role (e.g. Web Developer)"
+          placeholder="Enter role"
           className="w-full p-3 bg-black border border-gray-700 rounded"
           onChange={(e) => setRole(e.target.value)}
         />
 
         <button
           onClick={generate}
-          className="mt-4 bg-blue-600 px-5 py-2 rounded"
+          className="mt-4 bg-blue-600 px-5 py-2 rounded hover:scale-105 active:scale-95 transition"
         >
           Generate Questions
         </button>
@@ -71,12 +72,14 @@ export default function InterviewPage() {
           <h2 className="text-lg mb-2">📋 Interview Questions</h2>
 
           {questions.map((q, i) => (
-            <div
+            <motion.div
               key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               className="bg-black p-4 rounded border border-gray-800"
             >
               {q}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -94,16 +97,20 @@ export default function InterviewPage() {
 
           <button
             onClick={evaluate}
-            className="mt-4 bg-green-600 px-5 py-2 rounded"
+            className="mt-4 bg-green-600 px-5 py-2 rounded hover:scale-105 active:scale-95 transition"
           >
-            {loading ? "Analyzing..." : "Evaluate Answer"}
+            {loading ? "⏳ AI is analyzing..." : "Evaluate Answer"}
           </button>
         </div>
       )}
 
       {/* FEEDBACK */}
       {feedback && (
-        <div className="bg-gradient-to-br from-purple-900 to-black p-6 rounded-xl border border-purple-700">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-gradient-to-br from-purple-900 to-black p-6 rounded-xl border border-purple-700"
+        >
           <h2 className="text-lg mb-3">🤖 AI Feedback</h2>
 
           <div className="text-green-400 font-semibold mb-2">
@@ -113,9 +120,9 @@ export default function InterviewPage() {
           <div className="text-gray-300 whitespace-pre-line text-sm">
             {feedback}
           </div>
-        </div>
+        </motion.div>
       )}
 
     </div>
   );
-}
+  }
