@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Skeleton from "@/components/Skeleton";
 
 export default function Analyze() {
   const [resume, setResume] = useState("");
@@ -9,6 +10,7 @@ export default function Analyze() {
 
   const analyze = async () => {
     setLoading(true);
+    setResult("");
 
     const isPremium = localStorage.getItem("premium") === "true";
 
@@ -26,22 +28,6 @@ export default function Analyze() {
     setLoading(false);
   };
 
-  const rewrite = async () => {
-    const isPremium = localStorage.getItem("premium") === "true";
-
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "rewrite",
-        input: resume,
-        isPremium,
-      }),
-    });
-
-    const data = await res.json();
-    setResult(data.result);
-  };
-
   return (
     <div className="space-y-6">
 
@@ -54,18 +40,23 @@ export default function Analyze() {
           onChange={(e) => setResume(e.target.value)}
         />
 
-        <div className="flex gap-3 mt-4">
-          <button onClick={analyze} className="btn">
-            {loading ? "⏳ Analyzing..." : "Analyze Resume"}
-          </button>
-
-          <button onClick={rewrite} className="bg-purple-600 px-5 py-2 rounded-lg">
-            ✍️ Improve Resume
-          </button>
-        </div>
+        <button onClick={analyze} className="btn mt-4">
+          {loading ? "⏳ Processing..." : "Analyze Resume"}
+        </button>
       </div>
 
-      {result && (
+      {/* LOADING SKELETON */}
+      {loading && (
+        <div className="card space-y-3">
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      )}
+
+      {/* RESULT */}
+      {result && !loading && (
         <div className="card whitespace-pre-line">
           <h2 className="text-green-400 mb-2">📊 Analysis Result</h2>
           {result}
@@ -74,4 +65,4 @@ export default function Analyze() {
 
     </div>
   );
-}
+    }
