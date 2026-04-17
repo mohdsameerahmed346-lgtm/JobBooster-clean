@@ -2,69 +2,46 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState("");
 
   const analyze = async () => {
-    setLoading(true);
+    const isPremium = localStorage.getItem("premium") === "true";
 
-    const res = await fetch("/api/skill-gap", {
+    const res = await fetch("/api/ai", {
       method: "POST",
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({
+        type: "skillgap",
+        role,
+        isPremium,
+      }),
     });
 
-    const result = await res.json();
-    setData(result);
-
-    setLoading(false);
+    const data = await res.json();
+    setResult(data.result);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
-      {/* INPUT */}
-      <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
-        <h2 className="text-lg mb-3">🎯 Target Role</h2>
+      <input
+        placeholder="Enter role"
+        className="w-full p-3 bg-black border border-gray-700 rounded"
+        onChange={(e) => setRole(e.target.value)}
+      />
 
-        <input
-          placeholder="Enter role"
-          className="w-full p-3 bg-black border border-gray-700 rounded"
-          onChange={(e) => setRole(e.target.value)}
-        />
+      <button onClick={analyze} className="bg-purple-600 px-4 py-2 rounded">
+        Analyze Skill Gap
+      </button>
 
-        <button
-          onClick={analyze}
-          className="mt-4 bg-purple-600 px-5 py-2 rounded hover:scale-105 active:scale-95 transition"
-        >
-          {loading ? "⏳ AI is analyzing..." : "Analyze"}
-        </button>
-      </div>
-
-      {/* OUTPUT */}
-      {data && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-4"
-        >
-
-          <div className="bg-gray-900 p-5 rounded-xl border border-gray-800">
-            <h2 className="text-lg mb-2">📉 Missing Skills</h2>
-            <p className="text-gray-300">{data.missingSkills}</p>
-          </div>
-
-          <div className="bg-gray-900 p-5 rounded-xl border border-gray-800">
-            <h2 className="text-lg mb-2">📚 Learning Plan</h2>
-            <p className="text-gray-300">{data.learningPlan}</p>
-          </div>
-
-        </motion.div>
+      {result && (
+        <div className="bg-gray-900 p-4 rounded whitespace-pre-line">
+          {result}
+        </div>
       )}
 
     </div>
   );
-    }
+          }
