@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Skeleton from "@/components/Skeleton";
 
 export default function JobMatch() {
   const [resume, setResume] = useState("");
   const [jd, setJd] = useState("");
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const match = async () => {
+    setLoading(true);
+    setResult("");
+
     const isPremium = localStorage.getItem("premium") === "true";
 
     const res = await fetch("/api/ai", {
@@ -21,28 +26,37 @@ export default function JobMatch() {
 
     const data = await res.json();
     setResult(data.result);
+    setLoading(false);
   };
 
   return (
     <div className="space-y-6">
 
       <textarea
-        placeholder="Paste Resume"
+        placeholder="Resume"
         className="input"
         onChange={(e) => setResume(e.target.value)}
       />
 
       <textarea
-        placeholder="Paste Job Description"
+        placeholder="Job Description"
         className="input"
         onChange={(e) => setJd(e.target.value)}
       />
 
       <button onClick={match} className="btn">
-        Match Job
+        {loading ? "⏳ Matching..." : "Match Job"}
       </button>
 
-      {result && (
+      {loading && (
+        <div className="card space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      )}
+
+      {result && !loading && (
         <div className="card whitespace-pre-line">
           {result}
         </div>
@@ -50,4 +64,4 @@ export default function JobMatch() {
 
     </div>
   );
-    }
+  }
