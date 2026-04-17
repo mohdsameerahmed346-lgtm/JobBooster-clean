@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 
 export default function Analyze() {
@@ -44,38 +45,33 @@ export default function Analyze() {
   return (
     <div className="space-y-6">
 
-      <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+      <div className="card">
         <h2 className="text-lg mb-3">📄 Resume Analyzer</h2>
 
         <textarea
-          className="w-full p-4 bg-black border border-gray-700 rounded"
+          className="input"
           placeholder="Paste your resume..."
           onChange={(e) => setResume(e.target.value)}
         />
 
         <div className="flex gap-3 mt-4">
-          <button
-            onClick={analyze}
-            className="bg-blue-600 px-5 py-2 rounded"
-          >
+          <button onClick={analyze} className="btn">
             {loading ? "⏳ Analyzing..." : "Analyze Resume"}
           </button>
 
-          <button
-            onClick={rewrite}
-            className="bg-purple-600 px-5 py-2 rounded"
-          >
+          <button onClick={rewrite} className="bg-purple-600 px-5 py-2 rounded-lg">
             ✍️ Improve Resume
           </button>
         </div>
       </div>
 
       {result && (
-        <div className="bg-gradient-to-br from-green-900 to-black p-6 rounded-xl border border-green-700 whitespace-pre-line">
+        <div className="card whitespace-pre-line">
+          <h2 className="text-green-400 mb-2">📊 Analysis Result</h2>
           {result}
         </div>
       )}
 
     </div>
   );
-      }
+}
