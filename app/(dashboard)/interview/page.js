@@ -27,26 +27,17 @@ export default function InterviewPage() {
 
     const res = await fetch("/api/ai", {
       method: "POST",
-      body: JSON.stringify({
-        role,
-        answer,
-        isPremium,
-      }),
+      body: JSON.stringify({ role, answer, isPremium }),
     });
 
     const data = await res.json();
     setFeedback(data.result);
 
-    // SAVE TO HISTORY
     await fetch("/api/history", {
       method: "POST",
       body: JSON.stringify({
         type: "interview",
-        content: {
-          role,
-          answer,
-          feedback: data.result,
-        },
+        content: { role, answer, feedback: data.result },
       }),
     });
 
@@ -54,38 +45,50 @@ export default function InterviewPage() {
   };
 
   return (
-    <div>
-      <h1 className="text-3xl mb-6">🎤 Interview AI Coach</h1>
+    <div className="space-y-6">
 
-      <input
-        placeholder="Enter role"
-        className="w-full p-3 bg-black border border-gray-800 rounded mb-4"
-        onChange={(e) => setRole(e.target.value)}
-      />
+      {/* INPUT */}
+      <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+        <h2 className="text-lg mb-3">🎯 Target Role</h2>
 
-      <button
-        onClick={generate}
-        className="bg-blue-600 px-5 py-2 rounded"
-      >
-        Generate Questions
-      </button>
+        <input
+          placeholder="Enter role (e.g. Web Developer)"
+          className="w-full p-3 bg-black border border-gray-700 rounded"
+          onChange={(e) => setRole(e.target.value)}
+        />
 
-      <div className="mt-6 space-y-4">
-        {questions.map((q, i) => (
-          <div
-            key={i}
-            className="bg-gray-900 p-4 rounded border border-gray-800"
-          >
-            {q}
-          </div>
-        ))}
+        <button
+          onClick={generate}
+          className="mt-4 bg-blue-600 px-5 py-2 rounded"
+        >
+          Generate Questions
+        </button>
       </div>
 
+      {/* QUESTIONS */}
       {questions.length > 0 && (
-        <>
+        <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+          <h2 className="text-lg mb-2">📋 Interview Questions</h2>
+
+          {questions.map((q, i) => (
+            <div
+              key={i}
+              className="bg-black p-4 rounded border border-gray-800"
+            >
+              {q}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ANSWER */}
+      {questions.length > 0 && (
+        <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
+          <h2 className="text-lg mb-2">✍️ Your Answer</h2>
+
           <textarea
+            className="w-full p-4 bg-black border border-gray-700 rounded"
             placeholder="Write your answer..."
-            className="w-full p-4 mt-6 bg-black border border-gray-800 rounded"
             onChange={(e) => setAnswer(e.target.value)}
           />
 
@@ -95,14 +98,15 @@ export default function InterviewPage() {
           >
             {loading ? "Analyzing..." : "Evaluate Answer"}
           </button>
-        </>
+        </div>
       )}
 
+      {/* FEEDBACK */}
       {feedback && (
-        <div className="mt-6 bg-gradient-to-br from-purple-900 to-black p-6 rounded-xl border border-purple-700">
-          <h2 className="text-xl mb-4">🤖 AI Feedback</h2>
+        <div className="bg-gradient-to-br from-purple-900 to-black p-6 rounded-xl border border-purple-700">
+          <h2 className="text-lg mb-3">🤖 AI Feedback</h2>
 
-          <div className="mb-4 text-green-400 font-semibold">
+          <div className="text-green-400 font-semibold mb-2">
             {feedback.match(/Score:.*?/)}
           </div>
 
@@ -111,6 +115,7 @@ export default function InterviewPage() {
           </div>
         </div>
       )}
+
     </div>
   );
-    }
+}
