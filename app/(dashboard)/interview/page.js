@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Skeleton from "@/components/Skeleton";
 
 export default function InterviewPage() {
   const [role, setRole] = useState("");
   const [questions, setQuestions] = useState([]);
-  const [answer, setAnswer] = useState("");
-  const [feedback, setFeedback] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const generate = async () => {
+    setLoading(true);
+    setQuestions([]);
+
     const res = await fetch("/api/interview", {
       method: "POST",
       body: JSON.stringify({ role }),
@@ -16,23 +19,7 @@ export default function InterviewPage() {
 
     const data = await res.json();
     setQuestions(data.questions || []);
-  };
-
-  const evaluate = async () => {
-    const isPremium = localStorage.getItem("premium") === "true";
-
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "interview",
-        role,
-        answer,
-        isPremium,
-      }),
-    });
-
-    const data = await res.json();
-    setFeedback(data.result);
+    setLoading(false);
   };
 
   return (
@@ -45,34 +32,23 @@ export default function InterviewPage() {
       />
 
       <button onClick={generate} className="btn">
-        Generate Questions
+        {loading ? "⏳ Generating..." : "Generate Questions"}
       </button>
 
-      <div className="space-y-4">
-        {questions.map((q, i) => (
-          <div key={i} className="card">{q}</div>
-        ))}
-      </div>
-
-      {questions.length > 0 && (
-        <>
-          <textarea
-            placeholder="Write your answer..."
-            className="input"
-            onChange={(e) => setAnswer(e.target.value)}
-          />
-
-          <button onClick={evaluate} className="bg-green-600 px-5 py-2 rounded-lg">
-            Evaluate Answer
-          </button>
-        </>
-      )}
-
-      {feedback && (
-        <div className="card bg-purple-900/30 border-purple-700 whitespace-pre-line">
-          {feedback}
+      {/* LOADING */}
+      {loading && (
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
       )}
+
+      {/* QUESTIONS */}
+      {!loading &&
+        questions.map((q, i) => (
+          <div key={i} className="card">{q}</div>
+        ))}
 
     </div>
   );
