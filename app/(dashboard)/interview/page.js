@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 
@@ -41,40 +40,40 @@ export default function InterviewPage() {
 
       <input
         placeholder="Enter role"
-        className="w-full p-3 bg-black border border-gray-700 rounded"
+        className="input"
         onChange={(e) => setRole(e.target.value)}
       />
 
-      <button onClick={generate} className="bg-blue-600 px-4 py-2 rounded">
+      <button onClick={generate} className="btn">
         Generate Questions
       </button>
 
-      {questions.map((q, i) => (
-        <div key={i} className="bg-gray-900 p-4 rounded border border-gray-800">
-          {q}
-        </div>
-      ))}
+      <div className="space-y-4">
+        {questions.map((q, i) => (
+          <div key={i} className="card">{q}</div>
+        ))}
+      </div>
 
       {questions.length > 0 && (
         <>
           <textarea
             placeholder="Write your answer..."
-            className="w-full p-4 bg-black border border-gray-700 rounded"
+            className="input"
             onChange={(e) => setAnswer(e.target.value)}
           />
 
-          <button onClick={evaluate} className="bg-green-600 px-4 py-2 rounded">
+          <button onClick={evaluate} className="bg-green-600 px-5 py-2 rounded-lg">
             Evaluate Answer
           </button>
         </>
       )}
 
       {feedback && (
-        <div className="bg-purple-900 p-4 rounded whitespace-pre-line">
+        <div className="card bg-purple-900/30 border-purple-700 whitespace-pre-line">
           {feedback}
         </div>
       )}
 
     </div>
   );
-          }
+    }
