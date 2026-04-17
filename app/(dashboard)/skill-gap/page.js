@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
@@ -37,15 +38,19 @@ export default function SkillGap() {
 
         <button
           onClick={analyze}
-          className="mt-4 bg-purple-600 px-5 py-2 rounded"
+          className="mt-4 bg-purple-600 px-5 py-2 rounded hover:scale-105 active:scale-95 transition"
         >
-          {loading ? "Analyzing..." : "Analyze"}
+          {loading ? "⏳ AI is analyzing..." : "Analyze"}
         </button>
       </div>
 
       {/* OUTPUT */}
       {data && (
-        <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-4"
+        >
 
           <div className="bg-gray-900 p-5 rounded-xl border border-gray-800">
             <h2 className="text-lg mb-2">📉 Missing Skills</h2>
@@ -57,7 +62,7 @@ export default function SkillGap() {
             <p className="text-gray-300">{data.learningPlan}</p>
           </div>
 
-        </div>
+        </motion.div>
       )}
 
     </div>
