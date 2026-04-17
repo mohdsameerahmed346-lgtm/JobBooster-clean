@@ -2,10 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* smooth UI */
+* {
+  transition: all 0.2s ease;
+}
+
+/* background */
 body {
   @apply bg-slate-950 text-white;
 }
 
-* {
-  transition: all 0.2s ease;
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
 }
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+/* reusable card */
+.card {
+  @apply bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10;
+}
+
+/* gradient */
+.gradient {
+  @apply bg-gradient-to-br from-blue-600 to-purple-600;
+}
+
+/* input */
+.input {
+  @apply w-full p-3 bg-black border border-gray-700 rounded focus:outline-none focus:border-blue-500;
+}
+
+/* button */
+.btn {
+  @apply px-5 py-2 rounded-lg bg-blue-600 hover:scale-105 active:scale-95 shadow-md hover:shadow-blue-500/20;
+  }
