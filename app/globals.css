@@ -5,3 +5,7 @@
 body {
   @apply bg-slate-950 text-white;
 }
+
+* {
+  transition: all 0.2s ease;
+}
