@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Skeleton from "@/components/Skeleton";
+import Skeleton from "../../../components/Skeleton";
 
 export default function InterviewPage() {
   const [role, setRole] = useState("");
