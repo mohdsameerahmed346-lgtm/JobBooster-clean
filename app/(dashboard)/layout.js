@@ -34,9 +34,8 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="flex h-screen bg-slate-950 text-white">
 
-      {/* SIDEBAR DESKTOP */}
+      {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-black border-r border-gray-800 p-5">
-
         <h1 className="text-xl font-bold mb-6">🚀 JobBooster</h1>
 
         <nav className="flex flex-col gap-2">
@@ -66,48 +65,54 @@ export default function DashboardLayout({ children }) {
       {/* MOBILE HEADER */}
       <div className="md:hidden fixed top-0 left-0 w-full bg-black border-b border-gray-800 p-4 flex justify-between items-center z-50">
         <h1 className="font-bold">🚀 JobBooster</h1>
-
-        <button onClick={() => setOpen(!open)}>
-          {open ? <X /> : <Menu />}
+        <button onClick={() => setOpen(true)}>
+          <Menu />
         </button>
       </div>
 
       {/* MOBILE SIDEBAR */}
-      {open && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black p-6 z-50">
-
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="font-bold">Menu</h1>
-            <button onClick={() => setOpen(false)}>
-              <X />
-            </button>
-          </div>
-
-          <nav className="flex flex-col gap-3">
-            {links.map((link, i) => {
-              const Icon = link.icon;
-              const active = pathname === link.href;
-
-              return (
-                <Link
-                  key={i}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-lg
-                  ${
-                    active
-                      ? "bg-blue-600"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <Icon size={18} />
-                  {link.name}
-                </Link>
-              );
-            })}
-          </nav>
-
+      <div
+        className={`fixed top-0 left-0 h-full w-64 bg-black border-r border-gray-800 p-6 z-50 transform transition-transform duration-300
+        ${open ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="font-bold">🚀 JobBooster</h1>
+          <button onClick={() => setOpen(false)}>
+            <X />
+          </button>
         </div>
+
+        <nav className="flex flex-col gap-3">
+          {links.map((link, i) => {
+            const Icon = link.icon;
+            const active = pathname === link.href;
+
+            return (
+              <Link
+                key={i}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
+                ${
+                  active
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                }`}
+              >
+                <Icon size={18} />
+                {link.name}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* BACKGROUND OVERLAY */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setOpen(false)}
+        />
       )}
 
       {/* MAIN CONTENT */}
@@ -117,4 +122,4 @@ export default function DashboardLayout({ children }) {
 
     </div>
   );
-    }
+      }
