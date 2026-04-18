@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -14,11 +14,18 @@ import {
   Target,
   Menu,
   X,
+  User,
+  LogOut,
 } from "lucide-react";
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [premium, setPremium] = useState(false);
+
+  useEffect(() => {
+    setPremium(localStorage.getItem("premium") === "true");
+  }, []);
 
   const links = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -31,10 +38,16 @@ export default function DashboardLayout({ children }) {
     { name: "Account", href: "/account", icon: Settings },
   ];
 
+  const logout = () => {
+    localStorage.clear();
+    alert("Logged out");
+    window.location.href = "/";
+  };
+
   return (
     <div className="flex h-screen bg-slate-950 text-white">
 
-      {/* DESKTOP SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-black border-r border-gray-800 p-5">
         <h1 className="text-xl font-bold mb-6">🚀 JobBooster</h1>
 
@@ -47,7 +60,7 @@ export default function DashboardLayout({ children }) {
               <Link
                 key={i}
                 href={link.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
                 ${
                   active
                     ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
@@ -92,7 +105,7 @@ export default function DashboardLayout({ children }) {
                 key={i}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg
                 ${
                   active
                     ? "bg-blue-600 text-white"
@@ -107,7 +120,7 @@ export default function DashboardLayout({ children }) {
         </nav>
       </div>
 
-      {/* BACKGROUND OVERLAY */}
+      {/* OVERLAY */}
       {open && (
         <div
           className="fixed inset-0 bg-black/50 z-40"
@@ -115,11 +128,49 @@ export default function DashboardLayout({ children }) {
         />
       )}
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-10 mt-16 md:mt-0">
-        {children}
-      </main>
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col">
 
+        {/* 🔥 TOP NAVBAR */}
+        <div className="hidden md:flex justify-between items-center bg-black border-b border-gray-800 px-6 py-4">
+
+          {/* LEFT */}
+          <h2 className="text-lg font-semibold capitalize">
+            {pathname.replace("/", "") || "dashboard"}
+          </h2>
+
+          {/* RIGHT */}
+          <div className="flex items-center gap-4">
+
+            {/* PLAN BADGE */}
+            <span className={`px-3 py-1 text-sm rounded-full
+              ${premium ? "bg-blue-600" : "bg-gray-700"}`}>
+              {premium ? "💎 Premium" : "🆓 Free"}
+            </span>
+
+            {/* USER */}
+            <div className="flex items-center gap-2 bg-gray-800 px-3 py-2 rounded-lg">
+              <User size={16} />
+              <span className="text-sm">User</span>
+            </div>
+
+            {/* LOGOUT */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 text-red-400 hover:text-red-300"
+            >
+              <LogOut size={16} />
+            </button>
+
+          </div>
+        </div>
+
+        {/* PAGE CONTENT */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-10 mt-16 md:mt-0">
+          {children}
+        </main>
+
+      </div>
     </div>
   );
-      }
+     }
