@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }) {
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
                 ${
                   active
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                    ? "bg-blue-600 text-white"
                     : "text-gray-400 hover:text-white hover:bg-gray-800"
                 }`}
               >
@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }) {
 
       {/* MOBILE HEADER */}
       <div className="md:hidden fixed top-0 left-0 w-full bg-black border-b border-gray-800 p-4 flex justify-between items-center z-50">
-        <h1 className="font-bold">🚀 JobBooster</h1>
+        <span className="text-sm font-semibold">Menu</span>
         <button onClick={() => setOpen(true)}>
           <Menu />
         </button>
@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }) {
         ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex justify-between items-center mb-6">
-          <h1 className="font-bold">🚀 JobBooster</h1>
+          <h1 className="font-bold">Menu</h1>
           <button onClick={() => setOpen(false)}>
             <X />
           </button>
@@ -131,33 +131,27 @@ export default function DashboardLayout({ children }) {
       {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
-        {/* 🔥 TOP NAVBAR */}
+        {/* TOP NAVBAR */}
         <div className="hidden md:flex justify-between items-center bg-black border-b border-gray-800 px-6 py-4">
-
-          {/* LEFT */}
           <h2 className="text-lg font-semibold capitalize">
             {pathname.replace("/", "") || "dashboard"}
           </h2>
 
-          {/* RIGHT */}
           <div className="flex items-center gap-4">
 
-            {/* PLAN BADGE */}
             <span className={`px-3 py-1 text-sm rounded-full
               ${premium ? "bg-blue-600" : "bg-gray-700"}`}>
               {premium ? "💎 Premium" : "🆓 Free"}
             </span>
 
-            {/* USER */}
             <div className="flex items-center gap-2 bg-gray-800 px-3 py-2 rounded-lg">
               <User size={16} />
               <span className="text-sm">User</span>
             </div>
 
-            {/* LOGOUT */}
             <button
               onClick={logout}
-              className="flex items-center gap-2 text-red-400 hover:text-red-300"
+              className="flex items-center gap-2 text-red-400"
             >
               <LogOut size={16} />
             </button>
@@ -165,7 +159,6 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto p-6 md:p-10 mt-16 md:mt-0">
           {children}
         </main>
@@ -173,4 +166,4 @@ export default function DashboardLayout({ children }) {
       </div>
     </div>
   );
-     }
+    }
