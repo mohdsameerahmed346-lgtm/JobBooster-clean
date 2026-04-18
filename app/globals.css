@@ -39,4 +39,9 @@ body {
 /* button */
 .btn {
   @apply px-5 py-2 rounded-lg bg-blue-600 hover:scale-105 active:scale-95 shadow-md hover:shadow-blue-500/20;
+}
+
+/* 🔥 sidebar hover animation */
+a:hover {
+  transform: translateX(4px);
   }
