@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { isPremium } from "../../../lib/usage";
+import { saveHistory } from "../../../lib/history";
 
 export default function InterviewPage() {
   const [role, setRole] = useState("");
   const [questions, setQuestions] = useState([]);
 
-  const generate = () => {
+  const generate = async () => {
     const qs = [
       "Explain performance optimization",
       "How do you design scalable systems?",
@@ -16,6 +17,8 @@ export default function InterviewPage() {
     ];
 
     setQuestions(qs);
+
+    await saveHistory("interview", role, qs.join("\n"));
   };
 
   return (
@@ -27,7 +30,7 @@ export default function InterviewPage() {
         💎 Premium feature
       </p>
 
-      {/* CONTENT (BLURRED IF NOT PREMIUM) */}
+      {/* BLURRED CONTENT */}
       <div className={`${!isPremium() ? "blur-sm pointer-events-none" : ""}`}>
 
         <input
@@ -61,7 +64,7 @@ export default function InterviewPage() {
           <h2 className="text-lg mb-2">💎 Premium Feature</h2>
 
           <p className="text-sm text-gray-400 mb-4 text-center px-6">
-            Upgrade to unlock interview questions and AI coaching
+            Upgrade to unlock interview questions
           </p>
 
           <button
@@ -69,7 +72,7 @@ export default function InterviewPage() {
               localStorage.setItem("premium", "true");
               alert("Premium Activated 💎");
             }}
-            className="bg-blue-600 px-6 py-2 rounded hover:scale-105 transition"
+            className="bg-blue-600 px-6 py-2 rounded"
           >
             Upgrade Now
           </button>
@@ -79,4 +82,4 @@ export default function InterviewPage() {
 
     </div>
   );
-    }
+         }
