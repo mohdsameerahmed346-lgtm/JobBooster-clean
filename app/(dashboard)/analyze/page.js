@@ -9,17 +9,10 @@ export default function AnalyzePage() {
   const [result, setResult] = useState("");
 
   const analyze = async () => {
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    body: JSON.stringify({
-      prompt: `Analyze this resume: ${text}`,
-    }),
-  });
-
-  const data = await res.json();
-
-  setResult(data.result);
-};
+    if (!canUseAnalyze()) {
+      alert("🚫 You used all 3 free analyzes. Upgrade to Premium 💎");
+      return;
+    }
 
     increaseUsage("analyze");
 
@@ -60,4 +53,4 @@ export default function AnalyzePage() {
 
     </div>
   );
-    }
+  }
