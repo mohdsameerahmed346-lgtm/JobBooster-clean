@@ -1,35 +1,38 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import { db, auth } from "../../../lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function HistoryPage() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    fetch("/api/history")
-      .then((res) => res.json())
-      .then(setData);
+    const fetchData = async () => {
+      const q = query(
+        collection(db, "history"),
+        where("userId", "==", auth.currentUser?.uid)
+      );
+
+      const snapshot = await getDocs(q);
+      const items = snapshot.docs.map((doc) => doc.data());
+
+      setData(items);
+    };
+
+    fetchData();
   }, []);
 
   return (
-    <div>
-      <h1 className="text-3xl mb-6">📊 History</h1>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">📊 History</h1>
 
-      <div className="space-y-4">
-        {data.map((item) => (
-          <div
-            key={item.id}
-            className="bg-gray-900 p-4 rounded border border-gray-800"
-          >
-            <p className="text-sm text-gray-400 mb-2">{item.type}</p>
-
-            <pre className="text-gray-200 text-sm whitespace-pre-wrap">
-              {JSON.stringify(item.content, null, 2)}
-            </pre>
-          </div>
-        ))}
-      </div>
+      {data.map((item, i) => (
+        <div key={i} className="bg-gray-900 p-4 rounded">
+          <p className="text-sm text-gray-400">{item.type}</p>
+          <p>{item.content}</p>
+        </div>
+      ))}
     </div>
   );
-              }
+            }
