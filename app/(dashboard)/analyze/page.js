@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { canUseAnalyze, increaseUsage } from "../../../lib/usage";
+import { saveHistory } from "../../../lib/history";
 
 export default function AnalyzePage() {
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
 
-  const analyze = () => {
+  const analyze = async () => {
     if (!canUseAnalyze()) {
       alert("🚫 You used all 3 free analyzes. Upgrade to Premium 💎");
       return;
@@ -15,7 +16,10 @@ export default function AnalyzePage() {
 
     increaseUsage("analyze");
 
-    setResult("Your resume looks good, but improve keywords and structure.");
+    const res = "Your resume is good, but improve keywords and formatting.";
+    setResult(res);
+
+    await saveHistory("analyze", text, res);
   };
 
   return (
