@@ -13,7 +13,6 @@ export default function Signup() {
   const signup = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      alert("Account created ✅");
       router.push("/dashboard");
     } catch (err) {
       alert(err.message);
@@ -21,27 +20,29 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-      <div className="bg-gray-900 p-8 rounded-xl w-80 space-y-4">
-        <h1 className="text-xl font-bold">Create Account</h1>
+    <div className="h-screen flex items-center justify-center bg-slate-950 text-white">
+      <div className="bg-gray-900 p-6 rounded-xl w-80 space-y-4">
+
+        <h1 className="text-xl font-bold">Signup</h1>
 
         <input
           placeholder="Email"
-          className="w-full p-3 bg-black border border-gray-700 rounded"
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-2 bg-black rounded"
         />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 bg-black border border-gray-700 rounded"
           onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-2 bg-black rounded"
         />
 
         <button onClick={signup} className="bg-blue-600 w-full py-2 rounded">
-          Sign Up
+          Create Account
         </button>
+
       </div>
     </div>
   );
-  }
+    }
