@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
@@ -18,14 +18,37 @@ import {
   LogOut,
 } from "lucide-react";
 
+import { auth } from "../../lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [open, setOpen] = useState(false);
   const [premium, setPremium] = useState(false);
 
+  // ✅ AUTH PROTECTION
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push("/login");
+      }
+    });
+
+    return () => unsub();
+  }, [router]);
+
+  // ✅ PREMIUM STATUS (local for now)
   useEffect(() => {
     setPremium(localStorage.getItem("premium") === "true");
   }, []);
+
+  // ✅ LOGOUT FUNCTION
+  const logout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
   const links = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -37,12 +60,6 @@ export default function DashboardLayout({ children }) {
     { name: "Pricing", href: "/pricing", icon: CreditCard },
     { name: "Account", href: "/account", icon: Settings },
   ];
-
-  const logout = () => {
-    localStorage.clear();
-    alert("Logged out");
-    window.location.href = "/";
-  };
 
   return (
     <div className="flex h-screen bg-slate-950 text-white">
@@ -133,6 +150,7 @@ export default function DashboardLayout({ children }) {
 
         {/* TOP NAVBAR */}
         <div className="hidden md:flex justify-between items-center bg-black border-b border-gray-800 px-6 py-4">
+
           <h2 className="text-lg font-semibold capitalize">
             {pathname.replace("/", "") || "dashboard"}
           </h2>
@@ -151,7 +169,7 @@ export default function DashboardLayout({ children }) {
 
             <button
               onClick={logout}
-              className="flex items-center gap-2 text-red-400"
+              className="flex items-center gap-2 text-red-400 hover:text-red-300"
             >
               <LogOut size={16} />
             </button>
@@ -159,6 +177,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
+        {/* CONTENT */}
         <main className="flex-1 overflow-y-auto p-6 md:p-10 mt-16 md:mt-0">
           {children}
         </main>
