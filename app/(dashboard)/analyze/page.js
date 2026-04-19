@@ -1,64 +1,48 @@
 "use client";
 
 import { useState } from "react";
-import Skeleton from "../../../components/Skeleton";
+import { canUseAnalyze, increaseUsage } from "../../../lib/usage";
 
-export default function Analyze() {
-  const [resume, setResume] = useState("");
+export default function AnalyzePage() {
+  const [text, setText] = useState("");
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const analyze = async () => {
-    setLoading(true);
-    setResult("");
+  const analyze = () => {
+    if (!canUseAnalyze()) {
+      alert("🚫 You used all 3 free analyzes. Upgrade to Premium 💎");
+      return;
+    }
 
-    const isPremium = localStorage.getItem("premium") === "true";
+    increaseUsage("analyze");
 
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "score",
-        input: resume,
-        isPremium,
-      }),
-    });
-
-    const data = await res.json();
-    setResult(data.result);
-    setLoading(false);
+    setResult("Your resume looks good, but improve keywords and structure.");
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
 
-      <div className="card">
-        <h2 className="text-lg mb-3">📄 Resume Analyzer</h2>
+      <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
 
-        <textarea
-          className="input"
-          placeholder="Paste your resume..."
-          onChange={(e) => setResume(e.target.value)}
-        />
+      <p className="text-sm text-gray-400">
+        🆓 Free: Only 3 lifetime uses
+      </p>
 
-        <button onClick={analyze} className="btn mt-4">
-          {loading ? "⏳ Processing..." : "Analyze Resume"}
-        </button>
-      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Paste your resume..."
+        className="w-full p-3 bg-black border border-gray-700 rounded h-40"
+      />
 
-      {/* LOADING SKELETON */}
-      {loading && (
-        <div className="card space-y-3">
-          <Skeleton className="h-6 w-1/3" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      )}
+      <button
+        onClick={analyze}
+        className="bg-blue-600 px-5 py-2 rounded"
+      >
+        Analyze
+      </button>
 
-      {/* RESULT */}
-      {result && !loading && (
-        <div className="card whitespace-pre-line">
-          <h2 className="text-green-400 mb-2">📊 Analysis Result</h2>
+      {result && (
+        <div className="bg-gray-900 p-4 rounded">
           {result}
         </div>
       )}
