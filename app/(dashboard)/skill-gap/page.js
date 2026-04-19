@@ -1,60 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import Skeleton from "../../../components/Skeleton";
+import { isPremium } from "../../../lib/usage";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const analyze = async () => {
-    setLoading(true);
-    setResult("");
+  const check = () => {
+    if (!isPremium()) {
+      alert("🚫 Premium required 💎");
+      return;
+    }
 
-    const isPremium = localStorage.getItem("premium") === "true";
-
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "skillgap",
-        role,
-        isPremium,
-      }),
-    });
-
-    const data = await res.json();
-    setResult(data.result);
-    setLoading(false);
+    setResult("You need to improve React, System Design, and APIs.");
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
+
+      <h1 className="text-2xl font-bold">📉 Skill Gap</h1>
 
       <input
-        placeholder="Enter role"
-        className="input"
+        value={role}
         onChange={(e) => setRole(e.target.value)}
+        placeholder="Enter role"
+        className="w-full p-3 bg-black border border-gray-700 rounded"
       />
 
-      <button onClick={analyze} className="btn">
-        {loading ? "⏳ Analyzing..." : "Analyze Skill Gap"}
+      <button
+        onClick={check}
+        className="bg-blue-600 px-5 py-2 rounded"
+      >
+        Check Skill Gap
       </button>
 
-      {loading && (
-        <div className="card space-y-3">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      )}
-
-      {result && !loading && (
-        <div className="card whitespace-pre-line">
+      {result && (
+        <div className="bg-gray-900 p-4 rounded">
           {result}
         </div>
       )}
 
     </div>
   );
-          }
+    }
