@@ -13,6 +13,7 @@ export default function Login() {
   const login = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      alert("Login success ✅");
       router.push("/dashboard");
     } catch (err) {
       alert(err.message);
@@ -45,4 +46,4 @@ export default function Login() {
       </div>
     </div>
   );
-    }
+  }
