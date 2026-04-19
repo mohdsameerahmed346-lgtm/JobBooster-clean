@@ -1,33 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import { isPremium } from "../../../lib/usage";
+import { useState, useEffect } from "react";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
   const [result, setResult] = useState("");
+  const [premium, setPremium] = useState(false);
+
+  useEffect(() => {
+    setPremium(localStorage.getItem("premium") === "true");
+  }, []);
 
   const check = () => {
-    const res = "You should improve React, System Design, and APIs.";
-    setResult(res);
+    setResult("Improve React, APIs, and System Design.");
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 relative">
 
-      <h1 className="text-2xl font-bold">📉 Skill Gap Analysis</h1>
+      <h1 className="text-2xl font-bold">📉 Skill Gap</h1>
 
-      <p className="text-sm text-gray-400">
-        💎 Premium feature
-      </p>
-
-      {/* CONTENT */}
-      <div className={`${!isPremium() ? "blur-sm pointer-events-none" : ""}`}>
+      <div className={`${!premium ? "blur-sm pointer-events-none" : ""}`}>
 
         <input
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          placeholder="Enter your target role"
+          placeholder="Enter role"
           className="w-full p-3 bg-black border border-gray-700 rounded"
         />
 
@@ -35,7 +33,7 @@ export default function SkillGap() {
           onClick={check}
           className="bg-blue-600 px-5 py-2 rounded mt-3"
         >
-          Analyze Skill Gap
+          Analyze
         </button>
 
         {result && (
@@ -46,26 +44,17 @@ export default function SkillGap() {
 
       </div>
 
-      {/* 🔒 OVERLAY */}
-      {!isPremium() && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl">
-
-          <h2 className="text-lg mb-2">💎 Premium Feature</h2>
-
-          <p className="text-sm text-gray-400 mb-4 text-center px-6">
-            Unlock skill gap insights to improve your career
-          </p>
-
+      {!premium && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-xl">
           <button
             onClick={() => {
               localStorage.setItem("premium", "true");
-              alert("Premium Activated 💎");
+              setPremium(true);
             }}
-            className="bg-blue-600 px-6 py-2 rounded hover:scale-105 transition"
+            className="bg-blue-600 px-6 py-2 rounded"
           >
-            Upgrade Now
+            Unlock Premium
           </button>
-
         </div>
       )}
 
