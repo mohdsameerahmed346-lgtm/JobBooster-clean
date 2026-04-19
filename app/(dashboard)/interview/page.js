@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { isPremium } from "../../../lib/usage";
+import { useState, useEffect } from "react";
 import { saveHistory } from "../../../lib/history";
 
 export default function InterviewPage() {
   const [role, setRole] = useState("");
   const [questions, setQuestions] = useState([]);
+  const [premium, setPremium] = useState(false);
+
+  useEffect(() => {
+    setPremium(localStorage.getItem("premium") === "true");
+  }, []);
 
   const generate = async () => {
     const qs = [
@@ -26,12 +30,8 @@ export default function InterviewPage() {
 
       <h1 className="text-2xl font-bold">🎤 Interview Practice</h1>
 
-      <p className="text-sm text-gray-400">
-        💎 Premium feature
-      </p>
-
-      {/* BLURRED CONTENT */}
-      <div className={`${!isPremium() ? "blur-sm pointer-events-none" : ""}`}>
+      {/* BLUR CONTENT */}
+      <div className={`${!premium ? "blur-sm pointer-events-none" : ""}`}>
 
         <input
           value={role}
@@ -57,24 +57,20 @@ export default function InterviewPage() {
 
       </div>
 
-      {/* 🔒 PREMIUM OVERLAY */}
-      {!isPremium() && (
+      {/* OVERLAY */}
+      {!premium && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl">
 
           <h2 className="text-lg mb-2">💎 Premium Feature</h2>
 
-          <p className="text-sm text-gray-400 mb-4 text-center px-6">
-            Upgrade to unlock interview questions
-          </p>
-
           <button
             onClick={() => {
               localStorage.setItem("premium", "true");
-              alert("Premium Activated 💎");
+              setPremium(true);
             }}
             className="bg-blue-600 px-6 py-2 rounded"
           >
-            Upgrade Now
+            Unlock Premium
           </button>
 
         </div>
@@ -82,4 +78,4 @@ export default function InterviewPage() {
 
     </div>
   );
-         }
+    }
