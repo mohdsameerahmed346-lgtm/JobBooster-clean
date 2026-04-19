@@ -1,29 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center px-6 py-10">
+    <div className="bg-slate-950 text-white min-h-screen">
 
-      {/* HERO */}
-      <section className="text-center max-w-3xl">
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-bold mb-4"
-        >
+      {/* HERO SECTION */}
+      <section className="text-center py-20 px-6 max-w-4xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
           🚀 AI-Powered Career Growth
-        </motion.h1>
+        </h1>
 
-        <p className="text-gray-400 mb-6 text-lg">
-          Land your dream job faster with smart resume analysis, interview coaching, and skill gap insights.
+        <p className="text-gray-400 text-lg mb-8">
+          Land your dream job faster with smart resume analysis, interview coaching,
+          and skill gap insights.
         </p>
 
-        {/* CTA */}
-        <div className="flex gap-4 justify-center flex-wrap">
+        <div className="flex gap-4 justify-center">
           <Link
             href="/dashboard"
             className="bg-blue-600 px-6 py-3 rounded-lg font-medium hover:scale-105 transition"
@@ -39,63 +33,64 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* SOCIAL PROOF */}
-        <p className="text-gray-500 text-sm mt-6">
+        <p className="text-sm text-gray-500 mt-6">
           Trusted by 1,000+ job seekers 🚀
         </p>
-
       </section>
 
       {/* NOTICE */}
-      <section className="mt-12 bg-gray-900 border border-gray-800 p-5 rounded-xl max-w-2xl w-full">
-        <h2 className="text-lg font-semibold mb-2">⚠️ Important Notice</h2>
-        <ul className="text-gray-400 text-sm space-y-1">
-          <li>• Free users have limited usage</li>
-          <li>• AI responses may not be 100% accurate</li>
-          <li>• Premium users get better AI models</li>
-        </ul>
+      <section className="max-w-3xl mx-auto px-6 mb-16">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 p-5 rounded-xl text-sm text-yellow-300">
+          ⚠️ Important Notice
+          <ul className="mt-2 space-y-1 text-yellow-200">
+            <li>• Free users have limited usage</li>
+            <li>• AI responses may not be 100% accurate</li>
+            <li>• Premium users get better AI models</li>
+          </ul>
+        </div>
       </section>
 
       {/* FEATURES */}
-      <section className="mt-12 grid md:grid-cols-3 gap-6 max-w-5xl w-full">
+      <section className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6">
 
-        {/* CARD 1 */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="bg-gray-900 border border-gray-800 p-6 rounded-xl"
-        >
-          <h3 className="text-lg mb-2">📄 Resume Analyzer</h3>
+        {/* Resume */}
+        <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-blue-500 transition">
+          <h2 className="text-lg font-semibold mb-2">📄 Resume Analyzer</h2>
           <p className="text-gray-400 text-sm">
             Analyze your resume and improve it instantly with AI suggestions.
           </p>
-        </motion.div>
+        </div>
 
-        {/* CARD 2 */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="bg-gray-900 border border-gray-800 p-6 rounded-xl"
-        >
-          <h3 className="text-lg mb-2">🎤 Interview Practice</h3>
+        {/* Interview */}
+        <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-green-500 transition relative">
+
+          <span className="absolute top-3 right-3 text-xs bg-blue-600 px-2 py-1 rounded">
+            💎 Premium
+          </span>
+
+          <h2 className="text-lg font-semibold mb-2">🎤 Interview Practice</h2>
           <p className="text-gray-400 text-sm">
             Get real interview questions and AI-powered feedback.
           </p>
-        </motion.div>
+        </div>
 
-        {/* CARD 3 */}
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="bg-gray-900 border border-gray-800 p-6 rounded-xl"
-        >
-          <h3 className="text-lg mb-2">📉 Skill Gap Insights</h3>
+        {/* Skill Gap */}
+        <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 hover:border-purple-500 transition relative">
+
+          <span className="absolute top-3 right-3 text-xs bg-blue-600 px-2 py-1 rounded">
+            💎 Premium
+          </span>
+
+          <h2 className="text-lg font-semibold mb-2">📉 Skill Gap Insights</h2>
           <p className="text-gray-400 text-sm">
             Discover missing skills and improve your job readiness.
           </p>
-        </motion.div>
+        </div>
 
       </section>
 
-      {/* FINAL CTA */}
-      <section className="mt-16 text-center">
+      {/* CTA */}
+      <section className="text-center py-20">
         <h2 className="text-2xl font-semibold mb-4">
           Start boosting your career today 🚀
         </h2>
