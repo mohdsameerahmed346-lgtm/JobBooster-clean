@@ -1,67 +1,46 @@
 "use client";
 
 import { useState } from "react";
-import Skeleton from "../../../components/Skeleton";
+import { isPremium } from "../../../lib/usage";
 
 export default function JobMatch() {
-  const [resume, setResume] = useState("");
-  const [jd, setJd] = useState("");
+  const [role, setRole] = useState("");
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const match = async () => {
-    setLoading(true);
-    setResult("");
+  const match = () => {
+    if (!isPremium()) {
+      alert("🚫 Premium required 💎");
+      return;
+    }
 
-    const isPremium = localStorage.getItem("premium") === "true";
-
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "jobmatch",
-        input: resume + "\n\nJob:\n" + jd,
-        isPremium,
-      }),
-    });
-
-    const data = await res.json();
-    setResult(data.result);
-    setLoading(false);
+    setResult("You are 78% match for this role.");
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
 
-      <textarea
-        placeholder="Resume"
-        className="input"
-        onChange={(e) => setResume(e.target.value)}
+      <h1 className="text-2xl font-bold">🎯 Job Match</h1>
+
+      <input
+        value={role}
+        onChange={(e) => setRole(e.target.value)}
+        placeholder="Enter role"
+        className="w-full p-3 bg-black border border-gray-700 rounded"
       />
 
-      <textarea
-        placeholder="Job Description"
-        className="input"
-        onChange={(e) => setJd(e.target.value)}
-      />
-
-      <button onClick={match} className="btn">
-        {loading ? "⏳ Matching..." : "Match Job"}
+      <button
+        onClick={match}
+        className="bg-blue-600 px-5 py-2 rounded"
+      >
+        Check Match
       </button>
 
-      {loading && (
-        <div className="card space-y-3">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </div>
-      )}
-
-      {result && !loading && (
-        <div className="card whitespace-pre-line">
+      {result && (
+        <div className="bg-gray-900 p-4 rounded">
           {result}
         </div>
       )}
 
     </div>
   );
-  }
+                                 }
