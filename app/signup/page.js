@@ -13,6 +13,7 @@ export default function Signup() {
   const signup = async () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
+      alert("Account created ✅");
       router.push("/dashboard");
     } catch (err) {
       alert(err.message);
@@ -45,4 +46,4 @@ export default function Signup() {
       </div>
     </div>
   );
-    }
+  }
