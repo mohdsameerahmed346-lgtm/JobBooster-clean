@@ -45,3 +45,7 @@ button:hover {
 .lock-overlay {
   transition: opacity 0.3s ease;
 }
+
+  body {
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  }
