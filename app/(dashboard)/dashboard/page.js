@@ -13,12 +13,10 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* CARDS */}
       <div className="grid md:grid-cols-3 gap-6">
 
-        {/* ANALYZE */}
         <Link href="/analyze">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition cursor-pointer">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition">
             <h2 className="text-xl font-semibold mb-2">📄 Resume Analyzer</h2>
             <p className="text-gray-400 text-sm">
               Improve your resume instantly with AI
@@ -26,9 +24,8 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        {/* INTERVIEW */}
         <Link href="/interview">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition cursor-pointer">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition">
             <h2 className="text-xl font-semibold mb-2">🎤 Interview Practice</h2>
             <p className="text-gray-400 text-sm">
               Practice real interview questions
@@ -36,9 +33,8 @@ export default function Dashboard() {
           </div>
         </Link>
 
-        {/* SKILL GAP */}
         <Link href="/skill-gap">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition cursor-pointer">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl border border-gray-700 hover:scale-105 transition">
             <h2 className="text-xl font-semibold mb-2">📉 Skill Gap</h2>
             <p className="text-gray-400 text-sm">
               Find missing skills for your role
@@ -50,4 +46,4 @@ export default function Dashboard() {
 
     </div>
   );
-  }
+    }
