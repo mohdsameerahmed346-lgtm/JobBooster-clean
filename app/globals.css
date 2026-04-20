@@ -62,3 +62,13 @@ a, button {
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.1);
 }
+
+/* Smooth UI feel */
+* {
+  transition: all 0.25s ease;
+}
+
+/* Better rendering */
+body {
+  perspective: 1000px;
+}
