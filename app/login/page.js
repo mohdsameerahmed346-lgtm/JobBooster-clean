@@ -12,40 +12,38 @@ export default function Login() {
 
   const login = async () => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password.trim());
       router.push("/dashboard");
     } catch (err) {
-      alert(err.message);
+      alert(err.code);
     }
   };
 
   return (
     <div className="h-screen flex items-center justify-center bg-slate-950 text-white">
 
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl w-80 shadow-lg">
-
-        <h1 className="text-xl font-bold mb-4">Login</h1>
+      <div className="bg-gray-900 p-6 rounded-xl w-80 space-y-4">
+        <h1 className="text-xl font-bold">Login</h1>
 
         <input
           placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 mb-3 bg-black rounded"
+          className="w-full p-2 bg-black rounded"
         />
 
         <input
           type="password"
           placeholder="Password"
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 mb-4 bg-black rounded"
+          className="w-full p-2 bg-black rounded"
         />
 
         <button
           onClick={login}
-          className="bg-gradient-to-r from-blue-500 to-purple-500 w-full py-2 rounded-lg"
+          className="bg-blue-600 w-full py-2 rounded"
         >
           Login
         </button>
-
       </div>
 
     </div>
