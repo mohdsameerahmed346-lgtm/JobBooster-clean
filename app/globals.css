@@ -72,3 +72,13 @@ a, button {
 body {
   perspective: 1000px;
 }
+
+/* smoother experience */
+body {
+  cursor: none; /* hide default cursor */
+}
+
+/* optional glow text */
+.glow {
+  text-shadow: 0 0 10px rgba(59,130,246,0.7);
+}
