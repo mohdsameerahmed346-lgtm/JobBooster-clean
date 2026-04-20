@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { canUseAnalyze, increaseUsage } from "../../../lib/usage";
 import { saveHistory } from "../../../lib/history";
 
 export default function AnalyzePage() {
@@ -9,12 +8,10 @@ export default function AnalyzePage() {
   const [result, setResult] = useState("");
 
   const analyze = async () => {
-    if (!canUseAnalyze()) {
-      alert("🚫 You used all 3 free analyzes. Upgrade to Premium 💎");
+    if (!text) {
+      alert("Enter resume first");
       return;
     }
-
-    increaseUsage("analyze");
 
     const res = "Your resume is good, but improve keywords and formatting.";
     setResult(res);
@@ -26,10 +23,6 @@ export default function AnalyzePage() {
     <div className="max-w-3xl mx-auto space-y-6">
 
       <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
-
-      <p className="text-sm text-gray-400">
-        🆓 Free: Only 3 lifetime uses
-      </p>
 
       <textarea
         value={text}
@@ -53,4 +46,4 @@ export default function AnalyzePage() {
 
     </div>
   );
-  }
+}
