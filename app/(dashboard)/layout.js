@@ -1,5 +1,7 @@
 "use client";
 
+import Particles from "../../components/Particles";
+import GlowCursor from "../../components/GlowCursor";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
