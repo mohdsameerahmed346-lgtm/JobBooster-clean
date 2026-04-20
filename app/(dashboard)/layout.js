@@ -27,24 +27,24 @@ export default function DashboardLayout({ children }) {
 
   const [open, setOpen] = useState(false);
   const [premium, setPremium] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // ✅ AUTH PROTECTION
+  // ✅ Fix hydration + localStorage
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      setPremium(localStorage.getItem("premium") === "true");
+    }
+  }, []);
+
+  // ✅ Auth protection
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push("/login");
-      }
+      if (!user) router.push("/login");
     });
-
     return () => unsub();
   }, [router]);
 
-  // ✅ PREMIUM STATUS (local for now)
-  useEffect(() => {
-    setPremium(localStorage.getItem("premium") === "true");
-  }, []);
-
-  // ✅ LOGOUT FUNCTION
   const logout = async () => {
     await signOut(auth);
     router.push("/login");
@@ -66,6 +66,7 @@ export default function DashboardLayout({ children }) {
 
       {/* SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-black border-r border-gray-800 p-5">
+
         <h1 className="text-xl font-bold mb-6">🚀 JobBooster</h1>
 
         <nav className="flex flex-col gap-2">
@@ -77,10 +78,10 @@ export default function DashboardLayout({ children }) {
               <Link
                 key={i}
                 href={link.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
+                className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200
                 ${
                   active
-                    ? "bg-blue-600 text-white"
+                    ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
                     : "text-gray-400 hover:text-white hover:bg-gray-800"
                 }`}
               >
@@ -90,6 +91,13 @@ export default function DashboardLayout({ children }) {
             );
           })}
         </nav>
+
+        <button
+          onClick={logout}
+          className="mt-auto bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg"
+        >
+          Logout
+        </button>
       </aside>
 
       {/* MOBILE HEADER */}
@@ -157,10 +165,12 @@ export default function DashboardLayout({ children }) {
 
           <div className="flex items-center gap-4">
 
-            <span className={`px-3 py-1 text-sm rounded-full
-              ${premium ? "bg-blue-600" : "bg-gray-700"}`}>
-              {premium ? "💎 Premium" : "🆓 Free"}
-            </span>
+            {mounted && (
+              <span className={`px-3 py-1 text-sm rounded-full
+                ${premium ? "bg-blue-600" : "bg-gray-700"}`}>
+                {premium ? "💎 Premium" : "🆓 Free"}
+              </span>
+            )}
 
             <div className="flex items-center gap-2 bg-gray-800 px-3 py-2 rounded-lg">
               <User size={16} />
@@ -185,4 +195,4 @@ export default function DashboardLayout({ children }) {
       </div>
     </div>
   );
-    }
+}
