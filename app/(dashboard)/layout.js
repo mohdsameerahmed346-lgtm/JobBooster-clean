@@ -57,7 +57,11 @@ export default function DashboardLayout({ children }) {
   ];
 
   return (
-    <div className="flex h-screen text-white">
+  <div className="flex h-screen text-white relative">
+
+    {/* BACKGROUND EFFECTS */}
+    <Particles />
+    <GlowCursor />
 
       {/* SIDEBAR */}
       <aside className="hidden md:flex flex-col w-64 bg-black/40 backdrop-blur-xl border-r border-white/10 p-5">
