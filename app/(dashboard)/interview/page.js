@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import TypingText from "../../../components/TypingText";
+import { saveHistory } from "../../../lib/history";
 
 export default function Interview() {
   const [role, setRole] = useState("");
@@ -26,11 +27,15 @@ export default function Interview() {
       });
 
       const data = await res.json();
-      const list = data.result.split("\n").filter(Boolean);
 
+      // ✅ SAVE HISTORY
+      await saveHistory("interview", role, data.result);
+
+      const list = data.result.split("\n").filter(Boolean);
       setQuestions(list);
+
     } catch {
-      alert("Error");
+      alert("Error generating questions");
     }
 
     setLoading(false);
@@ -55,11 +60,11 @@ export default function Interview() {
         {loading ? "Generating..." : "Generate Questions"}
       </button>
 
-      <div className="mt-6 space-y-4">
+      <div className="space-y-4 mt-4">
         {questions.map((q, i) => (
           <div
             key={i}
-            className="p-4 rounded-xl bg-white/5 border border-white/10"
+            className="p-4 bg-white/5 border border-white/10 rounded-xl"
           >
             <TypingText text={q} speed={15} />
           </div>
