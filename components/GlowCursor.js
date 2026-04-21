@@ -7,13 +7,14 @@ export default function GlowCursor() {
     const cursor = document.createElement("div");
 
     cursor.style.position = "fixed";
-    cursor.style.width = "20px";
-    cursor.style.height = "20px";
+    cursor.style.width = "120px";
+    cursor.style.height = "120px";
     cursor.style.borderRadius = "50%";
-    cursor.style.background = "rgba(59,130,246,0.7)";
-    cursor.style.boxShadow = "0 0 20px rgba(59,130,246,0.8)";
+    cursor.style.background =
+      "radial-gradient(circle, rgba(59,130,246,0.25), transparent 70%)";
     cursor.style.pointerEvents = "none";
     cursor.style.zIndex = "9999";
+    cursor.style.transform = "translate(-50%, -50%)";
 
     document.body.appendChild(cursor);
 
@@ -26,7 +27,7 @@ export default function GlowCursor() {
 
     return () => {
       window.removeEventListener("mousemove", move);
-      document.body.removeChild(cursor);
+      cursor.remove();
     };
   }, []);
 
