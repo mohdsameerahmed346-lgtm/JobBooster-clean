@@ -46,39 +46,55 @@ button:hover {
   transition: opacity 0.3s ease;
 }
 
-  body {
+  /* ===== BASE ===== */
+body {
   background: radial-gradient(circle at top, #0f172a, #020617);
-  color: white;
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Smooth hover */
-a, button {
+/* ===== TYPOGRAPHY ===== */
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+p {
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+/* ===== GLASS ===== */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ===== CARD ===== */
+.card {
+  border-radius: 16px;
+  padding: 20px;
   transition: all 0.3s ease;
 }
 
-/* Glass effect */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.1);
+.card:hover {
+  transform: translateY(-4px);
 }
 
-/* Smooth UI feel */
-* {
-  transition: all 0.25s ease;
+/* ===== BUTTON ===== */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
-/* Better rendering */
-body {
-  perspective: 1000px;
-}
-
-/* smoother experience */
-body {
-  cursor: none; /* hide default cursor */
-}
-
-/* optional glow text */
-.glow {
-  text-shadow: 0 0 10px rgba(59,130,246,0.7);
-}
+.btn-primary:hover {
+  opacity: 0.9;
+  }
