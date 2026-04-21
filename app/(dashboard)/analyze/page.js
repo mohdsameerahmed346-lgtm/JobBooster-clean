@@ -8,10 +8,19 @@ export default function AnalyzePage() {
   const [result, setResult] = useState("");
 
   const analyze = async () => {
-    if (!text) {
-      alert("Enter resume first");
-      return;
-    }
+  if (!text) return;
+
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    body: JSON.stringify({
+      prompt: `Analyze this resume and give improvements:\n${text}`,
+    }),
+  });
+
+  const data = await res.json();
+
+  setResult(data.result);
+};
 
     const res = "Your resume is good, but improve keywords and formatting.";
     setResult(res);
