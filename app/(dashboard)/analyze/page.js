@@ -1,31 +1,48 @@
 "use client";
 
 import { useState } from "react";
-import { saveHistory } from "../../../lib/history";
+import TypingText from "../../../components/TypingText";
 
-export default function AnalyzePage() {
+export default function Analyze() {
   const [text, setText] = useState("");
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const analyze = async () => {
-  if (!text) return;
+    if (!text) return;
 
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    body: JSON.stringify({
-      prompt: `Analyze this resume and give improvements:\n${text}`,
-    }),
-  });
+    setLoading(true);
+    setResult("");
 
-  const data = await res.json();
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: `
+You are a professional resume expert.
 
-  setResult(data.result);
-};
+Analyze this resume and respond in:
 
-    const res = "Your resume is good, but improve keywords and formatting.";
-    setResult(res);
+1. 🔍 Issues
+2. ✅ Improvements
+3. 🚀 Action Steps
 
-    await saveHistory("analyze", text, res);
+Resume:
+${text}
+`,
+        }),
+      });
+
+      const data = await res.json();
+      setResult(data.result);
+    } catch {
+      setResult("Something went wrong.");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -44,15 +61,15 @@ export default function AnalyzePage() {
         onClick={analyze}
         className="bg-blue-600 px-5 py-2 rounded"
       >
-        Analyze
+        {loading ? "Analyzing..." : "Analyze"}
       </button>
 
       {result && (
-        <div className="bg-gray-900 p-4 rounded">
-          {result}
+        <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10">
+          <TypingText text={result} />
         </div>
       )}
 
     </div>
   );
-}
+      }
