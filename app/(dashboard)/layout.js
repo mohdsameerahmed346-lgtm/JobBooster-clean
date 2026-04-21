@@ -17,6 +17,8 @@ import {
   LogOut,
 } from "lucide-react";
 
+import GlowCursor from "../../components/GlowCursor";
+
 import { auth } from "../../lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -28,20 +30,14 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [premium, setPremium] = useState(false);
 
-  // ✅ AUTH CHECK
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) {
-        router.push("/login");
-      } else {
-        setUser(u);
-      }
+      if (!u) router.push("/login");
+      else setUser(u);
     });
-
     return () => unsub();
   }, [router]);
 
-  // ✅ PREMIUM STATUS
   useEffect(() => {
     setPremium(localStorage.getItem("premium") === "true");
   }, []);
@@ -63,146 +59,75 @@ export default function DashboardLayout({ children }) {
   ];
 
   return (
-    <div className="flex h-screen text-white bg-gradient-to-b from-[#020617] via-[#0f172a] to-black">
+    <div className="flex h-screen text-white bg-animated relative">
+
+      <GlowCursor />
 
       {/* MOBILE HEADER */}
-      <div className="md:hidden fixed top-0 left-0 w-full bg-black/80 backdrop-blur-lg border-b border-white/10 px-5 py-4 flex justify-between items-center z-50">
-        <span className="text-lg font-semibold">🚀 JobBooster</span>
-
-        <button
-          onClick={() => setOpen(true)}
-          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
-        >
-          <Menu size={20} />
+      <div className="md:hidden fixed top-0 left-0 w-full bg-black/70 backdrop-blur-lg border-b border-white/10 px-5 py-4 flex justify-between z-50">
+        <span className="font-semibold">🚀 JobBooster</span>
+        <button onClick={() => setOpen(true)}>
+          <Menu />
         </button>
       </div>
 
       {/* SIDEBAR */}
-      <aside className="hidden md:flex flex-col w-64 bg-black/80 backdrop-blur-lg border-r border-white/10 p-6">
+      <aside className="hidden md:flex flex-col w-64 glass p-6">
+        <h1 className="text-xl font-bold mb-6">🚀 JobBooster</h1>
 
-        <h1 className="text-xl font-bold mb-8">🚀 JobBooster</h1>
+        {links.map((link, i) => {
+          const Icon = link.icon;
+          const active = pathname === link.href;
 
-        <nav className="flex flex-col gap-2">
-          {links.map((link, i) => {
-            const Icon = link.icon;
-            const active = pathname === link.href;
-
-            return (
-              <Link
-                key={i}
-                href={link.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
-                ${
-                  active
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <Icon size={18} />
-                {link.name}
-              </Link>
-            );
-          })}
-        </nav>
-
+          return (
+            <Link
+              key={i}
+              href={link.href}
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg mb-2
+              ${active ? "bg-blue-600" : "hover:bg-white/10 text-gray-400"}`}
+            >
+              <Icon size={18} />
+              {link.name}
+            </Link>
+          );
+        })}
       </aside>
-
-      {/* MOBILE SIDEBAR */}
-      <div
-        className={`fixed top-0 left-0 h-full w-64 bg-black border-r border-gray-800 p-6 z-50 transform transition-transform duration-300
-        ${open ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="font-bold">Menu</h1>
-          <button onClick={() => setOpen(false)}>
-            <X />
-          </button>
-        </div>
-
-        <nav className="flex flex-col gap-3">
-          {links.map((link, i) => {
-            const Icon = link.icon;
-            const active = pathname === link.href;
-
-            return (
-              <Link
-                key={i}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg
-                ${
-                  active
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
-                }`}
-              >
-                <Icon size={18} />
-                {link.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* OVERLAY */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setOpen(false)}
-        />
-      )}
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
-        {/* TOP NAVBAR */}
-        <div className="hidden md:flex justify-between items-center bg-black/60 backdrop-blur-lg border-b border-white/10 px-8 py-4">
+        {/* TOP BAR */}
+        <div className="hidden md:flex justify-between items-center px-8 py-4 glass">
 
-          <h2 className="text-lg font-semibold capitalize">
-            {pathname.replace("/", "") || "dashboard"}
-          </h2>
+          <h2 className="capitalize">{pathname.replace("/", "")}</h2>
 
           <div className="flex items-center gap-4">
 
-            {/* PLAN */}
-            <span className={`px-3 py-1 text-sm rounded-full
+            <span className={`px-3 py-1 rounded-full text-sm
               ${premium ? "bg-blue-600" : "bg-gray-700"}`}>
               {premium ? "💎 Premium" : "🆓 Free"}
             </span>
 
-            {/* USER */}
-            <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
-
-              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-sm font-bold">
-                {user?.email?.[0]?.toUpperCase()}
-              </div>
-
-              <div className="text-xs leading-tight">
-                <p className="text-gray-300">Signed in</p>
-                <p className="text-white font-medium truncate max-w-[140px]">
-                  {user?.email}
-                </p>
-              </div>
-
+            <div className="flex items-center gap-2 glass px-3 py-2 rounded-xl">
+              <span className="text-sm truncate max-w-[120px]">
+                {user?.email}
+              </span>
             </div>
 
-            {/* LOGOUT */}
-            <button
-              onClick={logout}
-              className="text-red-400 hover:text-red-300"
-            >
-              <LogOut size={18} />
+            <button onClick={logout}>
+              <LogOut />
             </button>
 
           </div>
+
         </div>
 
         {/* CONTENT */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 md:px-10 md:py-8 mt-20 md:mt-0">
+        <main className="flex-1 overflow-y-auto px-6 py-6 md:px-10 mt-20 md:mt-0">
           {children}
         </main>
 
       </div>
     </div>
   );
-            }
+      }
