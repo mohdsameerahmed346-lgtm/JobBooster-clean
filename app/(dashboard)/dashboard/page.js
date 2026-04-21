@@ -1,82 +1,81 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getStats, getWeeklyAnalytics, getStreak } from "../../../lib/history";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({});
-  const [weekly, setWeekly] = useState({});
-  const [streak, setStreak] = useState(0);
-
-  useEffect(() => {
-    const load = async () => {
-      const s = await getStats();
-      const w = await getWeeklyAnalytics();
-      const st = await getStreak();
-
-      setStats(s);
-      setWeekly(w);
-      setStreak(st);
-    };
-
-    load();
-  }, []);
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
 
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-400">
-          Track your AI productivity 🚀
-        </p>
+      {/* 🚀 HERO SECTION */}
+      <div className="glass p-8 rounded-3xl relative overflow-hidden">
+
+        {/* gradient glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-2xl" />
+
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold leading-tight">
+            Build your career with <span className="text-blue-400">AI</span>
+          </h1>
+
+          <p className="mt-3 text-gray-400 max-w-xl">
+            Analyze resumes, practice interviews, and track your growth — all in one powerful dashboard.
+          </p>
+
+          <div className="mt-6 flex gap-4">
+            <button className="btn-primary">Start Improving</button>
+            <button className="glass px-5 py-2 rounded-lg">View History</button>
+          </div>
+        </div>
       </div>
 
-      {/* MAIN STATS */}
+      {/* 📊 STATS CARDS */}
       <div className="grid md:grid-cols-3 gap-6">
 
-        <Card title="This Week" value={weekly.thisWeek} />
-        <Card title="Last Week" value={weekly.lastWeek} />
-        <Card
-          title="Growth"
-          value={`${weekly.growth || 0}%`}
-          highlight
-        />
+        {[
+          { title: "This Week", value: "12", color: "from-blue-500 to-indigo-500" },
+          { title: "Growth", value: "+35%", color: "from-green-500 to-emerald-500" },
+          { title: "Streak", value: "5 days", color: "from-orange-500 to-yellow-500" },
+        ].map((card, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+            className="glass p-6 rounded-2xl relative overflow-hidden card-hover"
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-10`} />
+
+            <div className="relative z-10">
+              <p className="text-gray-400">{card.title}</p>
+              <h2 className="text-3xl font-bold">{card.value}</h2>
+            </div>
+          </motion.div>
+        ))}
 
       </div>
 
-      {/* STREAK */}
-      <motion.div
-        className="glass p-6 rounded-2xl text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <h2 className="text-lg font-semibold">🔥 Daily Streak</h2>
-        <p className="text-3xl font-bold mt-2">
-          {streak} days
-        </p>
-        <p className="text-gray-400 mt-1">
-          Keep going! Consistency wins 💪
-        </p>
-      </motion.div>
+      {/* ⚡ FEATURE CARDS */}
+      <div className="grid md:grid-cols-2 gap-6">
 
-      {/* FEATURE USAGE */}
-      <div className="grid md:grid-cols-4 gap-6">
+        <FeatureCard
+          title="📄 Resume Analyzer"
+          desc="Get AI suggestions instantly"
+        />
 
-        {Object.entries(stats).map(([key, value], i) => (
-          <motion.div
-            key={key}
-            className="glass p-5 rounded-2xl card-hover"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-          >
-            <p className="text-gray-400 capitalize">{key}</p>
-            <h2 className="text-2xl font-bold">{value}</h2>
-          </motion.div>
-        ))}
+        <FeatureCard
+          title="🎤 Interview Practice"
+          desc="Practice real interview questions"
+        />
+
+        <FeatureCard
+          title="📉 Skill Gap"
+          desc="Find what you’re missing"
+        />
+
+        <FeatureCard
+          title="🎯 Job Match"
+          desc="Match jobs to your profile"
+        />
 
       </div>
 
@@ -84,16 +83,12 @@ export default function Dashboard() {
   );
 }
 
-/* SMALL COMPONENT */
-function Card({ title, value, highlight }) {
+/* COMPONENT */
+function FeatureCard({ title, desc }) {
   return (
-    <div
-      className={`glass p-6 rounded-2xl text-center ${
-        highlight ? "premium-glow" : ""
-      }`}
-    >
-      <p className="text-gray-400">{title}</p>
-      <h2 className="text-2xl font-bold">{value || 0}</h2>
+    <div className="glass p-6 rounded-2xl card-hover">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="text-gray-400 mt-2">{desc}</p>
     </div>
   );
-        }
+    }
