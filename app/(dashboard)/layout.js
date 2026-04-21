@@ -107,27 +107,24 @@ export default function DashboardLayout({ children }) {
         <div className="flex-1 flex flex-col">
 
           {/* NAVBAR */}
-          <div className="flex justify-between items-center px-6 py-4 bg-black/30 backdrop-blur-xl border-b border-white/10">
+          <div className="flex justify-between items-center px-8 py-4 glass border-b border-white/10">
 
-            <h2 className="capitalize">
-              {pathname.replace("/", "")}
-            </h2>
+  <h2 className="text-sm uppercase tracking-wider text-gray-400">
+    Dashboard
+  </h2>
 
-            <div className="flex items-center gap-3">
+  <div className="flex items-center gap-4">
 
-              <span className="bg-blue-600/20 px-3 py-1 rounded-full text-sm">
-                🆓 Free
-              </span>
+    <span className="px-3 py-1 rounded-full text-xs bg-blue-500/20 text-blue-400">
+      Free Plan
+    </span>
 
-              <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg">
-                <User size={16} />
-                <span className="text-sm">
-                  {user?.email}
-                </span>
-              </div>
+    <div className="px-4 py-2 rounded-lg glass text-sm">
+      {user?.email}
+    </div>
 
-            </div>
-          </div>
+  </div>
+</div>
 
           {/* PAGE */}
           <main className="flex-1 p-6 overflow-y-auto">
