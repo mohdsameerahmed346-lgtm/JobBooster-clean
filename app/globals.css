@@ -2,58 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 🌙 BASE STYLING */
-body {
-  background-color: #020617;
-  color: white;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
-/* 🔥 3D CARD EFFECT */
-.card-3d {
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card-3d:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(5deg) scale(1.03);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-}
-
-/* 💎 PREMIUM GLOW */
-.premium-glow {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
-}
-
-/* ✨ SMOOTH BUTTON */
-button {
-  transition: all 0.2s ease;
-}
-
-button:hover {
-  transform: scale(1.05);
-}
-
-/* 🧊 GLASS EFFECT (optional future use) */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* 🔒 LOCK OVERLAY FADE */
-.lock-overlay {
-  transition: opacity 0.3s ease;
-}
-
-  /* ===== BASE ===== */
+/* ================= BASE ================= */
 body {
   background: radial-gradient(circle at top, #0f172a, #020617);
   color: #e5e7eb;
   font-family: system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
 }
 
-/* ===== TYPOGRAPHY ===== */
+/* ================= ANIMATED BACKGROUND ================= */
+.bg-animated {
+  background: linear-gradient(
+    270deg,
+    #020617,
+    #0f172a,
+    #1e293b,
+    #020617
+  );
+  background-size: 600% 600%;
+  animation: gradientMove 15s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ================= TYPOGRAPHY ================= */
 h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -69,32 +45,55 @@ p {
   line-height: 1.6;
 }
 
-/* ===== GLASS ===== */
+/* ================= GLASS ================= */
 .glass {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ===== CARD ===== */
+/* ================= CARD ================= */
 .card {
   border-radius: 16px;
   padding: 20px;
+}
+
+/* ================= 3D CARD ================= */
+.card-hover {
   transition: all 0.3s ease;
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
 }
 
-.card:hover {
-  transform: translateY(-4px);
+.card-hover:hover {
+  transform: perspective(1000px) rotateX(5deg) rotateY(5deg) scale(1.03);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
 }
 
-/* ===== BUTTON ===== */
+/* ================= BUTTON ================= */
 .btn-primary {
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   padding: 10px 16px;
   border-radius: 10px;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(59,130,246,0.6);
+}
+
+/* ================= GLOW ================= */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(59,130,246,0.6);
+}
+
+/* ================= SCROLLBAR ================= */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
   }
