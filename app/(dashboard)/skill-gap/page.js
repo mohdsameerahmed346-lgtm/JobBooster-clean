@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import TypingText from "../../../components/TypingText";
+import { saveHistory } from "../../../lib/history";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
@@ -29,7 +30,7 @@ export default function SkillGap() {
           prompt: `
 You are a career coach.
 
-Give:
+Provide:
 1. Missing skills
 2. Improvements
 3. Learning roadmap
@@ -40,9 +41,14 @@ Role: ${role}
       });
 
       const data = await res.json();
+
+      // ✅ SAVE HISTORY
+      await saveHistory("skill-gap", role, data.result);
+
       setResult(data.result);
+
     } catch {
-      setResult("Error occurred.");
+      setResult("Something went wrong.");
     }
 
     setLoading(false);
@@ -70,7 +76,7 @@ Role: ${role}
         </button>
 
         {result && (
-          <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10">
+          <div className="mt-6 p-5 bg-white/5 border border-white/10 rounded-2xl">
             <TypingText text={result} />
           </div>
         )}
@@ -93,4 +99,4 @@ Role: ${role}
 
     </div>
   );
-    }
+      }
