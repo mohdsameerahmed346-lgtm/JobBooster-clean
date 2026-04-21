@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import TypingText from "../../../components/TypingText";
 
 export default function SkillGap() {
   const [role, setRole] = useState("");
@@ -8,12 +9,10 @@ export default function SkillGap() {
   const [premium, setPremium] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Load premium status
   useEffect(() => {
     setPremium(localStorage.getItem("premium") === "true");
   }, []);
 
-  // ✅ AI CALL
   const check = async () => {
     if (!role) return;
 
@@ -27,20 +26,23 @@ export default function SkillGap() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: `You are a career coach.
+          prompt: `
+You are a career coach.
 
-List the missing skills for a ${role} role.
-Also suggest how to improve.
+Give:
+1. Missing skills
+2. Improvements
+3. Learning roadmap
 
-Keep it clear and actionable.`,
+Role: ${role}
+`,
         }),
       });
 
       const data = await res.json();
       setResult(data.result);
-
-    } catch (err) {
-      setResult("Something went wrong. Try again.");
+    } catch {
+      setResult("Error occurred.");
     }
 
     setLoading(false);
@@ -49,15 +51,14 @@ Keep it clear and actionable.`,
   return (
     <div className="max-w-3xl mx-auto space-y-6 relative">
 
-      <h1 className="text-2xl font-bold">📉 Skill Gap Analysis</h1>
+      <h1 className="text-2xl font-bold">📉 Skill Gap</h1>
 
-      {/* MAIN CONTENT */}
       <div className={`${!premium ? "blur-sm pointer-events-none" : ""}`}>
 
         <input
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          placeholder="Enter target role (e.g. Frontend Developer)"
+          placeholder="Enter role"
           className="w-full p-3 bg-black border border-gray-700 rounded"
         />
 
@@ -69,17 +70,15 @@ Keep it clear and actionable.`,
         </button>
 
         {result && (
-          <div className="bg-gray-900 p-4 rounded mt-4 whitespace-pre-line">
-            {result}
+          <div className="mt-6 p-5 rounded-2xl bg-white/5 border border-white/10">
+            <TypingText text={result} />
           </div>
         )}
 
       </div>
 
-      {/* PREMIUM LOCK */}
       {!premium && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 rounded-xl">
-
           <button
             onClick={() => {
               localStorage.setItem("premium", "true");
@@ -89,10 +88,9 @@ Keep it clear and actionable.`,
           >
             Unlock Premium 💎
           </button>
-
         </div>
       )}
 
     </div>
   );
-          }
+    }
