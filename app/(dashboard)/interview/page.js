@@ -15,10 +15,37 @@ export default function InterviewPage() {
   }, []);
 
   const generate = async () => {
-    if (!isPremium) {
-      alert("🚫 This feature is Premium only 💎");
-      return;
-    }
+  // ✅ Premium check (KEEP THIS)
+  if (!isPremium()) {
+    alert("🚫 This feature is Premium only 💎");
+    return;
+  }
+
+  // ✅ Input check
+  if (!role) return;
+
+  try {
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: `Give 5 professional interview questions for a ${role} role.`,
+      }),
+    });
+
+    const data = await res.json();
+
+    // ✅ Convert AI text into list
+    const formatted = data.result.split("\n").filter(Boolean);
+
+    setQuestions(formatted);
+
+  } catch (err) {
+    alert("Something went wrong");
+  }
+};
 
     const qs = [
       "Explain performance optimization",
