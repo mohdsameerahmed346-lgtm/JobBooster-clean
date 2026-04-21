@@ -1,62 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { saveHistory } from "../../../lib/history";
+import { useState } from "react";
+import TypingText from "../../../components/TypingText";
 
-export default function InterviewPage() {
+export default function Interview() {
   const [role, setRole] = useState("");
   const [questions, setQuestions] = useState([]);
-  const [isPremium, setIsPremium] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsPremium(localStorage.getItem("premium") === "true");
-    }
-  }, []);
+  const [loading, setLoading] = useState(false);
 
   const generate = async () => {
-  // ✅ Premium check (KEEP THIS)
-  if (!isPremium()) {
-    alert("🚫 This feature is Premium only 💎");
-    return;
-  }
+    if (!role) return;
 
-  // ✅ Input check
-  if (!role) return;
+    setLoading(true);
+    setQuestions([]);
 
-  try {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: `Give 5 professional interview questions for a ${role} role.`,
-      }),
-    });
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: `Give 5 professional interview questions for ${role}`,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      const list = data.result.split("\n").filter(Boolean);
 
-    // ✅ Convert AI text into list
-    const formatted = data.result.split("\n").filter(Boolean);
+      setQuestions(list);
+    } catch {
+      alert("Error");
+    }
 
-    setQuestions(formatted);
-
-  } catch (err) {
-    alert("Something went wrong");
-  }
-};
-
-    const qs = [
-      "Explain performance optimization",
-      "How do you design scalable systems?",
-      "REST vs GraphQL?",
-      "How to debug async code?",
-    ];
-
-    setQuestions(qs);
-
-    await saveHistory("interview", role, qs.join("\n"));
+    setLoading(false);
   };
 
   return (
@@ -75,17 +52,20 @@ export default function InterviewPage() {
         onClick={generate}
         className="bg-blue-600 px-5 py-2 rounded"
       >
-        Generate Questions
+        {loading ? "Generating..." : "Generate Questions"}
       </button>
 
-      <div className="space-y-3">
+      <div className="mt-6 space-y-4">
         {questions.map((q, i) => (
-          <div key={i} className="bg-gray-900 p-4 rounded">
-            {q}
+          <div
+            key={i}
+            className="p-4 rounded-xl bg-white/5 border border-white/10"
+          >
+            <TypingText text={q} speed={15} />
           </div>
         ))}
       </div>
 
     </div>
   );
-    }
+        }
