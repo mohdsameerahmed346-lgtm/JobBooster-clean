@@ -8,12 +8,12 @@ import ChatMessage from "../../components/ChatMessage";
 import ChatInput from "../../components/ChatInput";
 
 export default function ChatPage() {
-  const { generate, loading } = useAI();
+  const { generateStream, loading } = useAI();
 
   const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
 
-  // load selected chat
+  // Load selected chat
   useEffect(() => {
     if (!chatId) return;
 
@@ -28,43 +28,64 @@ export default function ChatPage() {
   const sendMessage = async (input) => {
     if (!input || !chatId) return;
 
-    const newMessages = [
+    const userMsg = { role: "user", content: input };
+    const aiMsg = { role: "assistant", content: "" };
+
+    const tempMessages = [...messages, userMsg, aiMsg];
+    setMessages(tempMessages);
+
+    let currentText = "";
+
+    const final = await generateStream(input, (chunk) => {
+      currentText += chunk;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: currentText,
+        };
+        return updated;
+      });
+    });
+
+    // Save final messages
+    await saveMessage(chatId, [
       ...messages,
-      { role: "user", content: input },
-    ];
-
-    setMessages(newMessages);
-
-    const reply = await generate(input);
-
-    const updated = [
-      ...newMessages,
-      { role: "assistant", content: reply },
-    ];
-
-    setMessages(updated);
-
-    await saveMessage(chatId, updated);
+      userMsg,
+      { role: "assistant", content: final },
+    ]);
   };
 
   return (
-    <div className="flex h-screen text-white bg-slate-950">
+    <div className="flex h-screen bg-slate-950 text-white">
 
+      {/* SIDEBAR */}
       <ChatSidebar setChatId={setChatId} />
 
+      {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
+        {/* CHAT AREA */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map((m, i) => (
-            <ChatMessage key={i} msg={m} />
+
+          {messages.map((msg, i) => (
+            <ChatMessage key={i} msg={msg} />
           ))}
 
-          {loading && <ChatMessage msg={{ role: "assistant", content: "..." }} />}
+          {loading && (
+            <ChatMessage
+              msg={{ role: "assistant", content: "..." }}
+              loading
+            />
+          )}
+
         </div>
 
+        {/* INPUT */}
         <ChatInput onSend={sendMessage} />
 
       </div>
     </div>
   );
-  }
+      }
