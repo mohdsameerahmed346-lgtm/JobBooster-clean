@@ -154,3 +154,23 @@ p {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
   }
+
+/* Markdown Styling */
+.prose {
+  line-height: 1.6;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.prose p {
+  margin: 8px 0;
+}
+
+.prose ul {
+  padding-left: 20px;
+}
