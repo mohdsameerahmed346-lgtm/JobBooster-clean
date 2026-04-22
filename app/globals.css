@@ -97,3 +97,23 @@ p {
   background: rgba(255,255,255,0.2);
   border-radius: 10px;
   }
+
+/* 🌫️ BLUR GLOW */
+.blur-bg {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(59,130,246,0.3), transparent);
+  filter: blur(100px);
+  z-index: 0;
+}
+
+/* ✨ HOVER DEPTH */
+.hover-lift {
+  transition: all 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
