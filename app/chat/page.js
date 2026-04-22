@@ -13,7 +13,7 @@ export default function ChatPage() {
   const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
 
-  // Load selected chat
+  // 🔄 Load chat
   useEffect(() => {
     if (!chatId) return;
 
@@ -25,6 +25,7 @@ export default function ChatPage() {
     load();
   }, [chatId]);
 
+  // 📤 SEND MESSAGE (STREAMING)
   const sendMessage = async (input) => {
     if (!input || !chatId) return;
 
@@ -49,12 +50,53 @@ export default function ChatPage() {
       });
     });
 
-    // Save final messages
-    await saveMessage(chatId, [
+    const finalMessages = [
       ...messages,
       userMsg,
       { role: "assistant", content: final },
-    ]);
+    ];
+
+    setMessages(finalMessages);
+    await saveMessage(chatId, finalMessages);
+  };
+
+  // 🔁 REGENERATE (FIXED)
+  const regenerate = async (index) => {
+    const prevMessages = messages.slice(0, index);
+
+    const lastUser = [...prevMessages]
+      .reverse()
+      .find((m) => m.role === "user");
+
+    if (!lastUser) return;
+
+    let currentText = "";
+
+    const baseMessages = messages.slice(0, index);
+
+    // Insert empty AI message
+    setMessages([...baseMessages, { role: "assistant", content: "" }]);
+
+    const final = await generateStream(lastUser.content, (chunk) => {
+      currentText += chunk;
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: currentText,
+        };
+        return updated;
+      });
+    });
+
+    const finalMessages = [
+      ...baseMessages,
+      { role: "assistant", content: final },
+    ];
+
+    setMessages(finalMessages);
+    await saveMessage(chatId, finalMessages);
   };
 
   return (
@@ -66,16 +108,23 @@ export default function ChatPage() {
       {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
           {messages.map((msg, i) => (
-            <ChatMessage key={i} msg={msg} />
+            <ChatMessage
+              key={i}
+              msg={msg}
+              onCopy={(text) => navigator.clipboard.writeText(text)}
+              onRegenerate={() => regenerate(i)}
+              onLike={() => console.log("liked")}
+              onDislike={() => console.log("disliked")}
+            />
           ))}
 
           {loading && (
             <ChatMessage
-              msg={{ role: "assistant", content: "..." }}
+              msg={{ role: "assistant", content: "" }}
               loading
             />
           )}
