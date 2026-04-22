@@ -174,3 +174,13 @@ p {
 .prose ul {
   padding-left: 20px;
 }
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+               }
