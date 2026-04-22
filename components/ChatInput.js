@@ -5,7 +5,8 @@ import { useState } from "react";
 export default function ChatInput({ onSend }) {
   const [input, setInput] = useState("");
 
-  const handleSend = () => {
+  const send = () => {
+    if (!input.trim()) return;
     onSend(input);
     setInput("");
   };
@@ -17,12 +18,12 @@ export default function ChatInput({ onSend }) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Ask anything..."
-        className="flex-1 p-3 bg-black border border-gray-700 rounded-lg"
+        className="flex-1 p-3 bg-black border border-gray-700 rounded-lg outline-none"
       />
 
       <button
-        onClick={handleSend}
-        className="btn-primary px-5 rounded-lg"
+        onClick={send}
+        className="bg-blue-600 px-5 rounded-lg"
       >
         Send
       </button>
