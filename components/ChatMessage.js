@@ -1,5 +1,7 @@
 "use client";
 
+import MarkdownRenderer from "./MarkdownRenderer";
+
 export default function ChatMessage({ msg, loading }) {
   const isUser = msg.role === "user";
 
@@ -7,7 +9,7 @@ export default function ChatMessage({ msg, loading }) {
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
 
       <div
-        className={`max-w-xl p-4 rounded-2xl whitespace-pre-wrap ${
+        className={`max-w-xl p-4 rounded-2xl ${
           isUser
             ? "bg-blue-600"
             : "bg-gray-800"
@@ -17,7 +19,9 @@ export default function ChatMessage({ msg, loading }) {
           <span className="animate-pulse">Thinking...</span>
         ) : (
           <>
-            {msg.content}
+            <MarkdownRenderer content={msg.content} />
+
+            {/* typing cursor */}
             {msg.role === "assistant" && (
               <span className="animate-pulse">▍</span>
             )}
@@ -27,4 +31,4 @@ export default function ChatMessage({ msg, loading }) {
 
     </div>
   );
-          }
+  }
