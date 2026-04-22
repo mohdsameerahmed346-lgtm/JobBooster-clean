@@ -2,72 +2,66 @@
 
 import { useState, useEffect } from "react";
 import { useAI } from "../../lib/useAI";
-import { saveHistory, getHistory } from "../../lib/history";
+import { getChat, saveMessage } from "../../lib/chat";
 import ChatSidebar from "../../components/ChatSidebar";
 import ChatMessage from "../../components/ChatMessage";
 import ChatInput from "../../components/ChatInput";
 
 export default function ChatPage() {
-  const { result, loading, generate } = useAI();
+  const { generate, loading } = useAI();
 
+  const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [history, setHistory] = useState([]);
 
-  // load history
+  // load selected chat
   useEffect(() => {
+    if (!chatId) return;
+
     const load = async () => {
-      const data = await getHistory();
-      setHistory(data);
+      const chat = await getChat(chatId);
+      setMessages(chat?.messages || []);
     };
+
     load();
-  }, []);
+  }, [chatId]);
 
-  // send message
   const sendMessage = async (input) => {
-    if (!input.trim()) return;
+    if (!input || !chatId) return;
 
-    const userMsg = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [
+      ...messages,
+      { role: "user", content: input },
+    ];
 
-    const aiReply = await generate(input);
+    setMessages(newMessages);
 
-    const aiMsg = { role: "assistant", content: aiReply };
+    const reply = await generate(input);
 
-    setMessages((prev) => [...prev, aiMsg]);
+    const updated = [
+      ...newMessages,
+      { role: "assistant", content: reply },
+    ];
 
-    await saveHistory("chat", input, aiReply);
+    setMessages(updated);
 
-    // refresh sidebar
-    const updated = await getHistory();
-    setHistory(updated);
+    await saveMessage(chatId, updated);
   };
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white">
+    <div className="flex h-screen text-white bg-slate-950">
 
-      {/* SIDEBAR */}
-      <ChatSidebar history={history} setMessages={setMessages} />
+      <ChatSidebar setChatId={setChatId} />
 
-      {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
-        {/* MESSAGES */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-
-          {messages.map((msg, i) => (
-            <ChatMessage key={i} msg={msg} />
+          {messages.map((m, i) => (
+            <ChatMessage key={i} msg={m} />
           ))}
 
-          {loading && (
-            <ChatMessage
-              msg={{ role: "assistant", content: "Thinking..." }}
-              loading
-            />
-          )}
-
+          {loading && <ChatMessage msg={{ role: "assistant", content: "..." }} />}
         </div>
 
-        {/* INPUT */}
         <ChatInput onSend={sendMessage} />
 
       </div>
