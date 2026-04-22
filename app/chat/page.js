@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAI } from "../../lib/useAI";
 import { getChat, saveMessage } from "../../lib/chat";
+
 import ChatSidebar from "../../components/ChatSidebar";
 import ChatMessage from "../../components/ChatMessage";
 import ChatInput from "../../components/ChatInput";
+import PromptSuggestions from "../../components/PromptSuggestions";
 
 export default function ChatPage() {
   const { generateStream, loading } = useAI();
@@ -25,7 +27,7 @@ export default function ChatPage() {
     load();
   }, [chatId]);
 
-  // 📤 SEND MESSAGE (STREAMING)
+  // 📤 SEND MESSAGE
   const sendMessage = async (input) => {
     if (!input || !chatId) return;
 
@@ -60,7 +62,7 @@ export default function ChatPage() {
     await saveMessage(chatId, finalMessages);
   };
 
-  // 🔁 REGENERATE (FIXED)
+  // 🔁 REGENERATE
   const regenerate = async (index) => {
     const prevMessages = messages.slice(0, index);
 
@@ -74,7 +76,6 @@ export default function ChatPage() {
 
     const baseMessages = messages.slice(0, index);
 
-    // Insert empty AI message
     setMessages([...baseMessages, { role: "assistant", content: "" }]);
 
     const final = await generateStream(lastUser.content, (chunk) => {
@@ -108,6 +109,13 @@ export default function ChatPage() {
       {/* MAIN */}
       <div className="flex-1 flex flex-col">
 
+        {/* PROMPTS (only when empty) */}
+        {messages.length === 0 && (
+          <div className="p-6">
+            <PromptSuggestions onSelect={sendMessage} />
+          </div>
+        )}
+
         {/* CHAT */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
@@ -137,4 +145,4 @@ export default function ChatPage() {
       </div>
     </div>
   );
-      }
+    }
