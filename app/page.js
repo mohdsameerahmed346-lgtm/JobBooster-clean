@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import Reveal from "../components/Reveal";
+import CursorSpotlight from "../components/CursorSpotlight";
+import MagneticButton from "../components/MagneticButton";
+import Parallax from "../components/Parallax";
 
 export default function LandingPage() {
   const features = [
@@ -20,44 +23,57 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="bg-animated text-white min-h-screen">
+    <div className="bg-animated text-white min-h-screen relative overflow-hidden">
+
+      {/* 🌟 GLOBAL EFFECTS */}
+      <CursorSpotlight />
+      <Parallax />
 
       {/* NAVBAR */}
       <nav className="flex justify-between items-center px-8 py-5 glass sticky top-0 z-50">
         <h1 className="font-bold text-lg">🚀 JobBooster</h1>
 
-        <div className="flex gap-6">
-          <Link href="/login">Login</Link>
-          <Link href="/signup" className="btn-primary">
-            Get Started
+        <div className="flex gap-6 items-center">
+          <Link href="/login" className="text-gray-300 hover:text-white">
+            Login
           </Link>
+
+          <MagneticButton>
+            <Link href="/signup">Get Started</Link>
+          </MagneticButton>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="relative text-center py-24 px-6 overflow-hidden">
+      <section className="relative text-center py-28 px-6 overflow-hidden">
 
-        <div className="blur-bg top-10 left-10" />
+        {/* PARALLAX BLOBS */}
+        <div className="parallax absolute top-20 left-20 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl" />
+        <div className="parallax absolute bottom-20 right-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
 
         <Reveal>
-          <h1 className="text-5xl font-bold leading-tight">
+          <h1 className="text-5xl md:text-6xl font-bold leading-tight">
             Land Your Dream Job with{" "}
             <span className="text-blue-400">AI</span>
           </h1>
         </Reveal>
 
         <Reveal delay={0.2}>
-          <p className="mt-4 text-gray-400 max-w-xl mx-auto">
-            Analyze resumes, practice interviews, and track your career growth.
+          <p className="mt-5 text-gray-400 max-w-xl mx-auto">
+            Analyze resumes, practice interviews, and track your growth — all in one powerful platform.
           </p>
         </Reveal>
 
         <Reveal delay={0.4}>
-          <div className="mt-6 flex justify-center gap-4">
-            <Link href="/signup" className="btn-primary">
-              Start Free
-            </Link>
-            <Link href="/dashboard" className="glass px-5 py-2 rounded-lg">
+          <div className="mt-8 flex justify-center gap-4">
+            <MagneticButton>
+              <Link href="/signup">Start Free</Link>
+            </MagneticButton>
+
+            <Link
+              href="/dashboard"
+              className="glass px-6 py-2 rounded-lg hover:opacity-80"
+            >
               View Demo
             </Link>
           </div>
@@ -113,6 +129,7 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 gap-6 mt-10 max-w-4xl mx-auto">
 
+          {/* FREE */}
           <Reveal>
             <div className="glass p-8 rounded-2xl hover-lift">
               <h3 className="text-xl font-semibold">Free</h3>
@@ -121,6 +138,7 @@ export default function LandingPage() {
             </div>
           </Reveal>
 
+          {/* PREMIUM */}
           <Reveal delay={0.2}>
             <div className="glass p-8 rounded-2xl border border-blue-500 hover-lift relative overflow-hidden">
 
@@ -166,18 +184,20 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 text-center">
+      <section className="py-24 text-center">
 
         <Reveal>
           <h2 className="text-3xl font-bold">
-            Start your journey today 🚀
+            Start your AI career journey 🚀
           </h2>
         </Reveal>
 
         <Reveal delay={0.2}>
-          <Link href="/signup" className="btn-primary mt-6 inline-block">
-            Get Started
-          </Link>
+          <div className="mt-6">
+            <MagneticButton>
+              <Link href="/signup">Get Started</Link>
+            </MagneticButton>
+          </div>
         </Reveal>
 
       </section>
