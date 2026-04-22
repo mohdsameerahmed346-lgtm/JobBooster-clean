@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import {
   getChats,
   createChat,
-  deleteChat,
-  renameChat,
 } from "../lib/chat";
 
 export default function ChatSidebar({ setChatId }) {
@@ -31,7 +29,7 @@ export default function ChatSidebar({ setChatId }) {
 
       <button
         onClick={newChat}
-        className="btn-primary mb-4"
+        className="bg-blue-600 mb-4 p-2 rounded"
       >
         + New Chat
       </button>
@@ -41,35 +39,14 @@ export default function ChatSidebar({ setChatId }) {
         {chats.map((chat) => (
           <div
             key={chat.id}
-            className="p-3 bg-gray-900 rounded text-sm flex justify-between items-center"
+            onClick={() => setChatId(chat.id)}
+            className="p-3 bg-gray-900 rounded cursor-pointer hover:bg-gray-800 text-sm"
           >
-            <span
-              onClick={() => setChatId(chat.id)}
-              className="cursor-pointer"
-            >
-              {chat.title}
-            </span>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  const name = prompt("Rename chat:");
-                  if (name) renameChat(chat.id, name).then(load);
-                }}
-              >
-                ✏️
-              </button>
-
-              <button
-                onClick={() => deleteChat(chat.id).then(load)}
-              >
-                🗑
-              </button>
-            </div>
+            {chat.title}
           </div>
         ))}
 
       </div>
     </div>
   );
-    }
+          }
