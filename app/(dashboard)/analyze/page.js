@@ -1,89 +1,77 @@
 "use client";
 
 import { useState } from "react";
-import TypingText from "../../../components/TypingText";
+import { useAI } from "../../../lib/useAI";
 import { saveHistory } from "../../../lib/history";
 
-export default function Analyze() {
+export default function AnalyzePage() {
   const [text, setText] = useState("");
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { result, loading, generate } = useAI();
 
   const analyze = async () => {
-    if (!text) return;
-
-    setLoading(true);
-    setResult("");
+    if (!text.trim()) {
+      alert("Please paste your resume");
+      return;
+    }
 
     try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: `
-You are a professional resume expert.
+      await generate(`Analyze this resume and give improvements:\n${text}`);
 
-Analyze and respond in:
-
-1. 🔍 Issues
-2. ✅ Improvements
-3. 🚀 Action Steps
-
-Resume:
-${text}
-`,
-        }),
-      });
-
-      const data = await res.json();
-
-      // ✅ SAVE HISTORY
-      await saveHistory("analyze", text, data.result);
-
+      // ✅ Save after generation (small delay ensures full text)
       setTimeout(() => {
-        setResult(data.result);
-        setLoading(false);
-      }, 500);
+        if (result) {
+          saveHistory("analyze", text, result);
+        }
+      }, 1000);
 
-    } catch {
-      setResult("Something went wrong.");
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
 
-      <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-bold">📄 Resume Analyzer</h1>
+        <p className="text-gray-400">
+          Improve your resume with AI insights
+        </p>
+      </div>
 
+      {/* INPUT */}
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Paste your resume..."
-        className="w-full p-3 bg-black border border-gray-700 rounded h-40"
+        placeholder="Paste your resume here..."
+        className="w-full p-4 bg-black border border-gray-700 rounded-xl h-40 focus:outline-none focus:border-blue-500"
       />
 
+      {/* BUTTON */}
       <button
         onClick={analyze}
-        className="bg-blue-600 px-5 py-2 rounded"
+        className="btn-primary px-6 py-2 rounded-lg"
       >
-        Analyze
+        {loading ? "Analyzing..." : "Analyze Resume"}
       </button>
 
-      {loading && (
-        <div className="p-4 bg-white/5 border border-white/10 rounded animate-pulse">
-          🤖 AI is analyzing...
-        </div>
-      )}
+      {/* OUTPUT */}
+      {(loading || result) && (
+        <div className="glass p-5 rounded-xl whitespace-pre-wrap min-h-[120px]">
 
-      {result && (
-        <div className="p-5 bg-white/5 border border-white/10 rounded-2xl">
-          <TypingText text={result} />
+          {loading && !result && (
+            <span className="animate-pulse text-gray-400">
+              🤖 AI is thinking...
+            </span>
+          )}
+
+          {result}
+
         </div>
       )}
 
     </div>
   );
-  }
+            }
