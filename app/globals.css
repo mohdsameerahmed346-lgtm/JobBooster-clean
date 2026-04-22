@@ -117,3 +117,24 @@ p {
   transform: translateY(-6px);
   box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
+
+/* 🌟 CURSOR SPOTLIGHT */
+.cursor-spotlight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 200px at var(--x) var(--y),
+    rgba(59, 130, 246, 0.15),
+    transparent 80%
+  );
+  z-index: 1;
+}
+
+/* 🌌 PARALLAX ELEMENTS */
+.parallax {
+  transition: transform 0.1s linear;
+    }
