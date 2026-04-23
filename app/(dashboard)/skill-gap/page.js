@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import jsPDF from "jspdf";
 
 export default function SkillGap() {
   const [file, setFile] = useState(null);
@@ -26,6 +27,18 @@ export default function SkillGap() {
     setLoading(false);
   };
 
+  // 📄 DOWNLOAD PDF
+  const downloadPDF = () => {
+    if (!data?.rewritten) return;
+
+    const doc = new jsPDF();
+
+    const lines = doc.splitTextToSize(data.rewritten, 180);
+    doc.text(lines, 10, 10);
+
+    doc.save("Improved_Resume.pdf");
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
 
@@ -39,55 +52,54 @@ export default function SkillGap() {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
-        <button
-          onClick={analyze}
-          className="btn-primary"
-        >
+        <button onClick={analyze} className="btn-primary">
           Analyze Resume
         </button>
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="text-gray-400">Analyzing...</div>
-      )}
+      {loading && <div className="text-gray-400">Analyzing...</div>}
 
-      {/* RESULT UI */}
+      {/* RESULTS */}
       {data && !data.error && (
         <div className="space-y-6">
 
           {/* SCORES */}
           <div className="grid grid-cols-2 gap-4">
-
             <ScoreCard title="Resume Score" value={data.score} />
             <ScoreCard title="ATS Score" value={data.ats} />
-
           </div>
 
-          {/* STRENGTHS */}
           <Section title="💪 Strengths" items={data.strengths} />
-
-          {/* MISSING */}
           <Section title="📉 Missing Skills" items={data.missing} />
-
-          {/* IMPROVEMENTS */}
           <Section title="🚀 Improvements" items={data.improvements} />
+
+          {/* REWRITTEN RESUME */}
+          <div className="glass p-6 rounded-xl space-y-4">
+            <h2 className="font-semibold">✨ Improved Resume</h2>
+
+            <div className="bg-black p-4 rounded whitespace-pre-wrap text-sm">
+              {data.rewritten}
+            </div>
+
+            <button
+              onClick={downloadPDF}
+              className="btn-primary"
+            >
+              Download PDF
+            </button>
+          </div>
 
         </div>
       )}
 
-      {/* ERROR */}
       {data?.error && (
-        <div className="text-red-400">
-          Error: {data.error}
-        </div>
+        <div className="text-red-400">{data.error}</div>
       )}
 
     </div>
   );
 }
 
-/* SCORE CARD */
 function ScoreCard({ title, value }) {
   return (
     <div className="glass p-6 rounded-xl text-center">
@@ -97,7 +109,6 @@ function ScoreCard({ title, value }) {
   );
 }
 
-/* SECTION */
 function Section({ title, items }) {
   return (
     <div className="glass p-6 rounded-xl">
@@ -109,4 +120,4 @@ function Section({ title, items }) {
       </ul>
     </div>
   );
-    }
+  }
