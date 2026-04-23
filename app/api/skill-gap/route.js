@@ -25,19 +25,22 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "You are an ATS resume analyzer.",
+            content: "You are a professional resume writer and ATS expert.",
           },
           {
             role: "user",
             content: `
-Analyze this resume and return ONLY JSON:
+Analyze and improve this resume.
+
+Return ONLY JSON:
 
 {
-  "score": number (0-100),
-  "ats": number (0-100),
+  "score": number,
+  "ats": number,
   "strengths": [],
   "missing": [],
-  "improvements": []
+  "improvements": [],
+  "rewritten": "Full improved resume professionally formatted"
 }
 
 Resume:
@@ -56,7 +59,7 @@ ${resumeText}
     try {
       parsed = JSON.parse(raw);
     } catch {
-      parsed = { error: "AI response parse failed", raw };
+      parsed = { error: "AI parsing failed", raw };
     }
 
     return NextResponse.json(parsed);
@@ -64,4 +67,4 @@ ${resumeText}
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-          }
+      }
