@@ -11,16 +11,13 @@ export async function POST(req) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-
-    // 📄 Extract text from PDF
     const data = await pdf(buffer);
     const resumeText = data.text;
 
-    // 🤖 Send to AI (OpenRouter or OpenAI)
     const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -28,16 +25,20 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "You are a career coach AI.",
+            content: "You are an ATS resume analyzer.",
           },
           {
             role: "user",
             content: `
-Analyze this resume and return:
+Analyze this resume and return ONLY JSON:
 
-1. Missing skills
-2. Strengths
-3. Recommended learning path
+{
+  "score": number (0-100),
+  "ats": number (0-100),
+  "strengths": [],
+  "missing": [],
+  "improvements": []
+}
 
 Resume:
 ${resumeText}
@@ -48,11 +49,17 @@ ${resumeText}
     });
 
     const json = await aiRes.json();
+    const raw = json.choices?.[0]?.message?.content;
 
-    const result =
-      json.choices?.[0]?.message?.content || "No response";
+    let parsed;
 
-    return NextResponse.json({ result });
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = { error: "AI response parse failed", raw };
+    }
+
+    return NextResponse.json(parsed);
 
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
