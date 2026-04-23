@@ -45,7 +45,7 @@ export default function SkillGap() {
     setLoading(false);
   };
 
-  // 📄 DOWNLOAD PDF
+  // 📄 PDF EXPORT
   const downloadPDF = async () => {
     const element = document.getElementById("resume-preview");
 
@@ -75,25 +75,32 @@ export default function SkillGap() {
 
       <h1 className="text-2xl font-bold">📄 Resume Builder</h1>
 
-      {/* Upload */}
+      {/* UPLOAD CARD */}
       <div className="glass p-6 rounded-xl space-y-4">
+
         <input
           type="file"
           accept="application/pdf"
           onChange={(e) => setFile(e.target.files[0])}
         />
 
+        {/* ⚠️ WARNING */}
+        <p className="text-yellow-300 text-sm bg-yellow-500/10 border border-yellow-500/20 p-2 rounded">
+          ⚠️ Upload a simple text-based PDF (Word/Google Docs). Canva or scanned resumes may not work.
+        </p>
+
         <button onClick={analyze} className="btn-primary">
           Analyze Resume
         </button>
+
       </div>
 
-      {/* Loading */}
+      {/* LOADING */}
       {loading && (
         <div className="text-gray-400">Analyzing resume...</div>
       )}
 
-      {/* Error */}
+      {/* ERROR */}
       {data?.error && (
         <div className="text-red-400">{data.error}</div>
       )}
@@ -106,21 +113,25 @@ export default function SkillGap() {
           <div className="flex gap-3">
             <button
               onClick={() => setTemplate("modern")}
-              className={`btn-primary ${template === "modern" ? "opacity-100" : "opacity-50"}`}
+              className={`btn-primary ${
+                template === "modern" ? "opacity-100" : "opacity-50"
+              }`}
             >
               Modern
             </button>
 
             <button
               onClick={() => setTemplate("minimal")}
-              className={`btn-primary ${template === "minimal" ? "opacity-100" : "opacity-50"}`}
+              className={`btn-primary ${
+                template === "minimal" ? "opacity-100" : "opacity-50"
+              }`}
             >
               Minimal
             </button>
           </div>
 
           {/* PREVIEW */}
-          <div className="border rounded-xl overflow-hidden">
+          <div className="border rounded-xl overflow-hidden bg-white">
 
             {template === "modern" && (
               <ResumeTemplateModern data={data} />
@@ -142,4 +153,4 @@ export default function SkillGap() {
 
     </div>
   );
-    }
+        }
