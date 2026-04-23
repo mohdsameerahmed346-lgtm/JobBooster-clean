@@ -4,14 +4,14 @@ import { useState } from "react";
 
 export default function SkillGap() {
   const [file, setFile] = useState(null);
-  const [result, setResult] = useState("");
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const analyze = async () => {
     if (!file) return alert("Upload a resume");
 
     setLoading(true);
-    setResult("");
+    setData(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -21,47 +21,92 @@ export default function SkillGap() {
       body: formData,
     });
 
-    const data = await res.json();
-    setResult(data.result);
+    const json = await res.json();
+    setData(json);
     setLoading(false);
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
 
-      <h1 className="text-2xl font-bold">📉 Skill Gap Analyzer</h1>
+      <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
 
       {/* Upload */}
       <div className="glass p-6 rounded-xl space-y-4">
-
         <input
           type="file"
           accept="application/pdf"
           onChange={(e) => setFile(e.target.files[0])}
-          className="w-full"
         />
 
         <button
           onClick={analyze}
-          className="bg-blue-600 px-5 py-2 rounded"
+          className="btn-primary"
         >
           Analyze Resume
         </button>
-
       </div>
 
       {/* Loading */}
       {loading && (
-        <div className="text-gray-400">Analyzing resume...</div>
+        <div className="text-gray-400">Analyzing...</div>
       )}
 
-      {/* Result */}
-      {result && (
-        <div className="glass p-6 rounded-xl whitespace-pre-wrap">
-          {result}
+      {/* RESULT UI */}
+      {data && !data.error && (
+        <div className="space-y-6">
+
+          {/* SCORES */}
+          <div className="grid grid-cols-2 gap-4">
+
+            <ScoreCard title="Resume Score" value={data.score} />
+            <ScoreCard title="ATS Score" value={data.ats} />
+
+          </div>
+
+          {/* STRENGTHS */}
+          <Section title="💪 Strengths" items={data.strengths} />
+
+          {/* MISSING */}
+          <Section title="📉 Missing Skills" items={data.missing} />
+
+          {/* IMPROVEMENTS */}
+          <Section title="🚀 Improvements" items={data.improvements} />
+
         </div>
       )}
 
+      {/* ERROR */}
+      {data?.error && (
+        <div className="text-red-400">
+          Error: {data.error}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/* SCORE CARD */
+function ScoreCard({ title, value }) {
+  return (
+    <div className="glass p-6 rounded-xl text-center">
+      <p className="text-gray-400 text-sm">{title}</p>
+      <p className="text-3xl font-bold">{value}/100</p>
+    </div>
+  );
+}
+
+/* SECTION */
+function Section({ title, items }) {
+  return (
+    <div className="glass p-6 rounded-xl">
+      <h2 className="font-semibold mb-3">{title}</h2>
+      <ul className="list-disc pl-5 space-y-1 text-gray-300">
+        {items?.map((item, i) => (
+          <li key={i}>{item}</li>
+        ))}
+      </ul>
     </div>
   );
     }
