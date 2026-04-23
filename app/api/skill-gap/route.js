@@ -1,52 +1,60 @@
-export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import pdf from "pdf-parse";
 
 export async function POST(req) {
   try {
-    const { role, isPremium } = await req.json();
+    const formData = await req.formData();
+    const file = formData.get("file");
 
-    const prompt = `For a ${role}, list missing skills and improvements in JSON:
-    { "missing": [], "suggestions": [] }`;
-
-    let aiResponse;
-
-    if (isPremium) {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-
-      const data = await res.json();
-      aiResponse = data.choices?.[0]?.message?.content;
-    } else {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3-8b-instruct",
-          messages: [{ role: "user", content: prompt }],
-        }),
-      });
-
-      const data = await res.json();
-      aiResponse = data.choices?.[0]?.message?.content;
+    if (!file) {
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const result = JSON.parse(aiResponse);
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    return NextResponse.json(result);
+    // 📄 Extract text from PDF
+    const data = await pdf(buffer);
+    const resumeText = data.text;
 
-  } catch {
-    return NextResponse.json({ error: "Failed" });
+    // 🤖 Send to AI (OpenRouter or OpenAI)
+    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a career coach AI.",
+          },
+          {
+            role: "user",
+            content: `
+Analyze this resume and return:
+
+1. Missing skills
+2. Strengths
+3. Recommended learning path
+
+Resume:
+${resumeText}
+            `,
+          },
+        ],
+      }),
+    });
+
+    const json = await aiRes.json();
+
+    const result =
+      json.choices?.[0]?.message?.content || "No response";
+
+    return NextResponse.json({ result });
+
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-        }
+          }
