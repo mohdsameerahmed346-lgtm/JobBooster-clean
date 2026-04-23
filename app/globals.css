@@ -2,185 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ================= BASE ================= */
+/* ===== BASE ===== */
 body {
-  background: radial-gradient(circle at top, #0f172a, #020617);
+  background: #020617;
   color: #e5e7eb;
   font-family: system-ui, -apple-system, sans-serif;
-  overflow-x: hidden;
 }
 
-/* ================= ANIMATED BACKGROUND ================= */
-.bg-animated {
-  background: linear-gradient(
-    270deg,
-    #020617,
-    #0f172a,
-    #1e293b,
-    #020617
-  );
-  background-size: 600% 600%;
-  animation: gradientMove 15s ease infinite;
+/* ===== GPU BOOST ===== */
+.gpu {
+  transform: translateZ(0);
+  will-change: transform;
 }
 
-@keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* ===== LIGHT GRADIENT (NO HEAVY ANIMATION) ===== */
+.bg-base {
+  background: radial-gradient(circle at top, #0f172a, #020617);
 }
 
-/* ================= TYPOGRAPHY ================= */
-h1 {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-p {
-  color: #9ca3af;
-  line-height: 1.6;
-}
-
-/* ================= GLASS ================= */
+/* ===== GLASS UI ===== */
 .glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
 }
 
-/* ================= CARD ================= */
+/* ===== CARD ===== */
 .card {
   border-radius: 16px;
   padding: 20px;
+  transition: transform 0.25s ease;
 }
 
-/* ================= 3D CARD ================= */
-.card-hover {
-  transition: all 0.3s ease;
-  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+.card:hover {
+  transform: translateY(-3px);
 }
 
-.card-hover:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(5deg) scale(1.03);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-}
-
-/* ================= BUTTON ================= */
+/* ===== BUTTON ===== */
 .btn-primary {
   background: linear-gradient(135deg, #3b82f6, #6366f1);
   padding: 10px 16px;
   border-radius: 10px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(59,130,246,0.6);
+  opacity: 0.9;
+  transform: scale(1.04);
 }
 
-/* ================= GLOW ================= */
-.btn-glow:hover {
-  box-shadow: 0 0 20px rgba(59,130,246,0.6);
+/* ===== LIGHT SHADOW (PERFORMANCE SAFE) ===== */
+.shadow-soft {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
 }
 
-/* ================= SCROLLBAR ================= */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
-  border-radius: 10px;
-  }
-
-/* 🌫️ BLUR GLOW */
-.blur-bg {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(59,130,246,0.3), transparent);
-  filter: blur(100px);
-  z-index: 0;
-}
-
-/* ✨ HOVER DEPTH */
-.hover-lift {
-  transition: all 0.3s ease;
-}
-
-.hover-lift:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-    }
-
-/* 🌟 CURSOR SPOTLIGHT */
-.cursor-spotlight {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background: radial-gradient(
-    circle 200px at var(--x) var(--y),
-    rgba(59, 130, 246, 0.15),
-    transparent 80%
-  );
-  z-index: 1;
-}
-
-/* 🌌 PARALLAX ELEMENTS */
-.parallax {
-  transition: transform 0.1s linear;
-    }
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    #1f2937 25%,
-    #374151 50%,
-    #1f2937 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-  }
-
-/* Markdown Styling */
+/* ===== MARKDOWN ===== */
 .prose {
   line-height: 1.6;
 }
 
-.prose h1,
-.prose h2,
-.prose h3 {
-  font-weight: 600;
-  margin-top: 10px;
-}
-
 .prose p {
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
-.prose ul {
-  padding-left: 20px;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-               }
+/* ===== DISABLE HEAVY EFFECTS ON MOBILE ===== */
+@media (max-width: 768px) {
+  .glass {
+    backdrop-filter: blur(6px);
+  }
+  }
