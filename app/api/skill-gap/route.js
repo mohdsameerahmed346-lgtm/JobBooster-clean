@@ -3,16 +3,14 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import pdf from "pdf-parse";
 
-/* 🧼 CLEAN AI RESPONSE */
+/* 🧼 CLEAN JSON */
 function extractJSON(text) {
   try {
-    // remove ```json ``` or ``` blocks
     const cleaned = text
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    // find first { and last }
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
 
@@ -45,26 +43,44 @@ export async function POST(req) {
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
-        temperature: 0, // 🔥 important for stable output
+        temperature: 0,
         messages: [
           {
             role: "system",
             content:
-              "You are a strict JSON generator. Always return valid JSON only. No explanation.",
+              "You are a strict JSON generator. Only return valid JSON. No explanation.",
           },
           {
             role: "user",
             content: `
-Return ONLY valid JSON. No text, no explanation.
+Return ONLY valid JSON.
 
 Schema:
 {
-  "score": number,
-  "ats": number,
-  "strengths": string[],
-  "missing": string[],
-  "improvements": string[],
-  "rewritten": string
+  "name": string,
+  "title": string,
+  "summary": string,
+  "skills": string[],
+  "experience": [
+    {
+      "role": string,
+      "company": string,
+      "duration": string,
+      "points": string[]
+    }
+  ],
+  "projects": [
+    {
+      "name": string,
+      "description": string
+    }
+  ],
+  "education": [
+    {
+      "degree": string,
+      "college": string
+    }
+  ]
 }
 
 Resume:
@@ -78,14 +94,11 @@ ${resumeText}
     const json = await aiRes.json();
     const raw = json?.choices?.[0]?.message?.content || "";
 
-    console.log("RAW AI:", raw);
-
-    // 🧼 Extract clean JSON
     const cleaned = extractJSON(raw);
 
     if (!cleaned) {
       return NextResponse.json({
-        error: "Could not extract JSON",
+        error: "Failed to extract JSON",
         raw,
       });
     }
@@ -94,27 +107,28 @@ ${resumeText}
 
     try {
       parsed = JSON.parse(cleaned);
-    } catch (err) {
+    } catch {
       return NextResponse.json({
         error: "JSON parse failed",
         cleaned,
       });
     }
 
-    // 🛡️ FINAL SAFETY (ensure all fields exist)
+    // 🛡️ SAFE STRUCTURE
     const safeData = {
-      score: parsed.score || 0,
-      ats: parsed.ats || 0,
-      strengths: parsed.strengths || [],
-      missing: parsed.missing || [],
-      improvements: parsed.improvements || [],
-      rewritten: parsed.rewritten || "",
+      name: parsed.name || "",
+      title: parsed.title || "",
+      summary: parsed.summary || "",
+      skills: parsed.skills || [],
+      experience: parsed.experience || [],
+      projects: parsed.projects || [],
+      education: parsed.education || [],
     };
 
     return NextResponse.json(safeData);
 
   } catch (err) {
-    console.error("SERVER ERROR:", err);
+    console.error(err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-      }
+  }
