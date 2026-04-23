@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import pdf from "pdf-parse";
 
@@ -25,7 +27,7 @@ export async function POST(req) {
         messages: [
           {
             role: "system",
-            content: "You are a professional resume writer and ATS expert.",
+            content: "You are a resume expert.",
           },
           {
             role: "user",
@@ -40,7 +42,7 @@ Return ONLY JSON:
   "strengths": [],
   "missing": [],
   "improvements": [],
-  "rewritten": "Full improved resume professionally formatted"
+  "rewritten": "Full improved resume"
 }
 
 Resume:
@@ -67,4 +69,4 @@ ${resumeText}
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-      }
+        }
