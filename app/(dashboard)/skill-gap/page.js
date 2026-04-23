@@ -52,10 +52,37 @@ export default function SkillGap() {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
-        <button onClick={analyze} className="btn-primary">
-          Analyze Resume
-        </button>
-      </div>
+        const analyze = async () => {
+  if (!file) return alert("Upload a resume");
+
+  setLoading(true);
+  setData(null);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/skill-gap", {
+      method: "POST",
+      body: formData,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      alert(json.error || "Something went wrong");
+      setLoading(false);
+      return;
+    }
+
+    setData(json);
+  } catch (err) {
+    console.error(err);
+    alert("Server error");
+  }
+
+  setLoading(false);
+};
 
       {loading && <div className="text-gray-400">Analyzing...</div>}
 
