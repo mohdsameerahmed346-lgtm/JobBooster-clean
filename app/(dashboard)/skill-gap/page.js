@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+
 import { auth } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 import Sidebar from "../../../components/Sidebar";
 import ScoreCard from "../../../components/ScoreCard";
+import Skeleton from "../../../components/Skeleton";
 
 import {
   createChat,
@@ -20,6 +23,7 @@ export default function SkillGap() {
 
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
+  const [displayData, setDisplayData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // 🔐 AUTH
@@ -33,9 +37,7 @@ export default function SkillGap() {
         const allChats = await getChats(u.uid);
         setChats(allChats);
 
-        if (allChats.length) {
-          setActiveChat(allChats[0]);
-        }
+        if (allChats.length) setActiveChat(allChats[0]);
       }
     });
 
@@ -57,11 +59,26 @@ export default function SkillGap() {
     setData(null);
   };
 
+  // ✨ TYPING EFFECT
+  const typeEffect = (fullData) => {
+    let i = 0;
+    const interval = setInterval(() => {
+      setDisplayData((prev) => ({
+        ...fullData,
+        missingKeywords: fullData.missingKeywords.slice(0, i),
+      }));
+      i++;
+      if (i > fullData.missingKeywords.length) clearInterval(interval);
+    }, 150);
+  };
+
   // 🤖 ANALYZE
   const analyze = async () => {
     if (!file) return alert("Upload a resume");
 
     setLoading(true);
+    setData(null);
+    setDisplayData(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -74,6 +91,7 @@ export default function SkillGap() {
     const json = await res.json();
 
     setData(json);
+    typeEffect(json);
 
     if (user && activeChat) {
       const messages = [
@@ -90,28 +108,27 @@ export default function SkillGap() {
   return (
     <div className="flex h-screen">
 
-      {/* SIDEBAR */}
       <Sidebar
         chats={chats}
         activeChat={activeChat}
         onSelect={(c) => {
           setActiveChat(c);
-          setData(c.messages?.slice(-1)[0]?.content || null);
+          setDisplayData(c.messages?.slice(-1)[0]?.content || null);
         }}
         onNew={handleNewChat}
       />
 
-      {/* MAIN */}
       <div className="flex-1 p-8 space-y-8 overflow-y-auto">
 
         <h1 className="text-2xl font-bold">Resume Analyzer</h1>
 
-        {/* UPLOAD CARD */}
-        <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-xl space-y-4">
-
-          <h2 className="text-lg font-semibold">Upload Resume</h2>
-
-          <div className="flex items-center gap-4">
+        {/* UPLOAD */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-[#020617] border border-gray-800 p-6 rounded-2xl"
+        >
+          <div className="flex gap-4">
             <input
               type="file"
               accept="application/pdf"
@@ -125,57 +142,46 @@ export default function SkillGap() {
               Analyze
             </button>
           </div>
+        </motion.div>
 
-          <p className="text-yellow-400 text-xs">
-            Use simple PDF (Word/Docs). Canva resumes may fail.
-          </p>
-
-        </div>
-
-        {/* LOADING */}
-        {loading && <p className="text-gray-400">Analyzing...</p>}
+        {/* LOADING SKELETON */}
+        {loading && <Skeleton />}
 
         {/* RESULTS */}
-        {data && (
-          <div className="space-y-6">
+        {displayData && !loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
 
-            {/* SCORES */}
             <div className="grid md:grid-cols-2 gap-6">
-              <ScoreCard title="Resume Score" value={data.score} />
-              <ScoreCard title="ATS Score" value={data.ats} />
+              <ScoreCard title="Resume Score" value={displayData.score} />
+              <ScoreCard title="ATS Score" value={displayData.ats} />
             </div>
 
             {/* KEYWORDS */}
-            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-lg">
-              <h2 className="font-semibold mb-3">Missing Keywords</h2>
+            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl">
+              <h2 className="mb-3">Missing Keywords</h2>
 
               <div className="flex flex-wrap gap-2">
-                {data.missingKeywords?.map((k, i) => (
-                  <span
+                {displayData.missingKeywords?.map((k, i) => (
+                  <motion.span
                     key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1 rounded-full text-sm"
                   >
                     {k}
-                  </span>
+                  </motion.span>
                 ))}
               </div>
             </div>
 
-            {/* SUGGESTIONS */}
-            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-lg">
-              <h2 className="font-semibold mb-3">Improvement Suggestions</h2>
-
-              <div className="space-y-2 text-sm text-gray-300">
-                <p><strong>Skills:</strong> {data.sectionFeedback?.skills}</p>
-                <p><strong>Experience:</strong> {data.sectionFeedback?.experience}</p>
-                <p><strong>Projects:</strong> {data.sectionFeedback?.projects}</p>
-              </div>
-            </div>
-
-          </div>
+          </motion.div>
         )}
 
       </div>
     </div>
   );
-  }
+    }
