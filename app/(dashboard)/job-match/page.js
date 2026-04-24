@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
+
+import ScoreCircle from "../../../components/ScoreCircle";
+import SkillTags from "../../../components/SkillTags";
+import MatchChart from "../../../components/MatchChart";
 
 export default function JobMatch() {
   const [job, setJob] = useState("");
@@ -9,7 +14,7 @@ export default function JobMatch() {
   const [loading, setLoading] = useState(false);
 
   const analyze = async () => {
-    if (!job.trim()) return alert("Job description required");
+    if (!job.trim()) return alert("Job required");
 
     setLoading(true);
     setResult(null);
@@ -30,53 +35,72 @@ export default function JobMatch() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-8 max-w-6xl mx-auto space-y-8">
 
-      <h1 className="text-2xl font-bold">AI Resume Analyzer</h1>
+      <h1 className="text-3xl font-bold">AI Resume Analyzer</h1>
 
       {/* INPUT */}
-      <textarea
-        value={job}
-        onChange={(e) => setJob(e.target.value)}
-        rows={6}
-        placeholder="Paste job description..."
-        className="w-full p-3 bg-black border border-gray-700 rounded"
-      />
+      <motion.div className="card space-y-4">
+        <textarea
+          value={job}
+          onChange={(e) => setJob(e.target.value)}
+          rows={6}
+          placeholder="Paste job description..."
+          className="w-full p-3 bg-black border border-gray-700 rounded"
+        />
 
-      <input
-        type="file"
-        accept="application/pdf"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
 
-      <button
-        onClick={analyze}
-        className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded"
-      >
-        Analyze
-      </button>
+        <button
+          onClick={analyze}
+          className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded"
+        >
+          Analyze
+        </button>
+      </motion.div>
 
       {loading && <p>Analyzing...</p>}
 
       {/* RESULT */}
       {result && (
-        <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-8"
+        >
 
           {/* SCORES */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card title="Match %" value={result.matchPercentage} />
-            <Card title="Resume Score" value={result.resumeScore} />
-            <Card title="ATS Score" value={result.atsScore} />
+          <div className="grid md:grid-cols-4 gap-6">
+
+            <ScoreCircle value={result.matchPercentage} label="Match" />
+            <ScoreCircle value={result.resumeScore} label="Resume" />
+            <ScoreCircle value={result.atsScore} label="ATS" />
+
+            <div className="card">
+              <MatchChart match={result.matchPercentage} />
+            </div>
+
           </div>
 
           {/* SKILLS */}
-          <Section title="Matched Skills" items={result.matchedSkills} color="green" />
-          <Section title="Missing Skills" items={result.missingSkills} color="red" />
+          <div className="card">
+            <h3 className="mb-3">Matched Skills</h3>
+            <SkillTags items={result.matchedSkills} type="good" />
+          </div>
+
+          <div className="card">
+            <h3 className="mb-3">Missing Skills</h3>
+            <SkillTags items={result.missingSkills} type="bad" />
+          </div>
 
           {/* SUGGESTIONS */}
           <div className="card">
             <h3>Suggestions</h3>
-            <ul>
+            <ul className="list-disc pl-5 text-gray-300">
               {result.suggestions.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
@@ -85,48 +109,14 @@ export default function JobMatch() {
 
           {/* REWRITE */}
           <div className="card">
-            <h3>AI Rewrite Suggestions</h3>
-
+            <h3>AI Rewrite</h3>
             <p><strong>Summary:</strong> {result.rewriteSuggestions.summary}</p>
             <p><strong>Experience:</strong> {result.rewriteSuggestions.experience}</p>
             <p><strong>Skills:</strong> {result.rewriteSuggestions.skills}</p>
           </div>
 
-        </div>
+        </motion.div>
       )}
-    </div>
-  );
-}
-
-// 🔹 COMPONENTS
-
-function Card({ title, value }) {
-  return (
-    <div className="p-4 bg-[#020617] border border-gray-800 rounded text-center">
-      <p className="text-sm text-gray-400">{title}</p>
-      <h2 className="text-2xl font-bold">{value}</h2>
-    </div>
-  );
-}
-
-function Section({ title, items, color }) {
-  return (
-    <div className="card">
-      <h3>{title}</h3>
-      <div className="flex flex-wrap gap-2">
-        {items.map((i, idx) => (
-          <span
-            key={idx}
-            className={`px-3 py-1 rounded text-sm ${
-              color === "green"
-                ? "bg-green-500/20"
-                : "bg-red-500/20"
-            }`}
-          >
-            {i}
-          </span>
-        ))}
-      </div>
     </div>
   );
     }
