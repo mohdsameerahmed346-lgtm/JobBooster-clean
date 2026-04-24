@@ -7,16 +7,18 @@ export default function Sidebar({
   onNew,
 }) {
   return (
-    <div className="w-64 bg-black border-r border-gray-800 h-screen p-4">
+    <div className="w-64 bg-[#020617] border-r border-gray-800 h-screen p-4 flex flex-col">
+
+      <h1 className="text-xl font-bold mb-6">🚀 JobBooster</h1>
 
       <button
         onClick={onNew}
-        className="w-full bg-blue-600 p-2 rounded mb-4"
+        className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-xl mb-4 hover:opacity-90"
       >
         + New Chat
       </button>
 
-      <div className="space-y-2">
+      <div className="space-y-2 text-sm overflow-y-auto">
         {chats.map((chat) => (
           <div
             key={chat.id}
@@ -34,4 +36,4 @@ export default function Sidebar({
 
     </div>
   );
-    }
+          }
