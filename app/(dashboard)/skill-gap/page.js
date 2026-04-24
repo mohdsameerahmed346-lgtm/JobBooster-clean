@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
-
-import ResumeTemplateModern from "../../../components/ResumeTemplateModern";
-import ResumeTemplateMinimal from "../../../components/ResumeTemplateMinimal";
+import ScoreCard from "../../../components/ScoreCard";
 
 export default function SkillGap() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [template, setTemplate] = useState("modern");
 
   const analyze = async () => {
     if (!file) return alert("Upload a resume");
@@ -31,51 +26,25 @@ export default function SkillGap() {
       const json = await res.json();
 
       if (!res.ok) {
-        alert(json.error || "Something went wrong");
+        alert(json.error);
         setLoading(false);
         return;
       }
 
       setData(json);
-    } catch (err) {
-      console.error(err);
-      alert("Server error");
+    } catch {
+      alert("Error");
     }
 
     setLoading(false);
   };
 
-  // 📄 PDF EXPORT
-  const downloadPDF = async () => {
-    const element = document.getElementById("resume-preview");
-
-    if (!element) {
-      alert("Resume not found");
-      return;
-    }
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = 210;
-    const pageHeight = (canvas.height * pageWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
-    pdf.save("resume.pdf");
-  };
-
   return (
     <div className="max-w-5xl mx-auto space-y-6">
 
-      <h1 className="text-2xl font-bold">📄 Resume Builder</h1>
+      <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
 
-      {/* UPLOAD CARD */}
+      {/* Upload */}
       <div className="glass p-6 rounded-xl space-y-4">
 
         <input
@@ -84,9 +53,8 @@ export default function SkillGap() {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
-        {/* ⚠️ WARNING */}
-        <p className="text-yellow-300 text-sm bg-yellow-500/10 border border-yellow-500/20 p-2 rounded">
-          ⚠️ Upload a simple text-based PDF (Word/Google Docs). Canva or scanned resumes may not work.
+        <p className="text-yellow-300 text-sm">
+          ⚠️ Use text-based PDF (Word/Docs)
         </p>
 
         <button onClick={analyze} className="btn-primary">
@@ -95,62 +63,40 @@ export default function SkillGap() {
 
       </div>
 
-      {/* LOADING */}
-      {loading && (
-        <div className="text-gray-400">Analyzing resume...</div>
-      )}
+      {loading && <p>Analyzing...</p>}
 
-      {/* ERROR */}
-      {data?.error && (
-        <div className="text-red-400">{data.error}</div>
-      )}
-
-      {/* RESULT */}
       {data && !data.error && (
         <div className="space-y-6">
 
-          {/* TEMPLATE SWITCH */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => setTemplate("modern")}
-              className={`btn-primary ${
-                template === "modern" ? "opacity-100" : "opacity-50"
-              }`}
-            >
-              Modern
-            </button>
-
-            <button
-              onClick={() => setTemplate("minimal")}
-              className={`btn-primary ${
-                template === "minimal" ? "opacity-100" : "opacity-50"
-              }`}
-            >
-              Minimal
-            </button>
+          {/* Scores */}
+          <div className="grid grid-cols-2 gap-4">
+            <ScoreCard title="Resume Score" value={data.score} />
+            <ScoreCard title="ATS Score" value={data.ats} />
           </div>
 
-          {/* PREVIEW */}
-          <div className="border rounded-xl overflow-hidden bg-white">
-
-            {template === "modern" && (
-              <ResumeTemplateModern data={data} />
-            )}
-
-            {template === "minimal" && (
-              <ResumeTemplateMinimal data={data} />
-            )}
-
+          {/* Keywords */}
+          <div className="glass p-4 rounded-xl">
+            <h2 className="font-semibold mb-2">Missing Keywords</h2>
+            <div className="flex flex-wrap gap-2">
+              {data.missingKeywords.map((k, i) => (
+                <span key={i} className="bg-red-500/20 px-2 py-1 rounded">
+                  {k}
+                </span>
+              ))}
+            </div>
           </div>
 
-          {/* DOWNLOAD */}
-          <button onClick={downloadPDF} className="btn-primary">
-            Download Styled PDF
-          </button>
+          {/* Feedback */}
+          <div className="glass p-4 rounded-xl">
+            <h2 className="font-semibold mb-2">Suggestions</h2>
+            <p>Skills: {data.sectionFeedback.skills}</p>
+            <p>Experience: {data.sectionFeedback.experience}</p>
+            <p>Projects: {data.sectionFeedback.projects}</p>
+          </div>
 
         </div>
       )}
 
     </div>
   );
-        }
+    }
