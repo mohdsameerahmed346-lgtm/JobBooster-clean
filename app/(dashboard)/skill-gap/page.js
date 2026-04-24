@@ -1,77 +1,109 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ScoreCard from "../../../components/ScoreCard";
-
 import { auth } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { saveHistory } from "../../../lib/history";
+
+import Sidebar from "../../../components/Sidebar";
+import ScoreCard from "../../../components/ScoreCard";
+
+import {
+  createChat,
+  getChats,
+  saveMessages,
+} from "../../../lib/chat";
 
 export default function SkillGap() {
+  const [user, setUser] = useState(null);
+  const [chats, setChats] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
 
-  // 🔐 AUTH CHECK
+  // 🔐 AUTH
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         window.location.href = "/login";
       } else {
         setUser(u);
+
+        const allChats = await getChats(u.uid);
+        setChats(allChats);
+
+        if (allChats.length) {
+          setActiveChat(allChats[0]);
+        }
       }
     });
 
     return () => unsub();
   }, []);
 
-  // 🚀 ANALYZE FUNCTION
+  // ➕ NEW CHAT
+  const handleNewChat = async () => {
+    const id = await createChat(user.uid);
+    const newChat = {
+      id,
+      title: "New Chat",
+      messages: [],
+    };
+
+    setChats([newChat, ...chats]);
+    setActiveChat(newChat);
+    setData(null);
+  };
+
+  // 🤖 ANALYZE
   const analyze = async () => {
     if (!file) return alert("Upload a resume");
 
     setLoading(true);
-    setData(null);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const res = await fetch("/api/skill-gap", {
-        method: "POST",
-        body: formData,
-      });
+    const res = await fetch("/api/skill-gap", {
+      method: "POST",
+      body: formData,
+    });
 
-      const json = await res.json();
+    const json = await res.json();
 
-      if (!res.ok) {
-        alert(json.error || "Something went wrong");
-        setLoading(false);
-        return;
-      }
+    setData(json);
 
-      setData(json);
+    if (user && activeChat) {
+      const messages = [
+        ...(activeChat.messages || []),
+        { role: "assistant", content: json },
+      ];
 
-      // 💾 SAVE TO FIRESTORE
-      if (user) {
-        await saveHistory(user.uid, json);
-      }
-
-    } catch (err) {
-      console.error(err);
-      alert("Server error");
+      await saveMessages(user.uid, activeChat.id, messages);
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="flex">
 
-      <h1 className="text-2xl font-bold">📄 Resume Analyzer</h1>
+      {/* SIDEBAR */}
+      <Sidebar
+        chats={chats}
+        activeChat={activeChat}
+        onSelect={(c) => {
+          setActiveChat(c);
+          setData(c.messages?.slice(-1)[0]?.content || null);
+        }}
+        onNew={handleNewChat}
+      />
 
-      {/* 📤 UPLOAD */}
-      <div className="glass p-6 rounded-xl space-y-4">
+      {/* MAIN */}
+      <div className="flex-1 p-6 space-y-6">
+
+        <h1 className="text-xl font-bold">Resume Analyzer</h1>
 
         <input
           type="file"
@@ -79,65 +111,31 @@ export default function SkillGap() {
           onChange={(e) => setFile(e.target.files[0])}
         />
 
-        {/* ⚠️ WARNING */}
-        <p className="text-yellow-300 text-sm bg-yellow-500/10 border border-yellow-500/20 p-2 rounded">
-          ⚠️ Upload a simple text-based PDF (Word/Google Docs). Canva/scanned resumes may not work.
-        </p>
-
         <button onClick={analyze} className="btn-primary">
-          Analyze Resume
+          Analyze
         </button>
 
-      </div>
+        {loading && <p>Analyzing...</p>}
 
-      {/* ⏳ LOADING */}
-      {loading && (
-        <p className="text-gray-400">Analyzing resume...</p>
-      )}
+        {data && (
+          <div className="space-y-4">
 
-      {/* ❌ ERROR */}
-      {data?.error && (
-        <p className="text-red-400">{data.error}</p>
-      )}
+            <div className="grid grid-cols-2 gap-4">
+              <ScoreCard title="Score" value={data.score} />
+              <ScoreCard title="ATS" value={data.ats} />
+            </div>
 
-      {/* ✅ RESULT */}
-      {data && !data.error && (
-        <div className="space-y-6">
-
-          {/* 📊 SCORES */}
-          <div className="grid grid-cols-2 gap-4">
-            <ScoreCard title="Resume Score" value={data.score} />
-            <ScoreCard title="ATS Score" value={data.ats} />
-          </div>
-
-          {/* 🔑 MISSING KEYWORDS */}
-          <div className="glass p-4 rounded-xl">
-            <h2 className="font-semibold mb-2">Missing Keywords</h2>
-
-            <div className="flex flex-wrap gap-2">
+            <div>
+              <h2>Missing Keywords</h2>
               {data.missingKeywords?.map((k, i) => (
-                <span
-                  key={i}
-                  className="bg-red-500/20 px-2 py-1 rounded"
-                >
-                  {k}
-                </span>
+                <span key={i}>{k} </span>
               ))}
             </div>
+
           </div>
+        )}
 
-          {/* 💡 FEEDBACK */}
-          <div className="glass p-4 rounded-xl">
-            <h2 className="font-semibold mb-2">Suggestions</h2>
-
-            <p><strong>Skills:</strong> {data.sectionFeedback?.skills}</p>
-            <p><strong>Experience:</strong> {data.sectionFeedback?.experience}</p>
-            <p><strong>Projects:</strong> {data.sectionFeedback?.projects}</p>
-          </div>
-
-        </div>
-      )}
-
+      </div>
     </div>
   );
-          }
+}
