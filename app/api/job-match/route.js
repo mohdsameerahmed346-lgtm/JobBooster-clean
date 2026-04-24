@@ -1,43 +1,90 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req) {
   try {
     const { job, skills } = await req.json();
 
-    // 🧠 SIMPLE KEYWORD EXTRACTION (STABLE VERSION)
-    const jobWords = job.toLowerCase().split(/\W+/);
-    const skillWords = (skills || "").toLowerCase().split(/\W+/);
+    if (!job) {
+      return NextResponse.json(
+        { error: "Job description required" },
+        { status: 400 }
+      );
+    }
 
-    const uniqueJobSkills = [...new Set(jobWords)].filter(w => w.length > 3);
+    const prompt = `
+You are a professional ATS resume analyzer.
 
-    const matchedSkills = uniqueJobSkills.filter(s =>
-      skillWords.includes(s)
-    );
+Compare the JOB DESCRIPTION and USER SKILLS.
 
-    const missingSkills = uniqueJobSkills.filter(
-      s => !skillWords.includes(s)
-    );
+Return ONLY valid JSON (no explanation).
 
-    const matchPercentage = Math.min(
-      100,
-      Math.floor((matchedSkills.length / uniqueJobSkills.length) * 100)
-    );
+Format:
+{
+  "matchPercentage": number,
+  "matchedSkills": string[],
+  "missingSkills": string[],
+  "suggestions": string[]
+}
 
-    const suggestions = missingSkills.slice(0, 5).map(
-      (s) => `Learn ${s} and add it to your resume`
-    );
+Rules:
+- matchPercentage must be 0–100
+- max 10 missingSkills
+- suggestions should be actionable
 
+JOB DESCRIPTION:
+${job}
+
+USER SKILLS:
+${skills || "Not provided"}
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    let text = completion.choices[0].message.content;
+
+    // 🔒 SAFE JSON PARSE
+    let json;
+
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      // fallback fix if AI adds text
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        json = JSON.parse(match[0]);
+      } else {
+        throw new Error("Invalid JSON from AI");
+      }
+    }
+
+    // 🛡️ FINAL SAFETY STRUCTURE
     return NextResponse.json({
-      matchPercentage,
-      matchedSkills,
-      missingSkills: missingSkills.slice(0, 10),
-      suggestions,
+      matchPercentage: json.matchPercentage || 0,
+      matchedSkills: json.matchedSkills || [],
+      missingSkills: json.missingSkills || [],
+      suggestions: json.suggestions || [],
     });
 
   } catch (err) {
+    console.error(err);
+
     return NextResponse.json(
-      { error: "Server error" },
+      { error: "AI processing failed" },
       { status: 500 }
     );
   }
-                             }
+  }
