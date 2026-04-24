@@ -7,6 +7,7 @@ body {
   background: #020617;
   color: #e5e7eb;
   font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ===== GPU BOOST ===== */
@@ -15,7 +16,7 @@ body {
   will-change: transform;
 }
 
-/* ===== LIGHT GRADIENT (NO HEAVY ANIMATION) ===== */
+/* ===== BACKGROUND ===== */
 .bg-base {
   background: radial-gradient(circle at top, #0f172a, #020617);
 }
@@ -27,15 +28,18 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* ===== CARD ===== */
+/* ===== PREMIUM CARD ===== */
 .card {
+  background: linear-gradient(145deg, #020617, #020617);
+  border: 1px solid #1f2937;
   border-radius: 16px;
   padding: 20px;
-  transition: transform 0.25s ease;
+  transition: all 0.25s ease;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.35);
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px) scale(1.01);
 }
 
 /* ===== BUTTON ===== */
@@ -48,13 +52,83 @@ body {
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  transform: scale(1.04);
+  opacity: 0.95;
+  transform: scale(1.05);
 }
 
-/* ===== LIGHT SHADOW (PERFORMANCE SAFE) ===== */
+/* ===== INPUT ===== */
+.input {
+  background: #020617;
+  border: 1px solid #374151;
+  padding: 10px;
+  border-radius: 10px;
+  width: 100%;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.input:focus {
+  border-color: #6366f1;
+}
+
+/* ===== SOFT SHADOW ===== */
 .shadow-soft {
   box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+/* ===== GRADIENT TEXT ===== */
+.text-gradient {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== SKELETON LOADING ===== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #111827 25%,
+    #1f2937 50%,
+    #111827 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 10px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== SCROLLBAR (PREMIUM LOOK) ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 10px;
+}
+
+/* ===== FADE IN ANIMATION ===== */
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== SCALE POP ===== */
+.scale-in {
+  animation: scaleIn 0.3s ease forwards;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 /* ===== MARKDOWN ===== */
@@ -66,9 +140,18 @@ body {
   margin: 6px 0;
 }
 
-/* ===== DISABLE HEAVY EFFECTS ON MOBILE ===== */
+/* ===== MOBILE OPTIMIZATION ===== */
 @media (max-width: 768px) {
+
   .glass {
     backdrop-filter: blur(6px);
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .btn-primary {
+    width: 100%;
   }
   }
