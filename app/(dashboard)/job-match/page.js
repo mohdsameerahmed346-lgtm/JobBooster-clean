@@ -9,10 +9,7 @@ export default function JobMatch() {
   const [loading, setLoading] = useState(false);
 
   const analyze = async () => {
-    if (!job.trim()) {
-      alert("Job description required");
-      return;
-    }
+    if (!job.trim()) return alert("Job description required");
 
     setLoading(true);
     setResult(null);
@@ -21,29 +18,23 @@ export default function JobMatch() {
     formData.append("job", job);
     if (file) formData.append("file", file);
 
-    try {
-      const res = await fetch("/api/job-match", {
-        method: "POST",
-        body: formData,
-      });
+    const res = await fetch("/api/job-match", {
+      method: "POST",
+      body: formData,
+    });
 
-      const data = await res.json();
-
-      setResult(data);
-    } catch (err) {
-      console.error(err);
-      alert("Error analyzing");
-    }
+    const data = await res.json();
+    setResult(data);
 
     setLoading(false);
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-8 max-w-5xl mx-auto space-y-6">
 
-      <h1 className="text-2xl font-bold">Job Match Analyzer</h1>
+      <h1 className="text-2xl font-bold">AI Resume Analyzer</h1>
 
-      {/* JOB */}
+      {/* INPUT */}
       <textarea
         value={job}
         onChange={(e) => setJob(e.target.value)}
@@ -52,16 +43,11 @@ export default function JobMatch() {
         className="w-full p-3 bg-black border border-gray-700 rounded"
       />
 
-      {/* FILE */}
       <input
         type="file"
         accept="application/pdf"
         onChange={(e) => setFile(e.target.files[0])}
       />
-
-      <p className="text-yellow-400 text-xs">
-        Use simple PDF (Word/Docs). Canva/scanned resumes may fail.
-      </p>
 
       <button
         onClick={analyze}
@@ -76,31 +62,71 @@ export default function JobMatch() {
       {result && (
         <div className="space-y-6">
 
-          <div className="p-6 bg-[#020617] border border-gray-800 rounded">
-            <h2 className="text-2xl">{result.matchPercentage}% Match</h2>
+          {/* SCORES */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card title="Match %" value={result.matchPercentage} />
+            <Card title="Resume Score" value={result.resumeScore} />
+            <Card title="ATS Score" value={result.atsScore} />
           </div>
 
-          <div>
-            <h3>Matched Skills</h3>
-            {result.matchedSkills?.join(", ")}
-          </div>
+          {/* SKILLS */}
+          <Section title="Matched Skills" items={result.matchedSkills} color="green" />
+          <Section title="Missing Skills" items={result.missingSkills} color="red" />
 
-          <div>
-            <h3>Missing Skills</h3>
-            {result.missingSkills?.join(", ")}
-          </div>
-
-          <div>
+          {/* SUGGESTIONS */}
+          <div className="card">
             <h3>Suggestions</h3>
             <ul>
-              {result.suggestions?.map((s, i) => (
+              {result.suggestions.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
 
+          {/* REWRITE */}
+          <div className="card">
+            <h3>AI Rewrite Suggestions</h3>
+
+            <p><strong>Summary:</strong> {result.rewriteSuggestions.summary}</p>
+            <p><strong>Experience:</strong> {result.rewriteSuggestions.experience}</p>
+            <p><strong>Skills:</strong> {result.rewriteSuggestions.skills}</p>
+          </div>
+
         </div>
       )}
+    </div>
+  );
+}
+
+// 🔹 COMPONENTS
+
+function Card({ title, value }) {
+  return (
+    <div className="p-4 bg-[#020617] border border-gray-800 rounded text-center">
+      <p className="text-sm text-gray-400">{title}</p>
+      <h2 className="text-2xl font-bold">{value}</h2>
+    </div>
+  );
+}
+
+function Section({ title, items, color }) {
+  return (
+    <div className="card">
+      <h3>{title}</h3>
+      <div className="flex flex-wrap gap-2">
+        {items.map((i, idx) => (
+          <span
+            key={idx}
+            className={`px-3 py-1 rounded text-sm ${
+              color === "green"
+                ? "bg-green-500/20"
+                : "bg-red-500/20"
+            }`}
+          >
+            {i}
+          </span>
+        ))}
+      </div>
     </div>
   );
     }
