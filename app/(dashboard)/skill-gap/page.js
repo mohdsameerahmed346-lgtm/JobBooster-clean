@@ -45,6 +45,7 @@ export default function SkillGap() {
   // ➕ NEW CHAT
   const handleNewChat = async () => {
     const id = await createChat(user.uid);
+
     const newChat = {
       id,
       title: "New Chat",
@@ -87,7 +88,7 @@ export default function SkillGap() {
   };
 
   return (
-    <div className="flex">
+    <div className="flex h-screen">
 
       {/* SIDEBAR */}
       <Sidebar
@@ -101,35 +102,74 @@ export default function SkillGap() {
       />
 
       {/* MAIN */}
-      <div className="flex-1 p-6 space-y-6">
+      <div className="flex-1 p-8 space-y-8 overflow-y-auto">
 
-        <h1 className="text-xl font-bold">Resume Analyzer</h1>
+        <h1 className="text-2xl font-bold">Resume Analyzer</h1>
 
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
+        {/* UPLOAD CARD */}
+        <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-xl space-y-4">
 
-        <button onClick={analyze} className="btn-primary">
-          Analyze
-        </button>
+          <h2 className="text-lg font-semibold">Upload Resume</h2>
 
-        {loading && <p>Analyzing...</p>}
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setFile(e.target.files[0])}
+            />
 
+            <button
+              onClick={analyze}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded-xl"
+            >
+              Analyze
+            </button>
+          </div>
+
+          <p className="text-yellow-400 text-xs">
+            Use simple PDF (Word/Docs). Canva resumes may fail.
+          </p>
+
+        </div>
+
+        {/* LOADING */}
+        {loading && <p className="text-gray-400">Analyzing...</p>}
+
+        {/* RESULTS */}
         {data && (
-          <div className="space-y-4">
+          <div className="space-y-6">
 
-            <div className="grid grid-cols-2 gap-4">
-              <ScoreCard title="Score" value={data.score} />
-              <ScoreCard title="ATS" value={data.ats} />
+            {/* SCORES */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <ScoreCard title="Resume Score" value={data.score} />
+              <ScoreCard title="ATS Score" value={data.ats} />
             </div>
 
-            <div>
-              <h2>Missing Keywords</h2>
-              {data.missingKeywords?.map((k, i) => (
-                <span key={i}>{k} </span>
-              ))}
+            {/* KEYWORDS */}
+            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-lg">
+              <h2 className="font-semibold mb-3">Missing Keywords</h2>
+
+              <div className="flex flex-wrap gap-2">
+                {data.missingKeywords?.map((k, i) => (
+                  <span
+                    key={i}
+                    className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1 rounded-full text-sm"
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* SUGGESTIONS */}
+            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl shadow-lg">
+              <h2 className="font-semibold mb-3">Improvement Suggestions</h2>
+
+              <div className="space-y-2 text-sm text-gray-300">
+                <p><strong>Skills:</strong> {data.sectionFeedback?.skills}</p>
+                <p><strong>Experience:</strong> {data.sectionFeedback?.experience}</p>
+                <p><strong>Projects:</strong> {data.sectionFeedback?.projects}</p>
+              </div>
             </div>
 
           </div>
@@ -138,4 +178,4 @@ export default function SkillGap() {
       </div>
     </div>
   );
-}
+  }
