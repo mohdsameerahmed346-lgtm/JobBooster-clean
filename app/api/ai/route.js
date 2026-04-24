@@ -1,26 +1,19 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req) {
-  const { prompt } = await req.json();
+  const { message } = await req.json();
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-3.5-turbo",
-      stream: true,
-      messages: [
-        { role: "user", content: prompt }
-      ],
-    }),
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: message }],
   });
 
-  return new Response(response.body, {
-    headers: {
-      "Content-Type": "text/event-stream",
-    },
+  return NextResponse.json({
+    reply: completion.choices[0].message.content,
   });
-}
+  }
