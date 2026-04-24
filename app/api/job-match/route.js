@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import pdf from "pdf-parse";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,7 +8,10 @@ const openai = new OpenAI({
 
 export async function POST(req) {
   try {
-    const { job, skills } = await req.json();
+    const formData = await req.formData();
+
+    const job = formData.get("job");
+    const file = formData.get("file");
 
     if (!job) {
       return NextResponse.json(
@@ -16,14 +20,27 @@ export async function POST(req) {
       );
     }
 
+    let resumeText = "";
+
+    // 📄 READ PDF SAFELY
+    if (file) {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const data = await pdf(buffer);
+        resumeText = data.text;
+      } catch (e) {
+        console.error("PDF parse error:", e);
+        resumeText = "";
+      }
+    }
+
     const prompt = `
-You are a professional ATS resume analyzer.
+You are an AI ATS analyzer.
 
-Compare the JOB DESCRIPTION and USER SKILLS.
+Extract skills from RESUME and compare with JOB DESCRIPTION.
 
-Return ONLY valid JSON (no explanation).
+Return ONLY JSON:
 
-Format:
 {
   "matchPercentage": number,
   "matchedSkills": string[],
@@ -32,46 +49,34 @@ Format:
 }
 
 Rules:
-- matchPercentage must be 0–100
 - max 10 missingSkills
-- suggestions should be actionable
+- realistic matchPercentage
 
 JOB DESCRIPTION:
 ${job}
 
-USER SKILLS:
-${skills || "Not provided"}
+RESUME:
+${resumeText || "No resume provided"}
 `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages: [{ role: "user", content: prompt }],
     });
 
     let text = completion.choices[0].message.content;
 
-    // 🔒 SAFE JSON PARSE
     let json;
 
     try {
       json = JSON.parse(text);
-    } catch (e) {
-      // fallback fix if AI adds text
+    } catch {
       const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        json = JSON.parse(match[0]);
-      } else {
-        throw new Error("Invalid JSON from AI");
-      }
+      if (match) json = JSON.parse(match[0]);
+      else throw new Error("Invalid JSON");
     }
 
-    // 🛡️ FINAL SAFETY STRUCTURE
     return NextResponse.json({
       matchPercentage: json.matchPercentage || 0,
       matchedSkills: json.matchedSkills || [],
@@ -83,8 +88,8 @@ ${skills || "Not provided"}
     console.error(err);
 
     return NextResponse.json(
-      { error: "AI processing failed" },
+      { error: "Processing failed" },
       { status: 500 }
     );
   }
-  }
+      }
