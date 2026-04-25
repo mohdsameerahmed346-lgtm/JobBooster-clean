@@ -1,145 +1,108 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
-import pdf from "pdf-parse";
+import OpenAI from "openai";
 
-function extractJSON(text) {
-  try {
-    const cleaned = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-
-    if (start === -1 || end === -1) return null;
-
-    return cleaned.slice(start, end + 1);
-  } catch {
-    return null;
-  }
-}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file");
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    const job = formData.get("job");
+    const skillsInput = formData.get("skills"); // optional manual skills
+    const file = formData.get("file"); // optional resume
+
+    if (!job) {
+      return NextResponse.json(
+        { error: "Job description required" },
+        { status: 400 }
+      );
     }
 
     let resumeText = "";
 
-    try {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const data = await pdf(buffer);
-      resumeText = data.text;
-    } catch {
-      return NextResponse.json({
-        error: "Upload a proper text-based PDF (Word/Docs).",
-      });
+    // ✅ SAFE PDF PARSE (NO BUILD ERROR)
+    if (file) {
+      try {
+        const pdf = (await import("pdf-parse")).default;
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const data = await pdf(buffer);
+
+        resumeText = data.text;
+      } catch (e) {
+        console.error("PDF parse error:", e);
+      }
     }
 
-    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content: "Return only valid JSON.",
-          },
-          {
-            role: "user",
-            content: `
-Analyze this resume for ATS optimization.
+    const prompt = `
+You are an AI skill gap analyzer.
 
-Return ONLY JSON:
+Compare USER SKILLS with JOB DESCRIPTION.
+
+Return ONLY valid JSON:
 
 {
-  "score": number,
-  "ats": number,
-  "strengths": string[],
-  "missingKeywords": string[],
-  "sectionFeedback": {
-    "skills": string,
-    "experience": string,
-    "projects": string
-  },
-  "name": string,
-  "title": string,
-  "summary": string,
-  "skills": string[],
-  "experience": [
-    {
-      "role": string,
-      "company": string,
-      "duration": string,
-      "points": string[]
-    }
-  ],
-  "projects": [
-    {
-      "name": string,
-      "description": string
-    }
-  ],
-  "education": [
-    {
-      "degree": string,
-      "college": string
-    }
-  ]
+  "matchPercentage": number,
+  "matchedSkills": string[],
+  "missingSkills": string[],
+  "recommendedSkills": string[],
+  "learningPlan": string[]
 }
 
-Resume:
-${resumeText}
-`,
-          },
-        ],
-      }),
+Rules:
+- matchPercentage: realistic 0-100
+- max 10 missingSkills
+- max 6 learningPlan steps
+- be practical and specific
+
+JOB DESCRIPTION:
+${job}
+
+USER SKILLS:
+${skillsInput || "Not provided"}
+
+RESUME TEXT:
+${resumeText || "Not provided"}
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const json = await aiRes.json();
-    const raw = json?.choices?.[0]?.message?.content || "";
+    let text = completion.choices[0].message.content;
 
-    const cleaned = extractJSON(raw);
+    let json;
 
-    if (!cleaned) {
-      return NextResponse.json({ error: "AI failed", raw });
-    }
-
-    let parsed;
-
+    // ✅ SAFE JSON PARSE
     try {
-      parsed = JSON.parse(cleaned);
+      json = JSON.parse(text);
     } catch {
-      return NextResponse.json({ error: "Parse failed", cleaned });
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        json = JSON.parse(match[0]);
+      } else {
+        throw new Error("Invalid JSON from AI");
+      }
     }
 
     return NextResponse.json({
-      score: parsed.score || 0,
-      ats: parsed.ats || 0,
-      strengths: parsed.strengths || [],
-      missingKeywords: parsed.missingKeywords || [],
-      sectionFeedback: parsed.sectionFeedback || {},
-      name: parsed.name || "",
-      title: parsed.title || "",
-      summary: parsed.summary || "",
-      skills: parsed.skills || [],
-      experience: parsed.experience || [],
-      projects: parsed.projects || [],
-      education: parsed.education || [],
+      matchPercentage: json.matchPercentage || 0,
+      matchedSkills: json.matchedSkills || [],
+      missingSkills: json.missingSkills || [],
+      recommendedSkills: json.recommendedSkills || [],
+      learningPlan: json.learningPlan || [],
     });
 
   } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Skill gap error:", err);
+
+    return NextResponse.json(
+      { error: "Skill gap analysis failed" },
+      { status: 500 }
+    );
   }
-}
+        }
