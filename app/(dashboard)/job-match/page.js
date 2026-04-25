@@ -1,122 +1,102 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-
-import ScoreCircle from "../../../components/ScoreCircle";
-import SkillTags from "../../../components/SkillTags";
-import MatchChart from "../../../components/MatchChart";
+import { useState, useEffect } from "react";
+import { auth } from "../../../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function JobMatch() {
+  const [user, setUser] = useState(null);
   const [job, setJob] = useState("");
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) setUser(u);
+    });
+    return () => unsub();
+  }, []);
+
   const analyze = async () => {
-    if (!job.trim()) return alert("Job required");
+    if (!job.trim()) return alert("Job description required");
 
     setLoading(true);
     setResult(null);
 
     const formData = new FormData();
     formData.append("job", job);
+
     if (file) formData.append("file", file);
+    if (user) formData.append("userId", user.uid);
 
-    const res = await fetch("/api/job-match", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("/api/job-match", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    setResult(data);
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      console.error(err);
+      alert("Error analyzing");
+    }
 
     setLoading(false);
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
 
-      <h1 className="text-3xl font-bold">AI Resume Analyzer</h1>
+      <h1 className="text-2xl font-bold">Resume Analyzer</h1>
 
-      {/* INPUT */}
-      <motion.div className="card space-y-4">
-        <textarea
-          value={job}
-          onChange={(e) => setJob(e.target.value)}
-          rows={6}
-          placeholder="Paste job description..."
-          className="w-full p-3 bg-black border border-gray-700 rounded"
-        />
+      <textarea
+        value={job}
+        onChange={(e) => setJob(e.target.value)}
+        rows={6}
+        placeholder="Paste job description..."
+        className="w-full p-3 bg-black border border-gray-700 rounded"
+      />
 
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
+      <input
+        type="file"
+        accept="application/pdf"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
 
-        <button
-          onClick={analyze}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded"
-        >
-          Analyze
-        </button>
-      </motion.div>
+      <button onClick={analyze} className="btn-primary">
+        Analyze
+      </button>
 
       {loading && <p>Analyzing...</p>}
 
-      {/* RESULT */}
       {result && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-8"
-        >
+        <div className="space-y-4">
 
-          {/* SCORES */}
-          <div className="grid md:grid-cols-4 gap-6">
-
-            <ScoreCircle value={result.matchPercentage} label="Match" />
-            <ScoreCircle value={result.resumeScore} label="Resume" />
-            <ScoreCircle value={result.atsScore} label="ATS" />
-
-            <div className="card">
-              <MatchChart match={result.matchPercentage} />
-            </div>
-
-          </div>
-
-          {/* SKILLS */}
           <div className="card">
-            <h3 className="mb-3">Matched Skills</h3>
-            <SkillTags items={result.matchedSkills} type="good" />
+            <h2>Match: {result.matchPercentage}%</h2>
+            <p>Resume Score: {result.resumeScore}</p>
+            <p>ATS Score: {result.atsScore}</p>
           </div>
 
           <div className="card">
-            <h3 className="mb-3">Missing Skills</h3>
-            <SkillTags items={result.missingSkills} type="bad" />
+            <h3>Missing Skills</h3>
+            <p>{result.missingSkills.join(", ")}</p>
           </div>
 
-          {/* SUGGESTIONS */}
           <div className="card">
             <h3>Suggestions</h3>
-            <ul className="list-disc pl-5 text-gray-300">
+            <ul>
               {result.suggestions.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
 
-          {/* REWRITE */}
-          <div className="card">
-            <h3>AI Rewrite</h3>
-            <p><strong>Summary:</strong> {result.rewriteSuggestions.summary}</p>
-            <p><strong>Experience:</strong> {result.rewriteSuggestions.experience}</p>
-            <p><strong>Skills:</strong> {result.rewriteSuggestions.skills}</p>
-          </div>
-
-        </motion.div>
+        </div>
       )}
+
     </div>
   );
-    }
+}
