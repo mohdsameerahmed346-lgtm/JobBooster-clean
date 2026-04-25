@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import pdf from "pdf-parse";
 import { saveAnalysis } from "@/lib/analysis";
 
 const openai = new OpenAI({
@@ -24,11 +23,14 @@ export async function POST(req) {
 
     let resumeText = "";
 
-    // 📄 SAFE PDF PARSE
+    // ✅ SAFE PDF PARSE (NO BUILD ERROR)
     if (file) {
       try {
+        const pdf = (await import("pdf-parse")).default;
+
         const buffer = Buffer.from(await file.arrayBuffer());
         const data = await pdf(buffer);
+
         resumeText = data.text;
       } catch (e) {
         console.error("PDF parse error:", e);
@@ -37,8 +39,6 @@ export async function POST(req) {
 
     const prompt = `
 You are an expert ATS resume analyzer.
-
-Analyze the RESUME against the JOB DESCRIPTION.
 
 Return ONLY valid JSON:
 
@@ -56,12 +56,7 @@ Return ONLY valid JSON:
   }
 }
 
-Rules:
-- Scores must be 0–100
-- missingSkills max 10
-- suggestions must be practical
-
-JOB DESCRIPTION:
+JOB:
 ${job}
 
 RESUME:
@@ -83,7 +78,7 @@ ${resumeText || "Not provided"}
     } catch {
       const match = text.match(/\{[\s\S]*\}/);
       if (match) json = JSON.parse(match[0]);
-      else throw new Error("Invalid JSON from AI");
+      else throw new Error("Invalid JSON");
     }
 
     const result = {
@@ -100,7 +95,7 @@ ${resumeText || "Not provided"}
       },
     };
 
-    // 💾 SAVE TO FIREBASE
+    // ✅ SAVE ANALYSIS
     if (userId) {
       await saveAnalysis(userId, {
         job,
@@ -119,4 +114,4 @@ ${resumeText || "Not provided"}
       { status: 500 }
     );
   }
-          }
+}
