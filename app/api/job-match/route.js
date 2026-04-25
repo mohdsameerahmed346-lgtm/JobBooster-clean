@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import pdf from "pdf-parse";
+import { saveAnalysis } from "@/lib/analysis";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,6 +13,7 @@ export async function POST(req) {
 
     const job = formData.get("job");
     const file = formData.get("file");
+    const userId = formData.get("userId");
 
     if (!job) {
       return NextResponse.json(
@@ -29,7 +31,7 @@ export async function POST(req) {
         const data = await pdf(buffer);
         resumeText = data.text;
       } catch (e) {
-        console.error("PDF parse failed:", e);
+        console.error("PDF parse error:", e);
       }
     }
 
@@ -58,7 +60,6 @@ Rules:
 - Scores must be 0–100
 - missingSkills max 10
 - suggestions must be practical
-- rewriteSuggestions must improve clarity and ATS optimization
 
 JOB DESCRIPTION:
 ${job}
@@ -85,7 +86,7 @@ ${resumeText || "Not provided"}
       else throw new Error("Invalid JSON from AI");
     }
 
-    return NextResponse.json({
+    const result = {
       matchPercentage: json.matchPercentage || 0,
       resumeScore: json.resumeScore || 0,
       atsScore: json.atsScore || 0,
@@ -97,14 +98,25 @@ ${resumeText || "Not provided"}
         experience: "",
         skills: "",
       },
-    });
+    };
+
+    // 💾 SAVE TO FIREBASE
+    if (userId) {
+      await saveAnalysis(userId, {
+        job,
+        resumeText,
+        result,
+      });
+    }
+
+    return NextResponse.json(result);
 
   } catch (err) {
     console.error(err);
 
     return NextResponse.json(
-      { error: "AI processing failed" },
+      { error: "Processing failed" },
       { status: 500 }
     );
   }
-         }
+          }
