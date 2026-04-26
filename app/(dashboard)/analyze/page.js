@@ -1,77 +1,122 @@
 "use client";
 
-import { useState } from "react";
-import { useAI } from "../../../lib/useAI";
-import { saveHistory } from "../../../lib/history";
+import { useState, useRef } from "react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
-export default function AnalyzePage() {
-  const [text, setText] = useState("");
-  const { result, loading, generate } = useAI();
+export default function Analyze() {
+  const [resumeText, setResumeText] = useState("");
+  const [job, setJob] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rewrite, setRewrite] = useState(null);
 
-  const analyze = async () => {
-    if (!text.trim()) {
-      alert("Please paste your resume");
-      return;
-    }
+  const pdfRef = useRef();
 
-    try {
-      await generate(`Analyze this resume and give improvements:\n${text}`);
+  // 🧠 AI REWRITE
+  const handleRewrite = async () => {
+    if (!resumeText.trim()) return alert("Paste resume text");
 
-      // ✅ Save after generation (small delay ensures full text)
-      setTimeout(() => {
-        if (result) {
-          saveHistory("analyze", text, result);
-        }
-      }, 1000);
+    setLoading(true);
 
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    }
+    const formData = new FormData();
+    formData.append("resumeText", resumeText);
+    formData.append("job", job);
+
+    const res = await fetch("/api/rewrite-resume", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    setRewrite(data);
+
+    setLoading(false);
+  };
+
+  // 📄 EXPORT PDF
+  const downloadPDF = async () => {
+    const element = pdfRef.current;
+
+    const canvas = await html2canvas(element);
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const imgWidth = 210;
+    const pageHeight = 295;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+    pdf.save("resume.pdf");
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="p-8 space-y-6">
 
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold">📄 Resume Analyzer</h1>
-        <p className="text-gray-400">
-          Improve your resume with AI insights
-        </p>
-      </div>
+      <h1 className="text-2xl font-bold">Resume Analyzer</h1>
 
       {/* INPUT */}
       <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Paste your resume here..."
-        className="w-full p-4 bg-black border border-gray-700 rounded-xl h-40 focus:outline-none focus:border-blue-500"
+        placeholder="Paste your resume text..."
+        value={resumeText}
+        onChange={(e) => setResumeText(e.target.value)}
+        className="input"
+        rows={6}
       />
 
-      {/* BUTTON */}
-      <button
-        onClick={analyze}
-        className="btn-primary px-6 py-2 rounded-lg"
-      >
-        {loading ? "Analyzing..." : "Analyze Resume"}
+      <textarea
+        placeholder="Paste job description (optional)"
+        value={job}
+        onChange={(e) => setJob(e.target.value)}
+        className="input"
+        rows={4}
+      />
+
+      <button onClick={handleRewrite} className="btn-primary">
+        Improve Resume with AI
       </button>
 
-      {/* OUTPUT */}
-      {(loading || result) && (
-        <div className="glass p-5 rounded-xl whitespace-pre-wrap min-h-[120px]">
+      {loading && <p>Generating...</p>}
 
-          {loading && !result && (
-            <span className="animate-pulse text-gray-400">
-              🤖 AI is thinking...
-            </span>
-          )}
+      {/* RESULT */}
+      {rewrite && (
+        <>
+          <div ref={pdfRef} className="bg-white text-black p-8 rounded-xl">
 
-          {result}
+            <h1 className="text-2xl font-bold mb-2">
+              {rewrite.name}
+            </h1>
 
-        </div>
+            <p className="mb-4">{rewrite.summary}</p>
+
+            <h2 className="font-bold mt-4">Skills</h2>
+            <ul className="list-disc pl-5">
+              {rewrite.skills.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+
+            <h2 className="font-bold mt-4">Experience</h2>
+            {rewrite.experience.map((exp, i) => (
+              <div key={i} className="mb-3">
+                <p className="font-semibold">
+                  {exp.role} - {exp.company}
+                </p>
+                <ul className="list-disc pl-5">
+                  {exp.points.map((p, j) => (
+                    <li key={j}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={downloadPDF} className="btn-primary">
+            Download PDF
+          </button>
+        </>
       )}
-
     </div>
   );
-            }
+    }
