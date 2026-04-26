@@ -21,6 +21,8 @@ export default function SkillGap() {
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
 
+  const [messages, setMessages] = useState([]);
+
   const [job, setJob] = useState("");
   const [skills, setSkills] = useState("");
   const [file, setFile] = useState(null);
@@ -40,7 +42,10 @@ export default function SkillGap() {
         const allChats = await getChats(u.uid);
         setChats(allChats);
 
-        if (allChats.length) setActiveChat(allChats[0]);
+        if (allChats.length) {
+          setActiveChat(allChats[0]);
+          setMessages(allChats[0].messages || []);
+        }
       }
     });
 
@@ -59,11 +64,12 @@ export default function SkillGap() {
 
     setChats([newChat, ...chats]);
     setActiveChat(newChat);
+    setMessages([]);
     setData(null);
     setDisplayData(null);
   };
 
-  // ✨ TYPING EFFECT (FOR MISSING SKILLS)
+  // ✨ TYPING EFFECT
   const typeEffect = (fullData) => {
     let i = 0;
 
@@ -115,17 +121,19 @@ export default function SkillGap() {
     setData(safeData);
     typeEffect(safeData);
 
-    // 💾 SAVE IN CHAT
+    // 💾 SAVE CHAT
     if (user && activeChat) {
-      const messages = [
-        ...(activeChat.messages || []),
+      const updatedMessages = [
+        ...messages,
         {
           role: "assistant",
           content: safeData,
         },
       ];
 
-      await saveMessages(user.uid, activeChat.id, messages);
+      setMessages(updatedMessages);
+
+      await saveMessages(user.uid, activeChat.id, updatedMessages);
     }
 
     setLoading(false);
@@ -140,9 +148,16 @@ export default function SkillGap() {
         activeChat={activeChat}
         onSelect={(c) => {
           setActiveChat(c);
-          setDisplayData(
-            c.messages?.slice(-1)[0]?.content || null
-          );
+
+          const msgs = c.messages || [];
+          setMessages(msgs);
+
+          const last = msgs
+            .slice()
+            .reverse()
+            .find((m) => m.role === "assistant");
+
+          setDisplayData(last?.content || null);
         }}
         onNew={handleNewChat}
       />
@@ -195,10 +210,35 @@ export default function SkillGap() {
           </p>
         </motion.div>
 
+        {/* CHAT HISTORY UI */}
+        <div className="space-y-4">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-4 rounded-xl ${
+                msg.role === "assistant"
+                  ? "bg-[#020617] border border-gray-800"
+                  : "bg-blue-500/10 text-blue-300"
+              }`}
+            >
+              {msg.role === "assistant" ? (
+                <div>
+                  <p className="text-sm text-gray-400 mb-2">
+                    Analysis Result
+                  </p>
+                  <p>Match: {msg.content?.matchPercentage || 0}%</p>
+                </div>
+              ) : (
+                <p>{msg.content}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
         {/* LOADING */}
         {loading && <Skeleton />}
 
-        {/* RESULTS */}
+        {/* RESULT */}
         {displayData && !loading && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -206,52 +246,36 @@ export default function SkillGap() {
             className="space-y-6"
           >
 
-            {/* SCORES */}
             <div className="grid md:grid-cols-3 gap-6">
               <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
               <ScoreCard title="ATS Score" value={displayData.ats} />
             </div>
 
-            {/* MATCHED */}
             <div className="card">
-              <h2 className="mb-3">Matched Skills</h2>
+              <h2>Matched Skills</h2>
+              <p>{displayData.matchedSkills.join(", ")}</p>
+            </div>
+
+            <div className="card">
+              <h2>Missing Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {displayData.matchedSkills.map((k, i) => (
-                  <span key={i} className="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-sm">
+                {displayData.missingSkills.map((k, i) => (
+                  <span key={i} className="bg-red-500/10 text-red-400 px-2 py-1 rounded">
                     {k}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* MISSING */}
             <div className="card">
-              <h2 className="mb-3">Missing Skills</h2>
-              <div className="flex flex-wrap gap-2">
-                {displayData.missingSkills.map((k, i) => (
-                  <motion.span
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-sm"
-                  >
-                    {k}
-                  </motion.span>
-                ))}
-              </div>
-            </div>
-
-            {/* RECOMMENDED */}
-            <div className="card">
-              <h2 className="mb-3">Recommended Skills</h2>
+              <h2>Recommended Skills</h2>
               <p>{displayData.recommendedSkills.join(", ")}</p>
             </div>
 
-            {/* LEARNING PLAN */}
             <div className="card">
-              <h2 className="mb-3">Learning Plan</h2>
-              <ul className="list-disc pl-5">
+              <h2>Learning Plan</h2>
+              <ul>
                 {displayData.learningPlan.map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
@@ -260,7 +284,8 @@ export default function SkillGap() {
 
           </motion.div>
         )}
+
       </div>
     </div>
   );
-    }
+}
