@@ -15,6 +15,8 @@ import {
   getChats,
   saveMessages,
   updateChatTitle,
+  deleteChat,
+  renameChat,
 } from "../../../lib/chat";
 
 export default function SkillGap() {
@@ -55,6 +57,8 @@ export default function SkillGap() {
 
   // ➕ NEW CHAT
   const handleNewChat = async () => {
+    if (!user) return;
+
     const id = await createChat(user.uid);
 
     const newChat = {
@@ -68,6 +72,36 @@ export default function SkillGap() {
     setMessages([]);
     setData(null);
     setDisplayData(null);
+  };
+
+  // ❌ DELETE CHAT
+  const handleDelete = async (chatId) => {
+    if (!user) return;
+
+    await deleteChat(user.uid, chatId);
+
+    const updated = chats.filter((c) => c.id !== chatId);
+    setChats(updated);
+
+    if (activeChat?.id === chatId) {
+      const next = updated[0] || null;
+      setActiveChat(next);
+      setMessages(next?.messages || []);
+      setDisplayData(null);
+    }
+  };
+
+  // ✏️ RENAME CHAT
+  const handleRename = async (chatId, title) => {
+    if (!user || !title.trim()) return;
+
+    await renameChat(user.uid, chatId, title);
+
+    setChats((prev) =>
+      prev.map((c) =>
+        c.id === chatId ? { ...c, title } : c
+      )
+    );
   };
 
   // 🧠 TITLE GENERATOR
@@ -99,6 +133,7 @@ export default function SkillGap() {
   // 🤖 ANALYZE
   const analyze = async () => {
     if (!job.trim()) return alert("Job description required");
+    if (!activeChat) return alert("Create a chat first");
 
     setLoading(true);
     setData(null);
@@ -145,7 +180,7 @@ export default function SkillGap() {
 
       await saveMessages(user.uid, activeChat.id, updatedMessages);
 
-      // 🧠 AUTO TITLE UPDATE
+      // 🧠 AUTO TITLE
       const title = generateTitle(job);
 
       await updateChatTitle(user.uid, activeChat.id, title);
@@ -181,6 +216,8 @@ export default function SkillGap() {
           setDisplayData(last?.content || null);
         }}
         onNew={handleNewChat}
+        onDelete={handleDelete}
+        onRename={handleRename}
       />
 
       {/* MAIN */}
@@ -310,4 +347,4 @@ export default function SkillGap() {
       </div>
     </div>
   );
-}
+                                     }
