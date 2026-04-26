@@ -21,7 +21,10 @@ export default function SkillGap() {
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
 
+  const [job, setJob] = useState("");
+  const [skills, setSkills] = useState("");
   const [file, setFile] = useState(null);
+
   const [data, setData] = useState(null);
   const [displayData, setDisplayData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -57,31 +60,38 @@ export default function SkillGap() {
     setChats([newChat, ...chats]);
     setActiveChat(newChat);
     setData(null);
+    setDisplayData(null);
   };
 
-  // ✨ TYPING EFFECT
+  // ✨ TYPING EFFECT (FOR MISSING SKILLS)
   const typeEffect = (fullData) => {
     let i = 0;
+
     const interval = setInterval(() => {
-      setDisplayData((prev) => ({
+      setDisplayData({
         ...fullData,
-        missingKeywords: fullData.missingKeywords.slice(0, i),
-      }));
+        missingSkills: fullData.missingSkills.slice(0, i),
+      });
+
       i++;
-      if (i > fullData.missingKeywords.length) clearInterval(interval);
-    }, 150);
+      if (i > fullData.missingSkills.length) clearInterval(interval);
+    }, 120);
   };
 
   // 🤖 ANALYZE
   const analyze = async () => {
-    if (!file) return alert("Upload a resume");
+    if (!job.trim()) return alert("Job description required");
 
     setLoading(true);
     setData(null);
     setDisplayData(null);
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("job", job);
+    formData.append("skills", skills);
+
+    if (file) formData.append("file", file);
+    if (user) formData.append("userId", user.uid);
 
     const res = await fetch("/api/skill-gap", {
       method: "POST",
@@ -90,13 +100,29 @@ export default function SkillGap() {
 
     const json = await res.json();
 
-    setData(json);
-    typeEffect(json);
+    const safeData = {
+      matchPercentage: json.matchPercentage || 0,
+      matchedSkills: json.matchedSkills || [],
+      missingSkills: json.missingSkills || [],
+      recommendedSkills: json.recommendedSkills || [],
+      learningPlan: json.learningPlan || [],
 
+      // backward compatibility
+      score: json.resumeScore || json.matchPercentage || 0,
+      ats: json.atsScore || 0,
+    };
+
+    setData(safeData);
+    typeEffect(safeData);
+
+    // 💾 SAVE IN CHAT
     if (user && activeChat) {
       const messages = [
         ...(activeChat.messages || []),
-        { role: "assistant", content: json },
+        {
+          role: "assistant",
+          content: safeData,
+        },
       ];
 
       await saveMessages(user.uid, activeChat.id, messages);
@@ -108,27 +134,48 @@ export default function SkillGap() {
   return (
     <div className="flex h-screen">
 
+      {/* SIDEBAR */}
       <Sidebar
         chats={chats}
         activeChat={activeChat}
         onSelect={(c) => {
           setActiveChat(c);
-          setDisplayData(c.messages?.slice(-1)[0]?.content || null);
+          setDisplayData(
+            c.messages?.slice(-1)[0]?.content || null
+          );
         }}
         onNew={handleNewChat}
       />
 
+      {/* MAIN */}
       <div className="flex-1 p-8 space-y-8 overflow-y-auto">
 
-        <h1 className="text-2xl font-bold">Resume Analyzer</h1>
+        <h1 className="text-2xl font-bold">Skill Gap Analyzer</h1>
 
-        {/* UPLOAD */}
+        {/* INPUT */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-[#020617] border border-gray-800 p-6 rounded-2xl"
+          className="bg-[#020617] border border-gray-800 p-6 rounded-2xl space-y-4"
         >
-          <div className="flex gap-4">
+
+          <textarea
+            value={job}
+            onChange={(e) => setJob(e.target.value)}
+            placeholder="Paste job description..."
+            rows={5}
+            className="input"
+          />
+
+          <textarea
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder="Enter your skills (optional)"
+            rows={3}
+            className="input"
+          />
+
+          <div className="flex gap-4 items-center">
             <input
               type="file"
               accept="application/pdf"
@@ -137,14 +184,18 @@ export default function SkillGap() {
 
             <button
               onClick={analyze}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded-xl"
+              className="btn-primary"
             >
               Analyze
             </button>
           </div>
+
+          <p className="text-yellow-400 text-sm">
+            ⚠️ Upload simple PDF (Word/Docs). Canva/scanned may fail.
+          </p>
         </motion.div>
 
-        {/* LOADING SKELETON */}
+        {/* LOADING */}
         {loading && <Skeleton />}
 
         {/* RESULTS */}
@@ -155,22 +206,35 @@ export default function SkillGap() {
             className="space-y-6"
           >
 
-            <div className="grid md:grid-cols-2 gap-6">
+            {/* SCORES */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
               <ScoreCard title="ATS Score" value={displayData.ats} />
             </div>
 
-            {/* KEYWORDS */}
-            <div className="bg-[#020617] border border-gray-800 p-6 rounded-2xl">
-              <h2 className="mb-3">Missing Keywords</h2>
-
+            {/* MATCHED */}
+            <div className="card">
+              <h2 className="mb-3">Matched Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {displayData.missingKeywords?.map((k, i) => (
+                {displayData.matchedSkills.map((k, i) => (
+                  <span key={i} className="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-sm">
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* MISSING */}
+            <div className="card">
+              <h2 className="mb-3">Missing Skills</h2>
+              <div className="flex flex-wrap gap-2">
+                {displayData.missingSkills.map((k, i) => (
                   <motion.span
                     key={i}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-1 rounded-full text-sm"
+                    className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-sm"
                   >
                     {k}
                   </motion.span>
@@ -178,9 +242,24 @@ export default function SkillGap() {
               </div>
             </div>
 
+            {/* RECOMMENDED */}
+            <div className="card">
+              <h2 className="mb-3">Recommended Skills</h2>
+              <p>{displayData.recommendedSkills.join(", ")}</p>
+            </div>
+
+            {/* LEARNING PLAN */}
+            <div className="card">
+              <h2 className="mb-3">Learning Plan</h2>
+              <ul className="list-disc pl-5">
+                {displayData.learningPlan.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+
           </motion.div>
         )}
-
       </div>
     </div>
   );
