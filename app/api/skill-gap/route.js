@@ -32,24 +32,37 @@ export async function POST(req) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const data = await pdf(buffer);
 
-        resumeText = data.text;
+        resumeText = data.text || "";
       } catch (e) {
         console.error("PDF parse error:", e);
       }
     }
 
+    // 🧠 IMPROVED PROMPT (MORE ACCURATE)
     const prompt = `
-You are an AI skill gap analyzer.
+You are an expert AI career coach and ATS analyzer.
+
+Analyze the job, user skills, and resume.
 
 Return ONLY valid JSON:
 
 {
   "matchPercentage": number,
+  "resumeScore": number,
+  "atsScore": number,
   "matchedSkills": string[],
   "missingSkills": string[],
   "recommendedSkills": string[],
   "learningPlan": string[]
 }
+
+Rules:
+- matchPercentage = how well user fits job
+- resumeScore = resume quality (0-100)
+- atsScore = ATS compatibility (0-100)
+- missingSkills = critical missing job skills
+- recommendedSkills = what to learn next
+- learningPlan = 3-5 short actionable steps
 
 JOB:
 ${job}
@@ -67,28 +80,52 @@ ${resumeText || "Not provided"}
       messages: [{ role: "user", content: prompt }],
     });
 
-    let text = completion.choices[0].message.content;
+    let text = completion.choices[0].message.content || "";
 
-    let json;
+    // ✅ ULTRA SAFE JSON PARSE
+    let json = {};
 
     try {
       json = JSON.parse(text);
     } catch {
-      const match = text.match(/\{[\s\S]*\}/);
-      json = match ? JSON.parse(match[0]) : {};
+      try {
+        const match = text.match(/\{[\s\S]*\}/);
+        json = match ? JSON.parse(match[0]) : {};
+      } catch {
+        json = {};
+      }
     }
 
+    // ✅ FINAL SAFE STRUCTURE
     const result = {
-      matchPercentage: json.matchPercentage || 0,
-      matchedSkills: json.matchedSkills || [],
-      missingSkills: json.missingSkills || [],
-      recommendedSkills: json.recommendedSkills || [],
-      learningPlan: json.learningPlan || [],
+      matchPercentage: Number(json.matchPercentage) || 0,
+      resumeScore: Number(json.resumeScore) || 0,
+      atsScore: Number(json.atsScore) || 0,
+
+      matchedSkills: Array.isArray(json.matchedSkills)
+        ? json.matchedSkills
+        : [],
+
+      missingSkills: Array.isArray(json.missingSkills)
+        ? json.missingSkills
+        : [],
+
+      recommendedSkills: Array.isArray(json.recommendedSkills)
+        ? json.recommendedSkills
+        : [],
+
+      learningPlan: Array.isArray(json.learningPlan)
+        ? json.learningPlan
+        : [],
     };
 
-    // ✅ SAVE TO FIREBASE (IMPORTANT)
+    // ✅ SAVE TO FIREBASE (UNCHANGED BUT SAFE)
     if (userId) {
-      await saveHistory(userId, "skill-gap", { job, skillsInput }, result);
+      try {
+        await saveHistory(userId, "skill-gap", { job, skillsInput }, result);
+      } catch (e) {
+        console.error("History save error:", e);
+      }
     }
 
     return NextResponse.json(result);
@@ -101,4 +138,4 @@ ${resumeText || "Not provided"}
       { status: 500 }
     );
   }
-      }
+    }
