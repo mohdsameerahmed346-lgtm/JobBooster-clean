@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { saveHistory } from "@/lib/history";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,8 +11,9 @@ export async function POST(req) {
     const formData = await req.formData();
 
     const job = formData.get("job");
-    const skillsInput = formData.get("skills"); // optional manual skills
-    const file = formData.get("file"); // optional resume
+    const skillsInput = formData.get("skills");
+    const file = formData.get("file");
+    const userId = formData.get("userId");
 
     if (!job) {
       return NextResponse.json(
@@ -22,7 +24,7 @@ export async function POST(req) {
 
     let resumeText = "";
 
-    // ✅ SAFE PDF PARSE (NO BUILD ERROR)
+    // ✅ SAFE PDF PARSE (NO BUILD CRASH)
     if (file) {
       try {
         const pdf = (await import("pdf-parse")).default;
@@ -39,8 +41,6 @@ export async function POST(req) {
     const prompt = `
 You are an AI skill gap analyzer.
 
-Compare USER SKILLS with JOB DESCRIPTION.
-
 Return ONLY valid JSON:
 
 {
@@ -51,19 +51,13 @@ Return ONLY valid JSON:
   "learningPlan": string[]
 }
 
-Rules:
-- matchPercentage: realistic 0-100
-- max 10 missingSkills
-- max 6 learningPlan steps
-- be practical and specific
-
-JOB DESCRIPTION:
+JOB:
 ${job}
 
 USER SKILLS:
 ${skillsInput || "Not provided"}
 
-RESUME TEXT:
+RESUME:
 ${resumeText || "Not provided"}
 `;
 
@@ -77,25 +71,27 @@ ${resumeText || "Not provided"}
 
     let json;
 
-    // ✅ SAFE JSON PARSE
     try {
       json = JSON.parse(text);
     } catch {
       const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        json = JSON.parse(match[0]);
-      } else {
-        throw new Error("Invalid JSON from AI");
-      }
+      json = match ? JSON.parse(match[0]) : {};
     }
 
-    return NextResponse.json({
+    const result = {
       matchPercentage: json.matchPercentage || 0,
       matchedSkills: json.matchedSkills || [],
       missingSkills: json.missingSkills || [],
       recommendedSkills: json.recommendedSkills || [],
       learningPlan: json.learningPlan || [],
-    });
+    };
+
+    // ✅ SAVE TO FIREBASE (IMPORTANT)
+    if (userId) {
+      await saveHistory(userId, "skill-gap", { job, skillsInput }, result);
+    }
+
+    return NextResponse.json(result);
 
   } catch (err) {
     console.error("Skill gap error:", err);
@@ -105,4 +101,4 @@ ${resumeText || "Not provided"}
       { status: 500 }
     );
   }
-        }
+      }
