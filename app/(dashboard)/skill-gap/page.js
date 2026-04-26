@@ -14,6 +14,7 @@ import {
   createChat,
   getChats,
   saveMessages,
+  updateChatTitle,
 } from "../../../lib/chat";
 
 export default function SkillGap() {
@@ -69,8 +70,19 @@ export default function SkillGap() {
     setDisplayData(null);
   };
 
-  // ✨ TYPING EFFECT
+  // 🧠 TITLE GENERATOR
+  const generateTitle = (text) => {
+    if (!text) return "New Chat";
+    return text.split("\n")[0].slice(0, 30);
+  };
+
+  // ✨ TYPING EFFECT (SAFE)
   const typeEffect = (fullData) => {
+    if (!fullData?.missingSkills?.length) {
+      setDisplayData(fullData);
+      return;
+    }
+
     let i = 0;
 
     const interval = setInterval(() => {
@@ -81,7 +93,7 @@ export default function SkillGap() {
 
       i++;
       if (i > fullData.missingSkills.length) clearInterval(interval);
-    }, 120);
+    }, 100);
   };
 
   // 🤖 ANALYZE
@@ -112,8 +124,6 @@ export default function SkillGap() {
       missingSkills: json.missingSkills || [],
       recommendedSkills: json.recommendedSkills || [],
       learningPlan: json.learningPlan || [],
-
-      // backward compatibility
       score: json.resumeScore || json.matchPercentage || 0,
       ats: json.atsScore || 0,
     };
@@ -134,6 +144,17 @@ export default function SkillGap() {
       setMessages(updatedMessages);
 
       await saveMessages(user.uid, activeChat.id, updatedMessages);
+
+      // 🧠 AUTO TITLE UPDATE
+      const title = generateTitle(job);
+
+      await updateChatTitle(user.uid, activeChat.id, title);
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === activeChat.id ? { ...c, title } : c
+        )
+      );
     }
 
     setLoading(false);
@@ -173,7 +194,6 @@ export default function SkillGap() {
           animate={{ opacity: 1 }}
           className="bg-[#020617] border border-gray-800 p-6 rounded-2xl space-y-4"
         >
-
           <textarea
             value={job}
             onChange={(e) => setJob(e.target.value)}
@@ -197,10 +217,7 @@ export default function SkillGap() {
               onChange={(e) => setFile(e.target.files[0])}
             />
 
-            <button
-              onClick={analyze}
-              className="btn-primary"
-            >
+            <button onClick={analyze} className="btn-primary">
               Analyze
             </button>
           </div>
@@ -210,12 +227,12 @@ export default function SkillGap() {
           </p>
         </motion.div>
 
-        {/* CHAT HISTORY UI */}
-        <div className="space-y-4">
+        {/* CHAT HISTORY */}
+        <div className="space-y-3">
           {messages.map((msg, i) => (
             <div
               key={i}
-              className={`p-4 rounded-xl ${
+              className={`p-4 rounded-xl text-sm ${
                 msg.role === "assistant"
                   ? "bg-[#020617] border border-gray-800"
                   : "bg-blue-500/10 text-blue-300"
@@ -223,13 +240,14 @@ export default function SkillGap() {
             >
               {msg.role === "assistant" ? (
                 <div>
-                  <p className="text-sm text-gray-400 mb-2">
-                    Analysis Result
+                  <p className="text-gray-400 mb-1">Analysis</p>
+                  <p>
+                    Match: {msg.content?.matchPercentage || 0}% | ATS:{" "}
+                    {msg.content?.ats || 0}
                   </p>
-                  <p>Match: {msg.content?.matchPercentage || 0}%</p>
                 </div>
               ) : (
-                <p>{msg.content}</p>
+                msg.content
               )}
             </div>
           ))}
@@ -238,14 +256,13 @@ export default function SkillGap() {
         {/* LOADING */}
         {loading && <Skeleton />}
 
-        {/* RESULT */}
+        {/* RESULTS */}
         {displayData && !loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-
             <div className="grid md:grid-cols-3 gap-6">
               <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
@@ -254,17 +271,24 @@ export default function SkillGap() {
 
             <div className="card">
               <h2>Matched Skills</h2>
-              <p>{displayData.matchedSkills.join(", ")}</p>
+              <p>{displayData.matchedSkills.join(", ") || "None"}</p>
             </div>
 
             <div className="card">
               <h2>Missing Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {displayData.missingSkills.map((k, i) => (
-                  <span key={i} className="bg-red-500/10 text-red-400 px-2 py-1 rounded">
-                    {k}
-                  </span>
-                ))}
+                {displayData.missingSkills.length ? (
+                  displayData.missingSkills.map((k, i) => (
+                    <span
+                      key={i}
+                      className="bg-red-500/10 text-red-400 px-2 py-1 rounded"
+                    >
+                      {k}
+                    </span>
+                  ))
+                ) : (
+                  <p>No major gaps 🎉</p>
+                )}
               </div>
             </div>
 
@@ -275,16 +299,14 @@ export default function SkillGap() {
 
             <div className="card">
               <h2>Learning Plan</h2>
-              <ul>
+              <ul className="list-disc pl-5">
                 {displayData.learningPlan.map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
             </div>
-
           </motion.div>
         )}
-
       </div>
     </div>
   );
