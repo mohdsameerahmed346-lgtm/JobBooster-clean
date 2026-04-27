@@ -8,7 +8,9 @@ export default function Analyze() {
   const [resumeText, setResumeText] = useState("");
   const [job, setJob] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [rewrite, setRewrite] = useState(null);
+  const [editable, setEditable] = useState(null);
 
   const [template, setTemplate] = useState("modern");
 
@@ -16,7 +18,7 @@ export default function Analyze() {
 
   // 🧠 AI REWRITE
   const handleRewrite = async () => {
-    if (!resumeText.trim()) return alert("Paste resume text");
+    if (!resumeText.trim()) return alert("Paste resume");
 
     setLoading(true);
 
@@ -30,191 +32,197 @@ export default function Analyze() {
     });
 
     const data = await res.json();
+
     setRewrite(data);
+    setEditable(data); // ✅ IMPORTANT
 
     setLoading(false);
   };
 
+  // ✏️ INLINE EDIT HANDLER
+  const updateField = (field, value) => {
+    setEditable((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // ✏️ UPDATE SKILL
+  const updateSkill = (index, value) => {
+    const newSkills = [...editable.skills];
+    newSkills[index] = value;
+
+    setEditable({ ...editable, skills: newSkills });
+  };
+
+  // 🔀 MOVE SECTION
+  const moveSection = (dir) => {
+    const order = ["summary", "skills", "experience"];
+    const idx = order.indexOf(sectionOrder);
+
+    let newIndex = dir === "up" ? idx - 1 : idx + 1;
+    if (newIndex < 0 || newIndex >= order.length) return;
+
+    const temp = order[idx];
+    order[idx] = order[newIndex];
+    order[newIndex] = temp;
+
+    setSectionOrder(order);
+  };
+
+  const [sectionOrder, setSectionOrder] = useState([
+    "summary",
+    "skills",
+    "experience",
+  ]);
+
   // 📄 EXPORT PDF
   const downloadPDF = async () => {
-    const element = pdfRef.current;
-
-    const canvas = await html2canvas(element, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
+    const canvas = await html2canvas(pdfRef.current, { scale: 2 });
+    const img = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF("p", "mm", "a4");
+    const width = 210;
+    const height = (canvas.height * width) / canvas.width;
 
-    const imgWidth = 210;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    pdf.addImage(img, "PNG", 0, 0, width, height);
     pdf.save("resume.pdf");
   };
 
-  // 🎨 TEMPLATE RENDERER
+  // 🎨 TEMPLATE RENDER (EDITABLE)
   const renderTemplate = () => {
-    if (!rewrite) return null;
+    if (!editable) return null;
 
-    switch (template) {
+    return (
+      <div className="p-8 space-y-4">
 
-      // 🔹 MODERN
-      case "modern":
-        return (
-          <div className="p-8">
-            <h1 className="text-3xl font-bold">{rewrite.name}</h1>
-            <p className="text-gray-600 mb-4">{rewrite.summary}</p>
+        {/* NAME */}
+        <input
+          value={editable.name}
+          onChange={(e) => updateField("name", e.target.value)}
+          className="text-3xl font-bold w-full bg-transparent border-b"
+        />
 
-            <h2 className="font-semibold mt-4">Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {rewrite.skills.map((s, i) => (
-                <span key={i} className="bg-gray-200 px-2 py-1 rounded">
-                  {s}
-                </span>
-              ))}
-            </div>
+        {/* DYNAMIC SECTIONS */}
+        {sectionOrder.map((section) => {
+          if (section === "summary") {
+            return (
+              <textarea
+                key="summary"
+                value={editable.summary}
+                onChange={(e) => updateField("summary", e.target.value)}
+                className="w-full bg-transparent border p-2"
+              />
+            );
+          }
 
-            <h2 className="font-semibold mt-4">Experience</h2>
-            {rewrite.experience.map((exp, i) => (
-              <div key={i} className="mb-3">
-                <p className="font-bold">{exp.role}</p>
-                <p className="text-sm text-gray-500">{exp.company}</p>
-                <ul className="list-disc pl-5">
-                  {exp.points.map((p, j) => (
-                    <li key={j}>{p}</li>
-                  ))}
-                </ul>
+          if (section === "skills") {
+            return (
+              <div key="skills">
+                <h2 className="font-bold">Skills</h2>
+                {editable.skills.map((s, i) => (
+                  <input
+                    key={i}
+                    value={s}
+                    onChange={(e) => updateSkill(i, e.target.value)}
+                    className="block w-full bg-transparent border mb-1"
+                  />
+                ))}
               </div>
-            ))}
-          </div>
-        );
+            );
+          }
 
-      // 🔹 PROFESSIONAL
-      case "professional":
-        return (
-          <div className="p-8">
-            <h1 className="text-2xl font-bold border-b pb-2">
-              {rewrite.name}
-            </h1>
+          if (section === "experience") {
+            return (
+              <div key="exp">
+                <h2 className="font-bold">Experience</h2>
+                {editable.experience.map((exp, i) => (
+                  <div key={i} className="mb-3 border p-2">
+                    <input
+                      value={exp.role}
+                      onChange={(e) => {
+                        const newExp = [...editable.experience];
+                        newExp[i].role = e.target.value;
+                        setEditable({ ...editable, experience: newExp });
+                      }}
+                      className="w-full font-semibold"
+                    />
+                    <input
+                      value={exp.company}
+                      onChange={(e) => {
+                        const newExp = [...editable.experience];
+                        newExp[i].company = e.target.value;
+                        setEditable({ ...editable, experience: newExp });
+                      }}
+                      className="w-full text-sm"
+                    />
 
-            <p className="mt-3">{rewrite.summary}</p>
-
-            <h2 className="font-bold mt-6">Skills</h2>
-            <ul className="list-disc pl-5">
-              {rewrite.skills.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
-
-            <h2 className="font-bold mt-6">Experience</h2>
-            {rewrite.experience.map((exp, i) => (
-              <div key={i} className="mt-3">
-                <strong>{exp.role}</strong> — {exp.company}
-                <ul className="list-disc pl-5">
-                  {exp.points.map((p, j) => (
-                    <li key={j}>{p}</li>
-                  ))}
-                </ul>
+                    {exp.points.map((p, j) => (
+                      <input
+                        key={j}
+                        value={p}
+                        onChange={(e) => {
+                          const newExp = [...editable.experience];
+                          newExp[i].points[j] = e.target.value;
+                          setEditable({ ...editable, experience: newExp });
+                        }}
+                        className="block w-full text-sm"
+                      />
+                    ))}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        );
-
-      // 🔹 CREATIVE
-      case "creative":
-        return (
-          <div className="p-8 bg-gray-100">
-            <h1 className="text-3xl font-extrabold text-blue-600">
-              {rewrite.name}
-            </h1>
-
-            <p className="italic mt-2">{rewrite.summary}</p>
-
-            <h2 className="mt-6 text-blue-600 font-bold">Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {rewrite.skills.map((s, i) => (
-                <span
-                  key={i}
-                  className="bg-blue-200 text-blue-800 px-2 py-1 rounded"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-
-            <h2 className="mt-6 text-blue-600 font-bold">Experience</h2>
-            {rewrite.experience.map((exp, i) => (
-              <div key={i} className="mt-3 bg-white p-3 rounded">
-                <p className="font-semibold">{exp.role}</p>
-                <p className="text-sm">{exp.company}</p>
-                <ul className="list-disc pl-5">
-                  {exp.points.map((p, j) => (
-                    <li key={j}>{p}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        );
-
-      default:
-        return null;
-    }
+            );
+          }
+        })}
+      </div>
+    );
   };
 
   return (
     <div className="p-8 space-y-6">
 
-      <h1 className="text-2xl font-bold">Resume Analyzer</h1>
+      <h1 className="text-2xl font-bold">Resume Builder</h1>
 
-      {/* INPUT */}
       <textarea
-        placeholder="Paste your resume..."
+        placeholder="Paste resume..."
         value={resumeText}
         onChange={(e) => setResumeText(e.target.value)}
         className="input"
-        rows={6}
+        rows={5}
       />
 
       <textarea
-        placeholder="Job description (optional)"
+        placeholder="Job description"
         value={job}
         onChange={(e) => setJob(e.target.value)}
         className="input"
-        rows={4}
+        rows={3}
       />
 
       <button onClick={handleRewrite} className="btn-primary">
-        Improve Resume with AI
+        Generate Resume
       </button>
 
       {loading && <p>Generating...</p>}
 
-      {/* TEMPLATE SELECTOR */}
-      {rewrite && (
-        <div className="flex gap-3">
-          {["modern", "professional", "creative"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setTemplate(t)}
-              className={`px-4 py-2 rounded ${
-                template === t
-                  ? "bg-blue-500"
-                  : "bg-gray-700"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* TEMPLATE OUTPUT */}
-      {rewrite && (
+      {editable && (
         <>
-          <div
-            ref={pdfRef}
-            className="bg-white text-black rounded-xl shadow"
-          >
+          {/* TEMPLATE SELECT */}
+          <div className="flex gap-2">
+            {["modern", "professional", "creative"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTemplate(t)}
+                className="btn-primary"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* EDITABLE RESUME */}
+          <div ref={pdfRef} className="bg-white text-black rounded-xl">
             {renderTemplate()}
           </div>
 
@@ -225,4 +233,4 @@ export default function Analyze() {
       )}
     </div>
   );
-        }
+      }
