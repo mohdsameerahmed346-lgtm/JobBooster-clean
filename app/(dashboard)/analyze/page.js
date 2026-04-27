@@ -12,7 +12,6 @@ import { onAuthStateChanged } from "firebase/auth";
 import { saveLayout, getLayout } from "../../../lib/layout";
 import { saveResumeState } from "../../../lib/autosave";
 
-// ✅ NEW IMPORT
 import { getVersions, saveVersion } from "../../../lib/version";
 
 export default function Analyze() {
@@ -30,17 +29,22 @@ export default function Analyze() {
     "experience",
   ]);
 
-  // 🕒 LOCAL HISTORY (UNDO/REDO)
+  // 🕒 LOCAL HISTORY
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   // ☁️ FIREBASE VERSIONS
   const [versions, setVersions] = useState([]);
 
+  // 🆕 NEW STATES
+  const [versionName, setVersionName] = useState("");
+  const [compareA, setCompareA] = useState(null);
+  const [compareB, setCompareB] = useState(null);
+
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // 🔐 AUTH + LOAD DATA
+  // 🔐 AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
@@ -57,7 +61,7 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // 🧠 PUSH HISTORY
+  // 🧠 HISTORY
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
 
@@ -98,7 +102,7 @@ export default function Analyze() {
     if (user) await saveLayout(user.uid, items);
   };
 
-  // 🤖 AI REWRITE
+  // 🤖 AI
   const handleRewrite = async () => {
     if (!resumeText.trim()) return;
 
@@ -121,44 +125,36 @@ export default function Analyze() {
     setLoading(false);
   };
 
-  // ↩️ UNDO
+  // ↩️ UNDO / REDO
   const undo = () => {
     if (historyIndex <= 0) return;
-
     const index = historyIndex - 1;
     setEditable(history[index]);
     setHistoryIndex(index);
   };
 
-  // ↪️ REDO
   const redo = () => {
     if (historyIndex >= history.length - 1) return;
-
     const index = historyIndex + 1;
     setEditable(history[index]);
     setHistoryIndex(index);
   };
 
-  // 💾 AUTOSAVE + VERSION SAVE
+  // 💾 AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-
       const data = {
         resume: editable,
         layout: sectionOrder,
       };
 
-      // ✅ EXISTING AUTOSAVE
       await saveResumeState(user.uid, data);
+      await saveVersion(user.uid, data); // auto save
 
-      // ✅ NEW VERSION SAVE
-      await saveVersion(user.uid, data);
-
-      // 🔄 REFRESH TIMELINE
       const v = await getVersions(user.uid);
       setVersions(v);
 
@@ -166,11 +162,63 @@ export default function Analyze() {
 
   }, [editable, sectionOrder]);
 
-  // 🔄 RESTORE VERSION
-  const restoreVersion = (version) => {
-    setEditable(version.resume);
-    setSectionOrder(version.layout || sectionOrder);
-    pushHistory(version.resume);
+  // 🏷️ MANUAL SAVE
+  const saveNamedVersion = async () => {
+    if (!editable || !user) return;
+
+    await saveVersion(
+      user.uid,
+      { resume: editable, layout: sectionOrder },
+      versionName || "Manual Save"
+    );
+
+    const v = await getVersions(user.uid);
+    setVersions(v);
+
+    setVersionName("");
+  };
+
+  // 🔄 RESTORE
+  const restoreVersion = (v) => {
+    setEditable(v.resume);
+    setSectionOrder(v.layout || sectionOrder);
+    pushHistory(v.resume);
+  };
+
+  // 🔍 DIFF
+  const diffText = (oldText = "", newText = "") => {
+    const oldWords = oldText.split(" ");
+    const newWords = newText.split(" ");
+
+    return newWords
+      .map((w) =>
+        oldWords.includes(w)
+          ? w
+          : `<span style="color:lightgreen">${w}</span>`
+      )
+      .join(" ");
+  };
+
+  const renderDiff = () => {
+    if (!compareA || !compareB) return null;
+
+    return (
+      <div className="bg-black text-white p-4 rounded-xl mt-4 text-sm">
+        <h3 className="mb-2">Diff Viewer</h3>
+
+        <div>
+          <p className="text-gray-400">Summary</p>
+          <div
+            dangerouslySetInnerHTML={{
+              __html: diffText(
+                compareA.resume.summary,
+                compareB.resume.summary
+              ),
+            }}
+          />
+        </div>
+      </div>
+    );
   };
 
   // 📄 PDF
@@ -230,38 +278,30 @@ export default function Analyze() {
         <button onClick={downloadPDF} className="btn-primary">
           Export PDF
         </button>
+
+        <input
+          value={versionName}
+          onChange={(e) => setVersionName(e.target.value)}
+          placeholder="Version name"
+          className="input w-40"
+        />
+
+        <button onClick={saveNamedVersion} className="btn-primary">
+          Save Version
+        </button>
       </div>
 
       <div className="flex flex-1">
 
         {/* LEFT */}
         <div className="w-1/2 p-6 space-y-4 overflow-y-auto">
-
-          <textarea
-            value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
-            className="input"
-          />
-
-          <textarea
-            value={job}
-            onChange={(e) => setJob(e.target.value)}
-            className="input"
-          />
+          <textarea value={resumeText} onChange={(e) => setResumeText(e.target.value)} className="input" />
+          <textarea value={job} onChange={(e) => setJob(e.target.value)} className="input" />
 
           {editable && (
             <>
-              <input
-                value={editable.name}
-                onChange={(e) => updateField("name", e.target.value)}
-                className="input"
-              />
-
-              <textarea
-                value={editable.summary}
-                onChange={(e) => updateField("summary", e.target.value)}
-                className="input"
-              />
+              <input value={editable.name} onChange={(e) => updateField("name", e.target.value)} className="input" />
+              <textarea value={editable.summary} onChange={(e) => updateField("summary", e.target.value)} className="input" />
             </>
           )}
         </div>
@@ -272,7 +312,6 @@ export default function Analyze() {
           {editable && (
             <>
               <div ref={pdfRef} className="bg-white p-6 rounded mb-6">
-
                 <h1>{editable.name}</h1>
 
                 <DragDropContext onDragEnd={onDragEnd}>
@@ -294,25 +333,26 @@ export default function Analyze() {
                     )}
                   </Droppable>
                 </DragDropContext>
-
               </div>
 
-              {/* 🕒 VERSION TIMELINE */}
-              <div className="bg-[#020617] border border-gray-800 p-4 rounded-xl">
-                <h3 className="text-sm text-gray-400 mb-3">Version History</h3>
+              {/* VERSION TIMELINE */}
+              <div className="bg-[#020617] text-white p-4 rounded-xl">
+                <h3 className="text-sm mb-3">Version History</h3>
 
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {versions.map((v, i) => (
-                    <div
-                      key={i}
-                      onClick={() => restoreVersion(v)}
-                      className="p-2 rounded cursor-pointer hover:bg-gray-800 text-sm"
-                    >
-                      Version {versions.length - i} •{" "}
-                      {new Date(v.createdAt).toLocaleTimeString()}
+                {versions.map((v, i) => (
+                  <div key={i} className="mb-2 p-2 hover:bg-gray-800 rounded">
+                    <div onClick={() => restoreVersion(v)} className="cursor-pointer">
+                      {v.name || "Auto Save"} • {new Date(v.createdAt).toLocaleTimeString()}
                     </div>
-                  ))}
-                </div>
+
+                    <div className="flex gap-2 text-xs mt-1">
+                      <button onClick={() => setCompareA(v)}>A</button>
+                      <button onClick={() => setCompareB(v)}>B</button>
+                    </div>
+                  </div>
+                ))}
+
+                {renderDiff()}
               </div>
             </>
           )}
