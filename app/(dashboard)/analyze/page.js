@@ -11,8 +11,17 @@ import { onAuthStateChanged } from "firebase/auth";
 
 import { saveLayout, getLayout } from "../../../lib/layout";
 import { saveResumeState } from "../../../lib/autosave";
-
 import { getVersions, saveVersion } from "../../../lib/version";
+
+// ✅ SAFE DEFAULT (PREVENT BLANK UI)
+const DEFAULT_RESUME = {
+  name: "Your Name",
+  summary: "Write a short professional summary...",
+  skills: ["Skill 1", "Skill 2"],
+  experience: [
+    { role: "Job Title", company: "Company Name" }
+  ]
+};
 
 export default function Analyze() {
 
@@ -22,22 +31,21 @@ export default function Analyze() {
   const [job, setJob] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [editable, setEditable] = useState(null);
+  // ✅ IMPORTANT FIX
+  const [editable, setEditable] = useState(DEFAULT_RESUME);
+
   const [sectionOrder, setSectionOrder] = useState([
     "summary",
     "skills",
     "experience",
   ]);
 
-  // 🕒 LOCAL HISTORY
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  // ☁️ FIREBASE VERSIONS
   const [versions, setVersions] = useState([]);
-
-  // 🆕 NEW STATES
   const [versionName, setVersionName] = useState("");
+
   const [compareA, setCompareA] = useState(null);
   const [compareB, setCompareB] = useState(null);
 
@@ -50,8 +58,8 @@ export default function Analyze() {
       if (u) {
         setUser(u);
 
-        const savedLayout = await getLayout(u.uid);
-        setSectionOrder(savedLayout);
+        const layout = await getLayout(u.uid);
+        if (layout) setSectionOrder(layout);
 
         const v = await getVersions(u.uid);
         setVersions(v);
@@ -64,7 +72,6 @@ export default function Analyze() {
   // 🧠 HISTORY
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
-
     newHistory.push(state);
 
     if (newHistory.length > 20) newHistory.shift();
@@ -81,7 +88,7 @@ export default function Analyze() {
   };
 
   const updateSkill = (i, value) => {
-    const skills = [...editable.skills];
+    const skills = [...(editable.skills || [])];
     skills[i] = value;
 
     const updated = { ...editable, skills };
@@ -102,7 +109,7 @@ export default function Analyze() {
     if (user) await saveLayout(user.uid, items);
   };
 
-  // 🤖 AI
+  // 🤖 AI REWRITE
   const handleRewrite = async () => {
     if (!resumeText.trim()) return;
 
@@ -112,15 +119,22 @@ export default function Analyze() {
     formData.append("resumeText", resumeText);
     formData.append("job", job);
 
-    const res = await fetch("/api/rewrite-resume", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch("/api/rewrite-resume", {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    setEditable(data);
-    pushHistory(data);
+      const safe = data?.name ? data : DEFAULT_RESUME;
+
+      setEditable(safe);
+      pushHistory(safe);
+
+    } catch {
+      alert("AI failed. Try again.");
+    }
 
     setLoading(false);
   };
@@ -147,13 +161,14 @@ export default function Analyze() {
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
+
       const data = {
         resume: editable,
         layout: sectionOrder,
       };
 
       await saveResumeState(user.uid, data);
-      await saveVersion(user.uid, data); // auto save
+      await saveVersion(user.uid, data);
 
       const v = await getVersions(user.uid);
       setVersions(v);
@@ -161,65 +176,6 @@ export default function Analyze() {
     }, 2000);
 
   }, [editable, sectionOrder]);
-
-  // 🏷️ MANUAL SAVE
-  const saveNamedVersion = async () => {
-    if (!editable || !user) return;
-
-    await saveVersion(
-      user.uid,
-      { resume: editable, layout: sectionOrder },
-      versionName || "Manual Save"
-    );
-
-    const v = await getVersions(user.uid);
-    setVersions(v);
-
-    setVersionName("");
-  };
-
-  // 🔄 RESTORE
-  const restoreVersion = (v) => {
-    setEditable(v.resume);
-    setSectionOrder(v.layout || sectionOrder);
-    pushHistory(v.resume);
-  };
-
-  // 🔍 DIFF
-  const diffText = (oldText = "", newText = "") => {
-    const oldWords = oldText.split(" ");
-    const newWords = newText.split(" ");
-
-    return newWords
-      .map((w) =>
-        oldWords.includes(w)
-          ? w
-          : `<span style="color:lightgreen">${w}</span>`
-      )
-      .join(" ");
-  };
-
-  const renderDiff = () => {
-    if (!compareA || !compareB) return null;
-
-    return (
-      <div className="bg-black text-white p-4 rounded-xl mt-4 text-sm">
-        <h3 className="mb-2">Diff Viewer</h3>
-
-        <div>
-          <p className="text-gray-400">Summary</p>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: diffText(
-                compareA.resume.summary,
-                compareB.resume.summary
-              ),
-            }}
-          />
-        </div>
-      </div>
-    );
-  };
 
   // 📄 PDF
   const downloadPDF = async () => {
@@ -234,128 +190,122 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 🧱 RENDER
-  const renderSection = (section) => {
-    if (section === "summary") return <p>{editable.summary}</p>;
+  // 🔍 DIFF
+  const diffText = (oldText = "", newText = "") => {
+    return newText.split(" ").map((w) =>
+      oldText.includes(w)
+        ? w
+        : `<span style="color:lime">${w}</span>`
+    ).join(" ");
+  };
 
-    if (section === "skills") {
+  // 🧱 RENDER SECTION
+  const renderSection = (section) => {
+    if (!editable) return null;
+
+    if (section === "summary")
+      return <p>{editable.summary}</p>;
+
+    if (section === "skills")
       return (
         <ul>
-          {editable.skills.map((s, i) => (
+          {(editable.skills || []).map((s, i) => (
             <li key={i}>{s}</li>
           ))}
         </ul>
       );
-    }
 
-    if (section === "experience") {
-      return editable.experience.map((exp, i) => (
+    if (section === "experience")
+      return (editable.experience || []).map((exp, i) => (
         <div key={i}>
           <p>{exp.role}</p>
-          <p>{exp.company}</p>
+          <p className="text-sm text-gray-500">{exp.company}</p>
         </div>
       ));
-    }
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col h-screen">
 
       {/* TOP BAR */}
-      <div className="flex gap-3 p-4 border-b border-gray-800">
-        <button onClick={handleRewrite} className="btn-primary">
-          Generate
-        </button>
-
-        <button onClick={undo} className="btn-primary">
-          Undo
-        </button>
-
-        <button onClick={redo} className="btn-primary">
-          Redo
-        </button>
-
-        <button onClick={downloadPDF} className="btn-primary">
-          Export PDF
-        </button>
-
-        <input
-          value={versionName}
-          onChange={(e) => setVersionName(e.target.value)}
-          placeholder="Version name"
-          className="input w-40"
-        />
-
-        <button onClick={saveNamedVersion} className="btn-primary">
-          Save Version
-        </button>
+      <div className="flex flex-wrap gap-2 p-3 border-b border-gray-800">
+        <button onClick={handleRewrite} className="btn-primary">Generate</button>
+        <button onClick={undo} className="btn-primary">Undo</button>
+        <button onClick={redo} className="btn-primary">Redo</button>
+        <button onClick={downloadPDF} className="btn-primary">PDF</button>
       </div>
 
-      <div className="flex flex-1">
+      {/* MAIN */}
+      <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* LEFT */}
-        <div className="w-1/2 p-6 space-y-4 overflow-y-auto">
-          <textarea value={resumeText} onChange={(e) => setResumeText(e.target.value)} className="input" />
-          <textarea value={job} onChange={(e) => setJob(e.target.value)} className="input" />
+        {/* LEFT (EDITOR) */}
+        <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
 
-          {editable && (
-            <>
-              <input value={editable.name} onChange={(e) => updateField("name", e.target.value)} className="input" />
-              <textarea value={editable.summary} onChange={(e) => updateField("summary", e.target.value)} className="input" />
-            </>
-          )}
+          <textarea
+            placeholder="Paste resume text..."
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            className="input"
+          />
+
+          <textarea
+            placeholder="Paste job description..."
+            value={job}
+            onChange={(e) => setJob(e.target.value)}
+            className="input"
+          />
+
+          <input
+            value={editable.name}
+            onChange={(e) => updateField("name", e.target.value)}
+            className="input"
+          />
+
+          <textarea
+            value={editable.summary}
+            onChange={(e) => updateField("summary", e.target.value)}
+            className="input"
+          />
         </div>
 
-        {/* RIGHT */}
-        <div className="w-1/2 bg-gray-100 p-6 overflow-y-auto">
+        {/* RIGHT (PREVIEW) */}
+        <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
 
-          {editable && (
-            <>
-              <div ref={pdfRef} className="bg-white p-6 rounded mb-6">
-                <h1>{editable.name}</h1>
+          <div ref={pdfRef} className="bg-white p-6 rounded shadow">
 
-                <DragDropContext onDragEnd={onDragEnd}>
-                  <Droppable droppableId="sections">
-                    {(p) => (
-                      <div ref={p.innerRef} {...p.droppableProps}>
-                        {sectionOrder.map((sec, i) => (
-                          <Draggable key={sec} draggableId={sec} index={i}>
-                            {(p) => (
-                              <div ref={p.innerRef} {...p.draggableProps}>
-                                <div {...p.dragHandleProps}>Drag</div>
-                                {renderSection(sec)}
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {p.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
-              </div>
+            <h1 className="text-xl font-bold mb-2">{editable.name}</h1>
 
-              {/* VERSION TIMELINE */}
-              <div className="bg-[#020617] text-white p-4 rounded-xl">
-                <h3 className="text-sm mb-3">Version History</h3>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="sections">
+                {(p) => (
+                  <div ref={p.innerRef} {...p.droppableProps}>
+                    {sectionOrder.map((sec, i) => (
+                      <Draggable key={sec} draggableId={sec} index={i}>
+                        {(p) => (
+                          <div
+                            ref={p.innerRef}
+                            {...p.draggableProps}
+                            className="mb-4"
+                          >
+                            <div
+                              {...p.dragHandleProps}
+                              className="text-xs text-gray-400 cursor-move"
+                            >
+                              Drag
+                            </div>
 
-                {versions.map((v, i) => (
-                  <div key={i} className="mb-2 p-2 hover:bg-gray-800 rounded">
-                    <div onClick={() => restoreVersion(v)} className="cursor-pointer">
-                      {v.name || "Auto Save"} • {new Date(v.createdAt).toLocaleTimeString()}
-                    </div>
-
-                    <div className="flex gap-2 text-xs mt-1">
-                      <button onClick={() => setCompareA(v)}>A</button>
-                      <button onClick={() => setCompareB(v)}>B</button>
-                    </div>
+                            {renderSection(sec)}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {p.placeholder}
                   </div>
-                ))}
+                )}
+              </Droppable>
+            </DragDropContext>
 
-                {renderDiff()}
-              </div>
-            </>
-          )}
+          </div>
 
         </div>
 
