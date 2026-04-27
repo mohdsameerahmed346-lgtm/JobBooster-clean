@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
+import { auth } from "../../../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+
+import { saveLayout, getLayout } from "../../../lib/layout";
+
 export default function Analyze() {
+
+  const [user, setUser] = useState(null);
+
   const [resumeText, setResumeText] = useState("");
   const [job, setJob] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,8 +23,27 @@ export default function Analyze() {
   const [editable, setEditable] = useState(null);
 
   const [template, setTemplate] = useState("modern");
+  const [sectionOrder, setSectionOrder] = useState([
+    "summary",
+    "skills",
+    "experience",
+  ]);
 
   const pdfRef = useRef();
+
+  // 🔐 AUTH + LOAD LAYOUT
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        setUser(u);
+
+        const saved = await getLayout(u.uid);
+        setSectionOrder(saved);
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   // 🧠 AI REWRITE
   const handleRewrite = async () => {
@@ -34,49 +63,39 @@ export default function Analyze() {
     const data = await res.json();
 
     setRewrite(data);
-    setEditable(data); // ✅ IMPORTANT
+    setEditable(data);
 
     setLoading(false);
   };
 
-  // ✏️ INLINE EDIT HANDLER
+  // ✏️ UPDATE FIELD
   const updateField = (field, value) => {
-    setEditable((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setEditable((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ✏️ UPDATE SKILL
-  const updateSkill = (index, value) => {
+  const updateSkill = (i, value) => {
     const newSkills = [...editable.skills];
-    newSkills[index] = value;
-
+    newSkills[i] = value;
     setEditable({ ...editable, skills: newSkills });
   };
 
-  // 🔀 MOVE SECTION
-  const moveSection = (dir) => {
-    const order = ["summary", "skills", "experience"];
-    const idx = order.indexOf(sectionOrder);
+  // 🔀 DRAG END
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
 
-    let newIndex = dir === "up" ? idx - 1 : idx + 1;
-    if (newIndex < 0 || newIndex >= order.length) return;
+    const items = Array.from(sectionOrder);
+    const [moved] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, moved);
 
-    const temp = order[idx];
-    order[idx] = order[newIndex];
-    order[newIndex] = temp;
+    setSectionOrder(items);
 
-    setSectionOrder(order);
+    // 💾 SAVE TO FIREBASE
+    if (user) {
+      await saveLayout(user.uid, items);
+    }
   };
 
-  const [sectionOrder, setSectionOrder] = useState([
-    "summary",
-    "skills",
-    "experience",
-  ]);
-
-  // 📄 EXPORT PDF
+  // 📄 PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -89,94 +108,57 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 🎨 TEMPLATE RENDER (EDITABLE)
-  const renderTemplate = () => {
-    if (!editable) return null;
-
-    return (
-      <div className="p-8 space-y-4">
-
-        {/* NAME */}
-        <input
-          value={editable.name}
-          onChange={(e) => updateField("name", e.target.value)}
-          className="text-3xl font-bold w-full bg-transparent border-b"
+  // 🎨 RENDER SECTION
+  const renderSection = (section) => {
+    if (section === "summary") {
+      return (
+        <textarea
+          value={editable.summary}
+          onChange={(e) => updateField("summary", e.target.value)}
+          className="w-full border p-2"
         />
+      );
+    }
 
-        {/* DYNAMIC SECTIONS */}
-        {sectionOrder.map((section) => {
-          if (section === "summary") {
-            return (
-              <textarea
-                key="summary"
-                value={editable.summary}
-                onChange={(e) => updateField("summary", e.target.value)}
-                className="w-full bg-transparent border p-2"
-              />
-            );
-          }
+    if (section === "skills") {
+      return (
+        <div>
+          {editable.skills.map((s, i) => (
+            <input
+              key={i}
+              value={s}
+              onChange={(e) => updateSkill(i, e.target.value)}
+              className="block w-full border mb-1"
+            />
+          ))}
+        </div>
+      );
+    }
 
-          if (section === "skills") {
-            return (
-              <div key="skills">
-                <h2 className="font-bold">Skills</h2>
-                {editable.skills.map((s, i) => (
-                  <input
-                    key={i}
-                    value={s}
-                    onChange={(e) => updateSkill(i, e.target.value)}
-                    className="block w-full bg-transparent border mb-1"
-                  />
-                ))}
-              </div>
-            );
-          }
-
-          if (section === "experience") {
-            return (
-              <div key="exp">
-                <h2 className="font-bold">Experience</h2>
-                {editable.experience.map((exp, i) => (
-                  <div key={i} className="mb-3 border p-2">
-                    <input
-                      value={exp.role}
-                      onChange={(e) => {
-                        const newExp = [...editable.experience];
-                        newExp[i].role = e.target.value;
-                        setEditable({ ...editable, experience: newExp });
-                      }}
-                      className="w-full font-semibold"
-                    />
-                    <input
-                      value={exp.company}
-                      onChange={(e) => {
-                        const newExp = [...editable.experience];
-                        newExp[i].company = e.target.value;
-                        setEditable({ ...editable, experience: newExp });
-                      }}
-                      className="w-full text-sm"
-                    />
-
-                    {exp.points.map((p, j) => (
-                      <input
-                        key={j}
-                        value={p}
-                        onChange={(e) => {
-                          const newExp = [...editable.experience];
-                          newExp[i].points[j] = e.target.value;
-                          setEditable({ ...editable, experience: newExp });
-                        }}
-                        className="block w-full text-sm"
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            );
-          }
-        })}
-      </div>
-    );
+    if (section === "experience") {
+      return editable.experience.map((exp, i) => (
+        <div key={i} className="border p-2 mb-2">
+          <input
+            value={exp.role}
+            onChange={(e) => {
+              const copy = [...editable.experience];
+              copy[i].role = e.target.value;
+              setEditable({ ...editable, experience: copy });
+            }}
+            className="w-full font-bold"
+          />
+          <input
+            value={exp.company}
+            onChange={(e) => {
+              const copy = [...editable.experience];
+              copy[i].company = e.target.value;
+              setEditable({ ...editable, experience: copy });
+            }}
+            className="w-full text-sm"
+          />
+        </div>
+      ));
+    }
   };
 
   return (
@@ -184,12 +166,12 @@ export default function Analyze() {
 
       <h1 className="text-2xl font-bold">Resume Builder</h1>
 
+      {/* INPUT */}
       <textarea
-        placeholder="Paste resume..."
+        placeholder="Paste resume"
         value={resumeText}
         onChange={(e) => setResumeText(e.target.value)}
         className="input"
-        rows={5}
       />
 
       <textarea
@@ -197,7 +179,6 @@ export default function Analyze() {
         value={job}
         onChange={(e) => setJob(e.target.value)}
         className="input"
-        rows={3}
       />
 
       <button onClick={handleRewrite} className="btn-primary">
@@ -206,25 +187,61 @@ export default function Analyze() {
 
       {loading && <p>Generating...</p>}
 
+      {/* TEMPLATE SELECT */}
       {editable && (
         <>
-          {/* TEMPLATE SELECT */}
           <div className="flex gap-2">
             {["modern", "professional", "creative"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTemplate(t)}
-                className="btn-primary"
-              >
+              <button key={t} onClick={() => setTemplate(t)} className="btn-primary">
                 {t}
               </button>
             ))}
           </div>
 
-          {/* EDITABLE RESUME */}
-          <div ref={pdfRef} className="bg-white text-black rounded-xl">
-            {renderTemplate()}
-          </div>
+          {/* DRAG DROP */}
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="sections">
+              {(provided) => (
+                <div
+                  ref={pdfRef}
+                  {...provided.droppableProps}
+                  className="bg-white text-black p-6 rounded-xl"
+                >
+                  {/* NAME */}
+                  <input
+                    value={editable.name}
+                    onChange={(e) => updateField("name", e.target.value)}
+                    className="text-3xl font-bold w-full border-b mb-4"
+                  />
+
+                  {sectionOrder.map((section, index) => (
+                    <Draggable key={section} draggableId={section} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className="mb-4"
+                        >
+                          <div
+                            {...provided.dragHandleProps}
+                            className="cursor-move text-xs text-gray-400"
+                          >
+                            Drag
+                          </div>
+
+                          <h2 className="font-bold capitalize">{section}</h2>
+
+                          {renderSection(section)}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
 
           <button onClick={downloadPDF} className="btn-primary">
             Download PDF
@@ -233,4 +250,4 @@ export default function Analyze() {
       )}
     </div>
   );
-      }
+}
