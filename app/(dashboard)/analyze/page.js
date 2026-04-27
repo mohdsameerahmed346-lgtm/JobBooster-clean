@@ -12,22 +12,20 @@ import { onAuthStateChanged } from "firebase/auth";
 import { saveLayout, getLayout } from "../../../lib/layout";
 
 export default function Analyze() {
-
   const [user, setUser] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
   const [job, setJob] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [rewrite, setRewrite] = useState(null);
   const [editable, setEditable] = useState(null);
-
-  const [template, setTemplate] = useState("modern");
   const [sectionOrder, setSectionOrder] = useState([
     "summary",
     "skills",
     "experience",
   ]);
+
+  const [template, setTemplate] = useState("modern");
 
   const pdfRef = useRef();
 
@@ -36,7 +34,6 @@ export default function Analyze() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUser(u);
-
         const saved = await getLayout(u.uid);
         setSectionOrder(saved);
       }
@@ -45,7 +42,7 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // 🧠 AI REWRITE
+  // 🤖 AI REWRITE
   const handleRewrite = async () => {
     if (!resumeText.trim()) return alert("Paste resume");
 
@@ -62,24 +59,22 @@ export default function Analyze() {
 
     const data = await res.json();
 
-    setRewrite(data);
     setEditable(data);
-
     setLoading(false);
   };
 
-  // ✏️ UPDATE FIELD
+  // ✏️ UPDATE FUNCTIONS
   const updateField = (field, value) => {
     setEditable((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateSkill = (i, value) => {
-    const newSkills = [...editable.skills];
-    newSkills[i] = value;
-    setEditable({ ...editable, skills: newSkills });
+    const skills = [...editable.skills];
+    skills[i] = value;
+    setEditable({ ...editable, skills });
   };
 
-  // 🔀 DRAG END
+  // 🔀 DRAG
   const onDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -89,10 +84,7 @@ export default function Analyze() {
 
     setSectionOrder(items);
 
-    // 💾 SAVE TO FIREBASE
-    if (user) {
-      await saveLayout(user.uid, items);
-    }
+    if (user) await saveLayout(user.uid, items);
   };
 
   // 📄 PDF
@@ -108,146 +100,153 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 🎨 RENDER SECTION
+  // 🧱 SECTION RENDER
   const renderSection = (section) => {
     if (section === "summary") {
-      return (
-        <textarea
-          value={editable.summary}
-          onChange={(e) => updateField("summary", e.target.value)}
-          className="w-full border p-2"
-        />
-      );
+      return <p>{editable.summary}</p>;
     }
 
     if (section === "skills") {
       return (
-        <div>
+        <ul className="list-disc pl-5">
           {editable.skills.map((s, i) => (
-            <input
-              key={i}
-              value={s}
-              onChange={(e) => updateSkill(i, e.target.value)}
-              className="block w-full border mb-1"
-            />
+            <li key={i}>{s}</li>
           ))}
-        </div>
+        </ul>
       );
     }
 
     if (section === "experience") {
       return editable.experience.map((exp, i) => (
-        <div key={i} className="border p-2 mb-2">
-          <input
-            value={exp.role}
-            onChange={(e) => {
-              const copy = [...editable.experience];
-              copy[i].role = e.target.value;
-              setEditable({ ...editable, experience: copy });
-            }}
-            className="w-full font-bold"
-          />
-          <input
-            value={exp.company}
-            onChange={(e) => {
-              const copy = [...editable.experience];
-              copy[i].company = e.target.value;
-              setEditable({ ...editable, experience: copy });
-            }}
-            className="w-full text-sm"
-          />
+        <div key={i} className="mb-2">
+          <p className="font-bold">{exp.role}</p>
+          <p className="text-sm">{exp.company}</p>
         </div>
       ));
     }
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="h-screen flex flex-col">
 
-      <h1 className="text-2xl font-bold">Resume Builder</h1>
+      <div className="p-4 border-b border-gray-800 flex gap-4">
+        <button onClick={handleRewrite} className="btn-primary">
+          Generate Resume
+        </button>
 
-      {/* INPUT */}
-      <textarea
-        placeholder="Paste resume"
-        value={resumeText}
-        onChange={(e) => setResumeText(e.target.value)}
-        className="input"
-      />
+        <button onClick={downloadPDF} className="btn-primary">
+          Export PDF
+        </button>
 
-      <textarea
-        placeholder="Job description"
-        value={job}
-        onChange={(e) => setJob(e.target.value)}
-        className="input"
-      />
+        <select
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          className="bg-[#020617] border p-2"
+        >
+          <option value="modern">Modern</option>
+          <option value="professional">Professional</option>
+          <option value="creative">Creative</option>
+        </select>
+      </div>
 
-      <button onClick={handleRewrite} className="btn-primary">
-        Generate Resume
-      </button>
+      <div className="flex flex-1 overflow-hidden">
 
-      {loading && <p>Generating...</p>}
+        {/* 🧠 LEFT EDITOR */}
+        <div className="w-1/2 p-6 overflow-y-auto border-r border-gray-800 space-y-4">
 
-      {/* TEMPLATE SELECT */}
-      {editable && (
-        <>
-          <div className="flex gap-2">
-            {["modern", "professional", "creative"].map((t) => (
-              <button key={t} onClick={() => setTemplate(t)} className="btn-primary">
-                {t}
-              </button>
-            ))}
-          </div>
+          <textarea
+            placeholder="Paste resume"
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            className="input"
+          />
 
-          {/* DRAG DROP */}
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="sections">
-              {(provided) => (
-                <div
-                  ref={pdfRef}
-                  {...provided.droppableProps}
-                  className="bg-white text-black p-6 rounded-xl"
-                >
-                  {/* NAME */}
+          <textarea
+            placeholder="Job description"
+            value={job}
+            onChange={(e) => setJob(e.target.value)}
+            className="input"
+          />
+
+          {editable && (
+            <>
+              <input
+                value={editable.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                className="input text-xl font-bold"
+              />
+
+              <textarea
+                value={editable.summary}
+                onChange={(e) => updateField("summary", e.target.value)}
+                className="input"
+              />
+
+              <div>
+                <h3>Skills</h3>
+                {editable.skills.map((s, i) => (
                   <input
-                    value={editable.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    className="text-3xl font-bold w-full border-b mb-4"
+                    key={i}
+                    value={s}
+                    onChange={(e) => updateSkill(i, e.target.value)}
+                    className="input mb-1"
                   />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-                  {sectionOrder.map((section, index) => (
-                    <Draggable key={section} draggableId={section} index={index}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className="mb-4"
+        {/* 👀 RIGHT PREVIEW */}
+        <div className="w-1/2 bg-gray-100 overflow-y-auto p-6">
+          {editable && (
+            <div ref={pdfRef} className="bg-white p-8 rounded-xl shadow">
+
+              <h1 className="text-3xl font-bold">{editable.name}</h1>
+
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="sections">
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps}>
+                      {sectionOrder.map((section, index) => (
+                        <Draggable
+                          key={section}
+                          draggableId={section}
+                          index={index}
                         >
-                          <div
-                            {...provided.dragHandleProps}
-                            className="cursor-move text-xs text-gray-400"
-                          >
-                            Drag
-                          </div>
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="mt-4"
+                            >
+                              <div
+                                {...provided.dragHandleProps}
+                                className="text-xs text-gray-400 cursor-move"
+                              >
+                                Drag
+                              </div>
 
-                          <h2 className="font-bold capitalize">{section}</h2>
+                              <h2 className="font-bold capitalize">
+                                {section}
+                              </h2>
 
-                          {renderSection(section)}
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
+                              {renderSection(section)}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
 
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+            </div>
+          )}
+        </div>
 
-          <button onClick={downloadPDF} className="btn-primary">
-            Download PDF
-          </button>
-        </>
-      )}
+      </div>
     </div>
   );
-}
+    }
