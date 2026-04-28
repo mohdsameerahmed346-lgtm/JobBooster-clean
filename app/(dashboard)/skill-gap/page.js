@@ -110,7 +110,7 @@ export default function SkillGap() {
     return text.split("\n")[0].slice(0, 30);
   };
 
-  // ✨ TYPING EFFECT (SAFE)
+  // ✨ TYPING EFFECT
   const typeEffect = (fullData) => {
     if (!fullData?.missingSkills?.length) {
       setDisplayData(fullData);
@@ -195,6 +195,22 @@ export default function SkillGap() {
     setLoading(false);
   };
 
+  // 🚀 FIX RESUME (NEW FEATURE)
+  const handleFixResume = () => {
+    if (!displayData) return;
+
+    const payload = {
+      job,
+      skills,
+      missingSkills: displayData.missingSkills || [],
+    };
+
+    localStorage.setItem("fixData", JSON.stringify(payload));
+
+    // redirect to analyze page
+    window.location.href = "/analyze";
+  };
+
   return (
     <div className="flex h-screen">
 
@@ -258,37 +274,7 @@ export default function SkillGap() {
               Analyze
             </button>
           </div>
-
-          <p className="text-yellow-400 text-sm">
-            ⚠️ Upload simple PDF (Word/Docs). Canva/scanned may fail.
-          </p>
         </motion.div>
-
-        {/* CHAT HISTORY */}
-        <div className="space-y-3">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`p-4 rounded-xl text-sm ${
-                msg.role === "assistant"
-                  ? "bg-[#020617] border border-gray-800"
-                  : "bg-blue-500/10 text-blue-300"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <div>
-                  <p className="text-gray-400 mb-1">Analysis</p>
-                  <p>
-                    Match: {msg.content?.matchPercentage || 0}% | ATS:{" "}
-                    {msg.content?.ats || 0}
-                  </p>
-                </div>
-              ) : (
-                msg.content
-              )}
-            </div>
-          ))}
-        </div>
 
         {/* LOADING */}
         {loading && <Skeleton />}
@@ -300,6 +286,7 @@ export default function SkillGap() {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
+
             <div className="grid md:grid-cols-3 gap-6">
               <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
@@ -307,44 +294,27 @@ export default function SkillGap() {
             </div>
 
             <div className="card">
-              <h2>Matched Skills</h2>
-              <p>{displayData.matchedSkills.join(", ") || "None"}</p>
-            </div>
-
-            <div className="card">
               <h2>Missing Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {displayData.missingSkills.length ? (
-                  displayData.missingSkills.map((k, i) => (
-                    <span
-                      key={i}
-                      className="bg-red-500/10 text-red-400 px-2 py-1 rounded"
-                    >
-                      {k}
-                    </span>
-                  ))
-                ) : (
-                  <p>No major gaps 🎉</p>
-                )}
+                {displayData.missingSkills.map((k, i) => (
+                  <span key={i} className="bg-red-500/10 text-red-400 px-2 py-1 rounded">
+                    {k}
+                  </span>
+                ))}
               </div>
             </div>
 
-            <div className="card">
-              <h2>Recommended Skills</h2>
-              <p>{displayData.recommendedSkills.join(", ")}</p>
-            </div>
+            {/* 🚀 NEW BUTTON */}
+            <button
+              onClick={handleFixResume}
+              className="btn-primary w-full"
+            >
+              🚀 Fix Resume with AI
+            </button>
 
-            <div className="card">
-              <h2>Learning Plan</h2>
-              <ul className="list-disc pl-5">
-                {displayData.learningPlan.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
           </motion.div>
         )}
       </div>
     </div>
   );
-                                     }
+                                        }
