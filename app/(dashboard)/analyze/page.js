@@ -13,7 +13,12 @@ import { saveLayout, getLayout } from "../../../lib/layout";
 import { saveResumeState } from "../../../lib/autosave";
 import { getVersions, saveVersion } from "../../../lib/version";
 
-// ✅ DEFAULT (FIX BLANK UI)
+// ✅ TEMPLATES
+import ModernTemplate from "../../../components/templates/ModernTemplate";
+import MinimalTemplate from "../../../components/templates/MinimalTemplate";
+import CreativeTemplate from "../../../components/templates/CreativeTemplate";
+
+// ✅ DEFAULT
 const DEFAULT_RESUME = {
   name: "Your Name",
   summary: "Write a strong professional summary...",
@@ -24,6 +29,7 @@ const DEFAULT_RESUME = {
 };
 
 export default function Analyze() {
+
   const [user, setUser] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
@@ -31,6 +37,7 @@ export default function Analyze() {
   const [loading, setLoading] = useState(false);
 
   const [editable, setEditable] = useState(DEFAULT_RESUME);
+
   const [sectionOrder, setSectionOrder] = useState([
     "summary",
     "skills",
@@ -45,6 +52,9 @@ export default function Analyze() {
 
   const [compareA, setCompareA] = useState(null);
   const [compareB, setCompareB] = useState(null);
+
+  // ✅ NEW TEMPLATE STATE
+  const [template, setTemplate] = useState("modern");
 
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
@@ -77,7 +87,7 @@ export default function Analyze() {
     setHistoryIndex(newHistory.length - 1);
   };
 
-  // ✏️ UPDATE FIELD
+  // ✏️ UPDATE
   const updateField = (field, value) => {
     const updated = { ...editable, [field]: value };
     setEditable(updated);
@@ -126,7 +136,7 @@ export default function Analyze() {
     setLoading(false);
   };
 
-  // ↩️ UNDO
+  // ↩️ UNDO / REDO
   const undo = () => {
     if (historyIndex <= 0) return;
     const index = historyIndex - 1;
@@ -134,7 +144,6 @@ export default function Analyze() {
     setHistoryIndex(index);
   };
 
-  // ↪️ REDO
   const redo = () => {
     if (historyIndex >= history.length - 1) return;
     const index = historyIndex + 1;
@@ -152,6 +161,7 @@ export default function Analyze() {
       const data = {
         resume: editable,
         layout: sectionOrder,
+        template, // ✅ NEW
       };
 
       await saveResumeState(user.uid, data);
@@ -160,7 +170,8 @@ export default function Analyze() {
       const v = await getVersions(user.uid);
       setVersions(v);
     }, 2000);
-  }, [editable, sectionOrder]);
+
+  }, [editable, sectionOrder, template]);
 
   // 🏷️ SAVE NAMED VERSION
   const saveNamedVersion = async () => {
@@ -168,7 +179,7 @@ export default function Analyze() {
 
     await saveVersion(
       user.uid,
-      { resume: editable, layout: sectionOrder },
+      { resume: editable, layout: sectionOrder, template },
       versionName || "Manual Save"
     );
 
@@ -181,10 +192,11 @@ export default function Analyze() {
   const restoreVersion = (v) => {
     setEditable(v.resume);
     setSectionOrder(v.layout || sectionOrder);
+    setTemplate(v.template || "modern"); // ✅ NEW
     pushHistory(v.resume);
   };
 
-  // 🔍 DIFF VIEW
+  // 🔍 DIFF
   const diffText = (oldText = "", newText = "") => {
     return newText.split(" ").map((w) =>
       oldText.includes(w)
@@ -206,60 +218,17 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 🧱 RENDER SECTION (INLINE EDIT SUPPORT)
-  const renderSection = (section) => {
-    if (section === "summary") {
-      return (
-        <textarea
-          value={editable.summary}
-          onChange={(e) => updateField("summary", e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      );
-    }
+  // 🎨 TEMPLATE RENDER
+  const renderTemplate = () => {
+    const props = { data: editable, order: sectionOrder };
 
-    if (section === "skills") {
-      return (
-        <div className="flex flex-wrap gap-2">
-          {editable.skills.map((s, i) => (
-            <input
-              key={i}
-              value={s}
-              onChange={(e) => {
-                const skills = [...editable.skills];
-                skills[i] = e.target.value;
-                updateField("skills", skills);
-              }}
-              className="border px-2 py-1 rounded"
-            />
-          ))}
-        </div>
-      );
-    }
-
-    if (section === "experience") {
-      return editable.experience.map((exp, i) => (
-        <div key={i} className="mb-2">
-          <input
-            value={exp.role}
-            onChange={(e) => {
-              const updated = [...editable.experience];
-              updated[i].role = e.target.value;
-              updateField("experience", updated);
-            }}
-            className="border p-1 w-full"
-          />
-          <input
-            value={exp.company}
-            onChange={(e) => {
-              const updated = [...editable.experience];
-              updated[i].company = e.target.value;
-              updateField("experience", updated);
-            }}
-            className="border p-1 w-full"
-          />
-        </div>
-      );
+    switch (template) {
+      case "minimal":
+        return <MinimalTemplate {...props} />;
+      case "creative":
+        return <CreativeTemplate {...props} />;
+      default:
+        return <ModernTemplate {...props} />;
     }
   };
 
@@ -285,70 +254,33 @@ export default function Analyze() {
         </button>
       </div>
 
-      {/* SPLIT VIEW */}
       <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* LEFT (INPUT) */}
+        {/* LEFT */}
         <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
-          <textarea
-            placeholder="Paste resume text..."
-            value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
-            className="input"
-          />
+          <textarea value={resumeText} onChange={(e)=>setResumeText(e.target.value)} className="input"/>
+          <textarea value={job} onChange={(e)=>setJob(e.target.value)} className="input"/>
 
-          <textarea
-            placeholder="Paste job description..."
-            value={job}
-            onChange={(e) => setJob(e.target.value)}
-            className="input"
-          />
-
-          <input
-            value={editable.name}
-            onChange={(e) => updateField("name", e.target.value)}
-            className="input"
-          />
+          <input value={editable.name} onChange={(e)=>updateField("name", e.target.value)} className="input"/>
         </div>
 
-        {/* RIGHT (LIVE PREVIEW) */}
+        {/* RIGHT */}
         <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
 
+          {/* TEMPLATE SWITCHER */}
+          <div className="flex gap-2 mb-3">
+            {["modern","minimal","creative"].map((t)=>(
+              <button key={t}
+                onClick={()=>setTemplate(t)}
+                className={`px-3 py-1 rounded ${template===t?"bg-blue-500 text-white":"bg-gray-200"}`}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* TEMPLATE PREVIEW */}
           <div ref={pdfRef} className="bg-white p-6 rounded shadow">
-
-            <h1 className="text-xl font-bold mb-3">
-              {editable.name}
-            </h1>
-
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="sections">
-                {(p) => (
-                  <div ref={p.innerRef} {...p.droppableProps}>
-                    {sectionOrder.map((sec, i) => (
-                      <Draggable key={sec} draggableId={sec} index={i}>
-                        {(p) => (
-                          <div
-                            ref={p.innerRef}
-                            {...p.draggableProps}
-                            className="mb-4 border p-3 rounded bg-white"
-                          >
-                            <div
-                              {...p.dragHandleProps}
-                              className="text-xs text-gray-400 cursor-move mb-2"
-                            >
-                              Drag
-                            </div>
-
-                            {renderSection(sec)}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {p.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+            {renderTemplate()}
           </div>
 
           {/* VERSION TIMELINE */}
@@ -368,7 +300,6 @@ export default function Analyze() {
               </div>
             ))}
 
-            {/* DIFF */}
             {compareA && compareB && (
               <div className="mt-3 text-xs">
                 <div
@@ -387,4 +318,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-                                     }
+    }
