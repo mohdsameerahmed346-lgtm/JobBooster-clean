@@ -1,16 +1,38 @@
-import { db } from "@/lib/firebase-admin";
+"use client";
 
-export default async function ResumePage({ params }) {
-  const doc = await db.collection("shared_resumes").doc(params.id).get();
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 
-  if (!doc.exists) return <div>Not found</div>;
+import ModernTemplate from "../../../components/templates/ModernTemplate";
+import MinimalTemplate from "../../../components/templates/MinimalTemplate";
+import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
-  const data = doc.data();
+export default function PublicResume({ params }) {
+  const [data, setData] = useState(null);
 
-  return (
-    <div className="p-10 bg-white">
-      <h1 className="text-2xl font-bold">{data.resume.name}</h1>
-      <p>{data.resume.summary}</p>
-    </div>
-  );
-}
+  useEffect(() => {
+    const load = async () => {
+      const ref = doc(db, "resumes", params.id);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        setData(snap.data());
+      }
+    };
+
+    load();
+  }, []);
+
+  if (!data) return <p>Loading...</p>;
+
+  const props = {
+    data: data.resume,
+    order: data.layout,
+  };
+
+  if (data.template === "minimal") return <MinimalTemplate {...props} />;
+  if (data.template === "creative") return <CreativeTemplate {...props} />;
+
+  return <ModernTemplate {...props} />;
+    }
