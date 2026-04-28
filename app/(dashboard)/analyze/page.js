@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { saveAs } from "file-saver";
+import { Document, Packer, Paragraph, TextRun } from "docx";
 
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -13,36 +15,28 @@ import { saveLayout, getLayout } from "../../../lib/layout";
 import { saveResumeState } from "../../../lib/autosave";
 import { getVersions, saveVersion } from "../../../lib/version";
 
-// ✅ TEMPLATES
+// Templates
 import ModernTemplate from "../../../components/templates/ModernTemplate";
 import MinimalTemplate from "../../../components/templates/MinimalTemplate";
 import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
-// ✅ DEFAULT
 const DEFAULT_RESUME = {
   name: "Your Name",
   summary: "Write a strong professional summary...",
   skills: ["React", "JavaScript"],
-  experience: [
-    { role: "Frontend Developer", company: "Company Name" }
-  ]
+  experience: [{ role: "Frontend Developer", company: "Company Name" }],
 };
 
 export default function Analyze() {
-
   const [user, setUser] = useState(null);
-
-  const [resumeText, setResumeText] = useState("");
-  const [job, setJob] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const [editable, setEditable] = useState(DEFAULT_RESUME);
-
   const [sectionOrder, setSectionOrder] = useState([
     "summary",
     "skills",
     "experience",
   ]);
+
+  const [template, setTemplate] = useState("modern");
 
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -53,17 +47,13 @@ export default function Analyze() {
   const [compareA, setCompareA] = useState(null);
   const [compareB, setCompareB] = useState(null);
 
-  // ✅ NEW TEMPLATE STATE
-  const [template, setTemplate] = useState("modern");
-
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // 🔐 AUTH
+  // AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
-
       setUser(u);
 
       const layout = await getLayout(u.uid);
@@ -76,25 +66,22 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // 🧠 HISTORY
+  // HISTORY
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
-
     if (newHistory.length > 20) newHistory.shift();
-
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
 
-  // ✏️ UPDATE
   const updateField = (field, value) => {
     const updated = { ...editable, [field]: value };
     setEditable(updated);
     pushHistory(updated);
   };
 
-  // 🔀 DRAG
+  // DRAG
   const onDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -103,219 +90,215 @@ export default function Analyze() {
     items.splice(result.destination.index, 0, moved);
 
     setSectionOrder(items);
-
     if (user) await saveLayout(user.uid, items);
   };
 
-  // 🤖 AI REWRITE
-  const handleRewrite = async () => {
-    if (!resumeText.trim()) return;
-
-    setLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("resumeText", resumeText);
-      formData.append("job", job);
-
-      const res = await fetch("/api/rewrite-resume", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      const safe = data?.name ? data : DEFAULT_RESUME;
-
-      setEditable(safe);
-      pushHistory(safe);
-    } catch {
-      alert("AI failed");
-    }
-
-    setLoading(false);
-  };
-
-  // ↩️ UNDO / REDO
+  // UNDO REDO
   const undo = () => {
     if (historyIndex <= 0) return;
-    const index = historyIndex - 1;
-    setEditable(history[index]);
-    setHistoryIndex(index);
+    setHistoryIndex(historyIndex - 1);
+    setEditable(history[historyIndex - 1]);
   };
 
   const redo = () => {
     if (historyIndex >= history.length - 1) return;
-    const index = historyIndex + 1;
-    setEditable(history[index]);
-    setHistoryIndex(index);
+    setHistoryIndex(historyIndex + 1);
+    setEditable(history[historyIndex + 1]);
   };
 
-  // 💾 AUTOSAVE + VERSION
+  // AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-      const data = {
-        resume: editable,
-        layout: sectionOrder,
-        template, // ✅ NEW
-      };
-
+      const data = { resume: editable, layout: sectionOrder, template };
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
-
-      const v = await getVersions(user.uid);
-      setVersions(v);
+      setVersions(await getVersions(user.uid));
     }, 2000);
-
   }, [editable, sectionOrder, template]);
 
-  // 🏷️ SAVE NAMED VERSION
+  // SAVE VERSION
   const saveNamedVersion = async () => {
-    if (!editable || !user) return;
-
     await saveVersion(
       user.uid,
       { resume: editable, layout: sectionOrder, template },
-      versionName || "Manual Save"
+      versionName || "Manual"
     );
-
-    const v = await getVersions(user.uid);
-    setVersions(v);
+    setVersions(await getVersions(user.uid));
     setVersionName("");
   };
 
-  // 🔄 RESTORE
+  // RESTORE
   const restoreVersion = (v) => {
     setEditable(v.resume);
-    setSectionOrder(v.layout || sectionOrder);
-    setTemplate(v.template || "modern"); // ✅ NEW
+    setSectionOrder(v.layout);
+    setTemplate(v.template || "modern");
     pushHistory(v.resume);
   };
 
-  // 🔍 DIFF
-  const diffText = (oldText = "", newText = "") => {
-    return newText.split(" ").map((w) =>
-      oldText.includes(w)
-        ? w
-        : `<span style="color:lime">${w}</span>`
-    ).join(" ");
-  };
-
-  // 📄 PDF
+  // PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const width = 210;
-    const height = (canvas.height * width) / canvas.width;
-
-    pdf.addImage(img, "PNG", 0, 0, width, height);
+    const pdf = new jsPDF();
+    pdf.addImage(img, "PNG", 0, 0, 210, 297);
     pdf.save("resume.pdf");
   };
 
-  // 🎨 TEMPLATE RENDER
+  // DOCX (NEW 🔥)
+  const exportDOCX = async () => {
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: editable.name, bold: true })],
+            }),
+            new Paragraph(editable.summary),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "resume.docx");
+  };
+
+  // SHARE LINK (simple)
+  const generateShareLink = () => {
+    const data = encodeURIComponent(JSON.stringify(editable));
+    return `${window.location.origin}/resume-view?data=${data}`;
+  };
+
+  // TEMPLATE
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
-    switch (template) {
-      case "minimal":
-        return <MinimalTemplate {...props} />;
-      case "creative":
-        return <CreativeTemplate {...props} />;
-      default:
-        return <ModernTemplate {...props} />;
-    }
+    if (template === "minimal") return <MinimalTemplate {...props} />;
+    if (template === "creative") return <CreativeTemplate {...props} />;
+    return <ModernTemplate {...props} />;
+  };
+
+  // SECTION ADD
+  const addSection = () => {
+    const name = prompt("Section name?");
+    if (!name) return;
+    setSectionOrder([...sectionOrder, name]);
+  };
+
+  // REMOVE SECTION
+  const removeSection = (sec) => {
+    setSectionOrder(sectionOrder.filter((s) => s !== sec));
   };
 
   return (
     <div className="flex flex-col h-screen">
 
-      {/* TOP BAR */}
-      <div className="flex flex-wrap gap-2 p-3 border-b border-gray-800">
-        <button onClick={handleRewrite} className="btn-primary">AI Rewrite</button>
-        <button onClick={undo} className="btn-primary">Undo</button>
-        <button onClick={redo} className="btn-primary">Redo</button>
-        <button onClick={downloadPDF} className="btn-primary">Export PDF</button>
+      {/* TOP */}
+      <div className="flex flex-wrap gap-2 p-3 border-b">
+        <button onClick={undo}>Undo</button>
+        <button onClick={redo}>Redo</button>
+        <button onClick={downloadPDF}>PDF</button>
+        <button onClick={exportDOCX}>DOCX</button>
 
         <input
           value={versionName}
           onChange={(e) => setVersionName(e.target.value)}
           placeholder="Version name"
-          className="input w-40"
         />
+        <button onClick={saveNamedVersion}>Save</button>
 
-        <button onClick={saveNamedVersion} className="btn-primary">
-          Save Version
+        <button onClick={addSection}>+ Section</button>
+
+        <button
+          onClick={() => {
+            const link = generateShareLink();
+            navigator.clipboard.writeText(link);
+            alert("Link copied!");
+          }}
+        >
+          Share
         </button>
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row">
 
         {/* LEFT */}
-        <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
-          <textarea value={resumeText} onChange={(e)=>setResumeText(e.target.value)} className="input"/>
-          <textarea value={job} onChange={(e)=>setJob(e.target.value)} className="input"/>
-
-          <input value={editable.name} onChange={(e)=>updateField("name", e.target.value)} className="input"/>
+        <div className="w-full md:w-1/2 p-4 space-y-3">
+          <input
+            value={editable.name}
+            onChange={(e) => updateField("name", e.target.value)}
+          />
         </div>
 
         {/* RIGHT */}
-        <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
+        <div className="w-full md:w-1/2 bg-gray-100 p-4">
 
-          {/* TEMPLATE SWITCHER */}
-          <div className="flex gap-2 mb-3">
-            {["modern","minimal","creative"].map((t)=>(
-              <button key={t}
-                onClick={()=>setTemplate(t)}
-                className={`px-3 py-1 rounded ${template===t?"bg-blue-500 text-white":"bg-gray-200"}`}>
-                {t}
-              </button>
+          {/* TEMPLATE SELECTOR (THUMBNAILS) */}
+          <div className="flex gap-3 mb-4">
+            {["modern", "minimal", "creative"].map((t) => (
+              <div
+                key={t}
+                onClick={() => setTemplate(t)}
+                className={`p-2 border cursor-pointer ${
+                  template === t ? "border-blue-500" : ""
+                }`}
+              >
+                <p>{t}</p>
+              </div>
             ))}
           </div>
 
-          {/* TEMPLATE PREVIEW */}
-          <div ref={pdfRef} className="bg-white p-6 rounded shadow">
-            {renderTemplate()}
+          {/* PREVIEW */}
+          <div ref={pdfRef} className="bg-white p-6 rounded">
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="sections">
+                {(p) => (
+                  <div ref={p.innerRef} {...p.droppableProps}>
+                    {sectionOrder.map((sec, i) => (
+                      <Draggable key={sec} draggableId={sec} index={i}>
+                        {(p) => (
+                          <div
+                            ref={p.innerRef}
+                            {...p.draggableProps}
+                            className="mb-4 border p-2"
+                          >
+                            <div {...p.dragHandleProps}>Drag</div>
+
+                            <button onClick={() => removeSection(sec)}>
+                              ❌
+                            </button>
+
+                            {renderTemplate()}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
 
-          {/* VERSION TIMELINE */}
-          <div className="bg-black text-white p-4 mt-4 rounded">
-            <h3 className="mb-2 text-sm">Version History</h3>
-
+          {/* VERSION */}
+          <div className="mt-4 bg-black text-white p-3">
             {versions.map((v, i) => (
-              <div key={i} className="mb-2">
-                <div onClick={() => restoreVersion(v)} className="cursor-pointer">
-                  {v.name || "Auto"} • {new Date(v.createdAt).toLocaleTimeString()}
-                </div>
-
-                <div className="flex gap-2 text-xs">
-                  <button onClick={() => setCompareA(v)}>A</button>
-                  <button onClick={() => setCompareB(v)}>B</button>
-                </div>
+              <div key={i}>
+                <span onClick={() => restoreVersion(v)}>
+                  {v.name || "Auto"}
+                </span>
+                <button onClick={() => setCompareA(v)}>A</button>
+                <button onClick={() => setCompareB(v)}>B</button>
               </div>
             ))}
-
-            {compareA && compareB && (
-              <div className="mt-3 text-xs">
-                <div
-                  dangerouslySetInnerHTML={{
-                    __html: diffText(
-                      compareA.resume.summary,
-                      compareB.resume.summary
-                    ),
-                  }}
-                />
-              </div>
-            )}
           </div>
 
         </div>
       </div>
     </div>
   );
-    }
+}
