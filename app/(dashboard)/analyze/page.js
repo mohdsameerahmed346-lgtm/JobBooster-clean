@@ -15,11 +15,11 @@ import { saveLayout, getLayout } from "../../../lib/layout";
 import { saveResumeState } from "../../../lib/autosave";
 import { getVersions, saveVersion } from "../../../lib/version";
 
-// Templates
 import ModernTemplate from "../../../components/templates/ModernTemplate";
 import MinimalTemplate from "../../../components/templates/MinimalTemplate";
 import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
+// ✅ DEFAULT SAFE DATA
 const DEFAULT_RESUME = {
   name: "Your Name",
   summary: "Write a strong professional summary...",
@@ -28,8 +28,15 @@ const DEFAULT_RESUME = {
 };
 
 export default function Analyze() {
+
   const [user, setUser] = useState(null);
+
+  const [resumeText, setResumeText] = useState("");
+  const [job, setJob] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const [editable, setEditable] = useState(DEFAULT_RESUME);
+
   const [sectionOrder, setSectionOrder] = useState([
     "summary",
     "skills",
@@ -47,13 +54,16 @@ export default function Analyze() {
   const [compareA, setCompareA] = useState(null);
   const [compareB, setCompareB] = useState(null);
 
+  const [recruiterMode, setRecruiterMode] = useState(false);
+
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // AUTH
+  // 🔐 AUTH + LOAD
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
+
       setUser(u);
 
       const layout = await getLayout(u.uid);
@@ -66,11 +76,30 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // HISTORY
+  // 🔥 SKILL GAP AUTO-FILL
+  useEffect(() => {
+    const fix = localStorage.getItem("fixData");
+
+    if (fix) {
+      const parsed = JSON.parse(fix);
+
+      setJob(parsed.job || "");
+
+      setResumeText(
+        `Improve this resume and include these skills: ${parsed.missingSkills?.join(", ")}`
+      );
+
+      localStorage.removeItem("fixData");
+    }
+  }, []);
+
+  // 🧠 HISTORY
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
+
     if (newHistory.length > 20) newHistory.shift();
+
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -81,7 +110,7 @@ export default function Analyze() {
     pushHistory(updated);
   };
 
-  // DRAG
+  // 🔀 DRAG
   const onDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -90,73 +119,89 @@ export default function Analyze() {
     items.splice(result.destination.index, 0, moved);
 
     setSectionOrder(items);
+
     if (user) await saveLayout(user.uid, items);
   };
 
-  // UNDO REDO
+  // ↩️ UNDO / REDO
   const undo = () => {
     if (historyIndex <= 0) return;
-    setHistoryIndex(historyIndex - 1);
-    setEditable(history[historyIndex - 1]);
+    const i = historyIndex - 1;
+    setEditable(history[i]);
+    setHistoryIndex(i);
   };
 
   const redo = () => {
     if (historyIndex >= history.length - 1) return;
-    setHistoryIndex(historyIndex + 1);
-    setEditable(history[historyIndex + 1]);
+    const i = historyIndex + 1;
+    setEditable(history[i]);
+    setHistoryIndex(i);
   };
 
-  // AUTOSAVE
+  // 💾 AUTOSAVE + VERSION
   useEffect(() => {
     if (!editable || !user) return;
 
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-      const data = { resume: editable, layout: sectionOrder, template };
+      const data = {
+        resume: editable,
+        layout: sectionOrder,
+        template,
+      };
+
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
-      setVersions(await getVersions(user.uid));
+
+      const v = await getVersions(user.uid);
+      setVersions(v);
     }, 2000);
+
   }, [editable, sectionOrder, template]);
 
-  // SAVE VERSION
+  // 🏷️ MANUAL SAVE
   const saveNamedVersion = async () => {
+    if (!user) return;
+
     await saveVersion(
       user.uid,
       { resume: editable, layout: sectionOrder, template },
       versionName || "Manual"
     );
+
     setVersions(await getVersions(user.uid));
     setVersionName("");
   };
 
-  // RESTORE
+  // 🔄 RESTORE
   const restoreVersion = (v) => {
     setEditable(v.resume);
-    setSectionOrder(v.layout);
+    setSectionOrder(v.layout || sectionOrder);
     setTemplate(v.template || "modern");
     pushHistory(v.resume);
   };
 
-  // PDF
+  // 📄 PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
 
-    const pdf = new jsPDF();
+    const pdf = new jsPDF("p", "mm", "a4");
     pdf.addImage(img, "PNG", 0, 0, 210, 297);
     pdf.save("resume.pdf");
   };
 
-  // DOCX (NEW 🔥)
+  // 📄 DOCX
   const exportDOCX = async () => {
     const doc = new Document({
       sections: [
         {
           children: [
             new Paragraph({
-              children: [new TextRun({ text: editable.name, bold: true })],
+              children: [
+                new TextRun({ text: editable.name, bold: true, size: 32 }),
+              ],
             }),
             new Paragraph(editable.summary),
           ],
@@ -168,13 +213,42 @@ export default function Analyze() {
     saveAs(blob, "resume.docx");
   };
 
-  // SHARE LINK (simple)
-  const generateShareLink = () => {
-    const data = encodeURIComponent(JSON.stringify(editable));
-    return `${window.location.origin}/resume-view?data=${data}`;
+  // 🔗 SHARE (REAL LINK)
+  const shareResume = async () => {
+    if (!user) return;
+
+    const id = crypto.randomUUID();
+
+    await fetch("/api/share-resume", {
+      method: "POST",
+      body: JSON.stringify({
+        id,
+        data: {
+          resume: editable,
+          layout: sectionOrder,
+          template,
+        },
+      }),
+    });
+
+    const link = `${window.location.origin}/resume/${id}`;
+    navigator.clipboard.writeText(link);
+    alert("Link copied!");
   };
 
-  // TEMPLATE
+  // ➕ ADD SECTION
+  const addSection = () => {
+    const name = prompt("Section name?");
+    if (!name) return;
+    setSectionOrder([...sectionOrder, name]);
+  };
+
+  // ❌ REMOVE SECTION
+  const removeSection = (sec) => {
+    setSectionOrder(sectionOrder.filter((s) => s !== sec));
+  };
+
+  // 🎨 TEMPLATE RENDER
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
@@ -183,27 +257,22 @@ export default function Analyze() {
     return <ModernTemplate {...props} />;
   };
 
-  // SECTION ADD
-  const addSection = () => {
-    const name = prompt("Section name?");
-    if (!name) return;
-    setSectionOrder([...sectionOrder, name]);
-  };
-
-  // REMOVE SECTION
-  const removeSection = (sec) => {
-    setSectionOrder(sectionOrder.filter((s) => s !== sec));
-  };
-
   return (
     <div className="flex flex-col h-screen">
 
-      {/* TOP */}
+      {/* TOP BAR */}
       <div className="flex flex-wrap gap-2 p-3 border-b">
         <button onClick={undo}>Undo</button>
         <button onClick={redo}>Redo</button>
         <button onClick={downloadPDF}>PDF</button>
         <button onClick={exportDOCX}>DOCX</button>
+        <button onClick={shareResume}>Share</button>
+
+        <button onClick={() => setRecruiterMode(!recruiterMode)}>
+          Recruiter Mode
+        </button>
+
+        <button onClick={addSection}>+ Section</button>
 
         <input
           value={versionName}
@@ -211,35 +280,38 @@ export default function Analyze() {
           placeholder="Version name"
         />
         <button onClick={saveNamedVersion}>Save</button>
-
-        <button onClick={addSection}>+ Section</button>
-
-        <button
-          onClick={() => {
-            const link = generateShareLink();
-            navigator.clipboard.writeText(link);
-            alert("Link copied!");
-          }}
-        >
-          Share
-        </button>
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row">
 
         {/* LEFT */}
-        <div className="w-full md:w-1/2 p-4 space-y-3">
+        <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
+          <textarea
+            placeholder="Resume text"
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            className="input"
+          />
+
+          <textarea
+            placeholder="Job description"
+            value={job}
+            onChange={(e) => setJob(e.target.value)}
+            className="input"
+          />
+
           <input
             value={editable.name}
             onChange={(e) => updateField("name", e.target.value)}
+            className="input"
           />
         </div>
 
         {/* RIGHT */}
-        <div className="w-full md:w-1/2 bg-gray-100 p-4">
+        <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
 
-          {/* TEMPLATE SELECTOR (THUMBNAILS) */}
-          <div className="flex gap-3 mb-4">
+          {/* TEMPLATE SELECTOR */}
+          <div className="flex gap-3 mb-3">
             {["modern", "minimal", "creative"].map((t) => (
               <div
                 key={t}
@@ -248,13 +320,13 @@ export default function Analyze() {
                   template === t ? "border-blue-500" : ""
                 }`}
               >
-                <p>{t}</p>
+                {t}
               </div>
             ))}
           </div>
 
           {/* PREVIEW */}
-          <div ref={pdfRef} className="bg-white p-6 rounded">
+          <div ref={pdfRef} className="bg-white p-6 rounded shadow">
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="sections">
                 {(p) => (
@@ -284,8 +356,8 @@ export default function Analyze() {
             </DragDropContext>
           </div>
 
-          {/* VERSION */}
-          <div className="mt-4 bg-black text-white p-3">
+          {/* VERSION HISTORY */}
+          <div className="bg-black text-white p-3 mt-4 rounded">
             {versions.map((v, i) => (
               <div key={i}>
                 <span onClick={() => restoreVersion(v)}>
@@ -301,4 +373,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-}
+            }
