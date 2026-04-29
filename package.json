@@ -31,6 +31,9 @@
     "jspdf": "^2.5.1",
     "html2canvas": "^1.4.1",
 
+    "docx": "^8.5.0",
+    "file-saver": "^2.0.5",
+
     "pdf-parse": "^1.1.1",
 
     "stripe": "^14.0.0",
@@ -48,5 +51,9 @@
 
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5"
+  },
+
+  "engines": {
+    "node": ">=18.17.0"
   }
 }
