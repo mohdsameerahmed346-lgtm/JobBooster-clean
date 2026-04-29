@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
 import { auth } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -15,6 +17,7 @@ import ModernTemplate from "../../../components/templates/ModernTemplate";
 import MinimalTemplate from "../../../components/templates/MinimalTemplate";
 import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
+// ================= DEFAULT =================
 const DEFAULT_RESUME = {
   name: "Your Name",
   summary: "Write a strong professional summary...",
@@ -23,6 +26,7 @@ const DEFAULT_RESUME = {
 };
 
 export default function Analyze() {
+
   const [user, setUser] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
@@ -43,10 +47,13 @@ export default function Analyze() {
   const [versions, setVersions] = useState([]);
   const [versionName, setVersionName] = useState("");
 
+  const [atsScore, setAtsScore] = useState(null);
+  const [atsDetails, setAtsDetails] = useState(null);
+
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // 🔐 AUTH
+  // ================= AUTH =================
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
@@ -63,7 +70,7 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // 🔥 SKILL GAP AUTO FIX
+  // ================= SKILL GAP AUTO FIX =================
   useEffect(() => {
     const fix = localStorage.getItem("fixData");
 
@@ -79,10 +86,13 @@ export default function Analyze() {
     }
   }, []);
 
-  // 🧠 HISTORY
+  // ================= HISTORY =================
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
+
+    if (newHistory.length > 20) newHistory.shift();
+
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -93,7 +103,20 @@ export default function Analyze() {
     pushHistory(updated);
   };
 
-  // ↩️ UNDO / REDO
+  // ================= DRAG =================
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(sectionOrder);
+    const [moved] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, moved);
+
+    setSectionOrder(items);
+
+    if (user) await saveLayout(user.uid, items);
+  };
+
+  // ================= UNDO REDO =================
   const undo = () => {
     if (historyIndex <= 0) return;
     const i = historyIndex - 1;
@@ -108,7 +131,28 @@ export default function Analyze() {
     setHistoryIndex(i);
   };
 
-  // 💾 AUTOSAVE
+  // ================= ATS SYSTEM (🔥 NEW CORE FEATURE) =================
+  const analyzeATS = () => {
+    if (!job || !resumeText) return alert("Add resume + job");
+
+    const jobWords = job.toLowerCase().split(/\W+/);
+    const resumeWords = resumeText.toLowerCase().split(/\W+/);
+
+    const uniqueJob = [...new Set(jobWords)];
+    const matches = uniqueJob.filter((w) => resumeWords.includes(w));
+
+    const score = Math.round((matches.length / uniqueJob.length) * 100);
+
+    const missing = uniqueJob.filter((w) => !resumeWords.includes(w)).slice(0, 20);
+
+    setAtsScore(score);
+    setAtsDetails({
+      matched: matches.slice(0, 20),
+      missing,
+    });
+  };
+
+  // ================= AUTOSAVE =================
   useEffect(() => {
     if (!editable || !user) return;
 
@@ -128,7 +172,7 @@ export default function Analyze() {
     }, 2000);
   }, [editable, sectionOrder, template]);
 
-  // 📄 PDF
+  // ================= PDF =================
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -138,7 +182,7 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX
+  // ================= DOCX (SAFE IMPORT) =================
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
@@ -166,7 +210,7 @@ export default function Analyze() {
     saveAs(blob, "resume.docx");
   };
 
-  // 🔗 SHARE
+  // ================= SHARE =================
   const shareResume = async () => {
     if (!user) return;
 
@@ -189,18 +233,7 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
-  // ➕ SECTION
-  const addSection = () => {
-    const name = prompt("Section name?");
-    if (!name) return;
-    setSectionOrder([...sectionOrder, name]);
-  };
-
-  const removeSection = (sec) => {
-    setSectionOrder(sectionOrder.filter((s) => s !== sec));
-  };
-
-  // 🎨 TEMPLATE RENDER (FIXED)
+  // ================= TEMPLATE =================
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
@@ -212,80 +245,98 @@ export default function Analyze() {
   return (
     <div className="flex flex-col h-screen">
 
-      {/* TOP BAR */}
-      <div className="flex flex-wrap gap-3 p-3 border-b bg-white sticky top-0 z-10">
-        <button className="btn-primary" onClick={undo}>Undo</button>
-        <button className="btn-primary" onClick={redo}>Redo</button>
+      {/* ===== TOP BAR FIXED UI ===== */}
+      <div className="flex flex-wrap gap-2 p-3 border-b bg-white sticky top-0 z-50">
 
-        <button className="btn-primary" onClick={downloadPDF}>Export PDF</button>
-        <button className="btn-primary" onClick={exportDOCX}>Export DOCX</button>
+        <button onClick={undo} className="btn-primary">Undo</button>
+        <button onClick={redo} className="btn-primary">Redo</button>
 
-        <button className="btn-primary" onClick={shareResume}>Share Link</button>
-        <button className="btn-secondary" onClick={addSection}>+ Section</button>
+        <button onClick={analyzeATS} className="btn-primary bg-green-600">
+          ATS Score
+        </button>
+
+        <button onClick={downloadPDF} className="btn-primary">PDF</button>
+        <button onClick={exportDOCX} className="btn-primary">DOCX</button>
+        <button onClick={shareResume} className="btn-primary">Share</button>
+
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* LEFT */}
-        <div className="w-full md:w-1/2 p-4 space-y-3">
+        {/* ===== LEFT PANEL (FIXED PLACEHOLDERS) ===== */}
+        <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
+
           <textarea
-            placeholder="Paste your resume..."
+            placeholder="Paste your resume text here..."
             value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
+            onChange={(e)=>setResumeText(e.target.value)}
             className="input"
           />
 
           <textarea
             placeholder="Paste job description..."
             value={job}
-            onChange={(e) => setJob(e.target.value)}
+            onChange={(e)=>setJob(e.target.value)}
             className="input"
           />
 
           <input
             placeholder="Your Name"
             value={editable.name}
-            onChange={(e) => updateField("name", e.target.value)}
+            onChange={(e)=>updateField("name", e.target.value)}
             className="input"
           />
+
         </div>
 
-        {/* RIGHT */}
+        {/* ===== RIGHT PANEL ===== */}
         <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
 
-          {/* TEMPLATE SELECTOR (IMPROVED UI) */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            {["modern", "minimal", "creative"].map((t) => (
-              <div
+          {/* TEMPLATE UI FIX */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {["modern","minimal","creative"].map((t)=>(
+              <button
                 key={t}
-                onClick={() => setTemplate(t)}
-                className={`cursor-pointer border rounded-lg p-3 text-center shadow-sm ${
-                  template === t ? "border-blue-500 bg-blue-50" : ""
-                }`}
+                onClick={()=>setTemplate(t)}
+                className={`p-2 border rounded ${template===t?"bg-blue-500 text-white":""}`}
               >
                 {t}
-              </div>
+              </button>
             ))}
           </div>
 
-          {/* PREVIEW (FIXED — NO DUPLICATION) */}
+          {/* PREVIEW FIXED (NO DUPLICATE RENDER) */}
           <div ref={pdfRef} className="bg-white p-6 rounded shadow">
             {renderTemplate()}
           </div>
 
-          {/* SECTION CONTROLS */}
-          <div className="mt-4 space-y-2">
-            <h3 className="text-sm font-semibold">Sections</h3>
-            {sectionOrder.map((sec) => (
-              <div key={sec} className="flex justify-between items-center bg-white p-2 rounded border">
-                <span>{sec}</span>
-                <button onClick={() => removeSection(sec)}>❌</button>
+          {/* ===== ATS RESULT PANEL ===== */}
+          {atsScore !== null && (
+            <div className="mt-4 p-4 bg-black text-white rounded">
+
+              <h2 className="text-lg font-bold">ATS Score: {atsScore}%</h2>
+
+              <div className="mt-2 text-sm">
+                <p>Matched Keywords:</p>
+                <div className="flex flex-wrap gap-1">
+                  {atsDetails.matched.map((w,i)=>(
+                    <span key={i} className="bg-green-500/20 px-2 rounded">{w}</span>
+                  ))}
+                </div>
+
+                <p className="mt-2">Missing Keywords:</p>
+                <div className="flex flex-wrap gap-1">
+                  {atsDetails.missing.map((w,i)=>(
+                    <span key={i} className="bg-red-500/20 px-2 rounded">{w}</span>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+
+            </div>
+          )}
 
         </div>
       </div>
     </div>
   );
-}
+    }
