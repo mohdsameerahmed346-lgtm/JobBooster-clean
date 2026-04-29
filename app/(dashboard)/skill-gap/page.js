@@ -20,6 +20,7 @@ import {
 } from "../../../lib/chat";
 
 export default function SkillGap() {
+
   const [user, setUser] = useState(null);
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -39,16 +40,21 @@ export default function SkillGap() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         window.location.href = "/login";
-      } else {
-        setUser(u);
+        return;
+      }
 
+      setUser(u);
+
+      try {
         const allChats = await getChats(u.uid);
-        setChats(allChats);
+        setChats(allChats || []);
 
-        if (allChats.length) {
+        if (allChats?.length) {
           setActiveChat(allChats[0]);
           setMessages(allChats[0].messages || []);
         }
+      } catch (err) {
+        console.error("Chat load error:", err);
       }
     });
 
@@ -59,35 +65,43 @@ export default function SkillGap() {
   const handleNewChat = async () => {
     if (!user) return;
 
-    const id = await createChat(user.uid);
+    try {
+      const id = await createChat(user.uid);
 
-    const newChat = {
-      id,
-      title: "New Chat",
-      messages: [],
-    };
+      const newChat = {
+        id,
+        title: "New Chat",
+        messages: [],
+      };
 
-    setChats([newChat, ...chats]);
-    setActiveChat(newChat);
-    setMessages([]);
-    setData(null);
-    setDisplayData(null);
+      setChats((prev) => [newChat, ...prev]);
+      setActiveChat(newChat);
+      setMessages([]);
+      setData(null);
+      setDisplayData(null);
+    } catch (err) {
+      console.error("Create chat error:", err);
+    }
   };
 
   // ❌ DELETE CHAT
   const handleDelete = async (chatId) => {
     if (!user) return;
 
-    await deleteChat(user.uid, chatId);
+    try {
+      await deleteChat(user.uid, chatId);
 
-    const updated = chats.filter((c) => c.id !== chatId);
-    setChats(updated);
+      const updated = chats.filter((c) => c.id !== chatId);
+      setChats(updated);
 
-    if (activeChat?.id === chatId) {
-      const next = updated[0] || null;
-      setActiveChat(next);
-      setMessages(next?.messages || []);
-      setDisplayData(null);
+      if (activeChat?.id === chatId) {
+        const next = updated[0] || null;
+        setActiveChat(next);
+        setMessages(next?.messages || []);
+        setDisplayData(null);
+      }
+    } catch (err) {
+      console.error("Delete chat error:", err);
     }
   };
 
@@ -95,13 +109,17 @@ export default function SkillGap() {
   const handleRename = async (chatId, title) => {
     if (!user || !title.trim()) return;
 
-    await renameChat(user.uid, chatId, title);
+    try {
+      await renameChat(user.uid, chatId, title);
 
-    setChats((prev) =>
-      prev.map((c) =>
-        c.id === chatId ? { ...c, title } : c
-      )
-    );
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === chatId ? { ...c, title } : c
+        )
+      );
+    } catch (err) {
+      console.error("Rename error:", err);
+    }
   };
 
   // 🧠 TITLE GENERATOR
@@ -152,16 +170,18 @@ export default function SkillGap() {
         body: formData,
       });
 
+      if (!res.ok) throw new Error("API failed");
+
       const json = await res.json();
 
       const safeData = {
-        matchPercentage: json.matchPercentage || 0,
-        matchedSkills: json.matchedSkills || [],
-        missingSkills: json.missingSkills || [],
-        recommendedSkills: json.recommendedSkills || [],
-        learningPlan: json.learningPlan || [],
-        score: json.resumeScore || json.matchPercentage || 0,
-        ats: json.atsScore || 0,
+        matchPercentage: json?.matchPercentage || 0,
+        matchedSkills: json?.matchedSkills || [],
+        missingSkills: json?.missingSkills || [],
+        recommendedSkills: json?.recommendedSkills || [],
+        learningPlan: json?.learningPlan || [],
+        score: json?.resumeScore || json?.matchPercentage || 0,
+        ats: json?.atsScore || 0,
       };
 
       setData(safeData);
@@ -187,14 +207,16 @@ export default function SkillGap() {
           )
         );
       }
+
     } catch (err) {
-      alert("Analysis failed");
+      console.error("Analysis error:", err);
+      alert("Analysis failed. Try again.");
     }
 
     setLoading(false);
   };
 
-  // 🚀 FIX RESUME (AUTO CONNECT TO ANALYZE PAGE)
+  // 🚀 FIX RESUME
   const handleFixResume = () => {
     if (!displayData) return;
 
@@ -206,7 +228,7 @@ export default function SkillGap() {
 
     localStorage.setItem("fixData", JSON.stringify(payload));
 
-    // smooth redirect
+    // ✅ smooth redirect
     window.location.href = "/analyze";
   };
 
@@ -287,14 +309,13 @@ export default function SkillGap() {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-            {/* SCORE */}
+
             <div className="grid md:grid-cols-3 gap-6">
               <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
               <ScoreCard title="ATS Score" value={displayData.ats} />
             </div>
 
-            {/* MISSING SKILLS */}
             <div className="card">
               <h2>Missing Skills</h2>
 
@@ -314,7 +335,6 @@ export default function SkillGap() {
               </div>
             </div>
 
-            {/* 🚀 FIX BUTTON */}
             <button
               onClick={handleFixResume}
               className="btn-primary w-full text-lg"
@@ -324,7 +344,8 @@ export default function SkillGap() {
 
           </motion.div>
         )}
+
       </div>
     </div>
   );
-      }
+}
