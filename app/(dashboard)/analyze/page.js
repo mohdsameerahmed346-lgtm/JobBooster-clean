@@ -4,8 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-
 import { auth } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -25,8 +23,8 @@ const DEFAULT_RESUME = {
 };
 
 export default function Analyze() {
-
   const [user, setUser] = useState(null);
+
   const [resumeText, setResumeText] = useState("");
   const [job, setJob] = useState("");
 
@@ -95,19 +93,7 @@ export default function Analyze() {
     pushHistory(updated);
   };
 
-  // 🔀 DRAG
-  const onDragEnd = async (result) => {
-    if (!result.destination) return;
-
-    const items = Array.from(sectionOrder);
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
-
-    setSectionOrder(items);
-    if (user) await saveLayout(user.uid, items);
-  };
-
-  // ↩️ UNDO REDO
+  // ↩️ UNDO / REDO
   const undo = () => {
     if (historyIndex <= 0) return;
     const i = historyIndex - 1;
@@ -152,7 +138,7 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX (SAFE – NO BUILD ERROR)
+  // 📄 DOCX
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
@@ -214,7 +200,7 @@ export default function Analyze() {
     setSectionOrder(sectionOrder.filter((s) => s !== sec));
   };
 
-  // 🎨 TEMPLATE
+  // 🎨 TEMPLATE RENDER (FIXED)
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
@@ -227,67 +213,75 @@ export default function Analyze() {
     <div className="flex flex-col h-screen">
 
       {/* TOP BAR */}
-      <div className="flex flex-wrap gap-2 p-3 border-b">
-        <button onClick={undo}>Undo</button>
-        <button onClick={redo}>Redo</button>
-        <button onClick={downloadPDF}>PDF</button>
-        <button onClick={exportDOCX}>DOCX</button>
-        <button onClick={shareResume}>Share</button>
-        <button onClick={addSection}>+ Section</button>
+      <div className="flex flex-wrap gap-3 p-3 border-b bg-white sticky top-0 z-10">
+        <button className="btn-primary" onClick={undo}>Undo</button>
+        <button className="btn-primary" onClick={redo}>Redo</button>
+
+        <button className="btn-primary" onClick={downloadPDF}>Export PDF</button>
+        <button className="btn-primary" onClick={exportDOCX}>Export DOCX</button>
+
+        <button className="btn-primary" onClick={shareResume}>Share Link</button>
+        <button className="btn-secondary" onClick={addSection}>+ Section</button>
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row">
 
         {/* LEFT */}
         <div className="w-full md:w-1/2 p-4 space-y-3">
-          <textarea value={resumeText} onChange={(e)=>setResumeText(e.target.value)} className="input"/>
-          <textarea value={job} onChange={(e)=>setJob(e.target.value)} className="input"/>
+          <textarea
+            placeholder="Paste your resume..."
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            className="input"
+          />
+
+          <textarea
+            placeholder="Paste job description..."
+            value={job}
+            onChange={(e) => setJob(e.target.value)}
+            className="input"
+          />
 
           <input
+            placeholder="Your Name"
             value={editable.name}
-            onChange={(e)=>updateField("name", e.target.value)}
+            onChange={(e) => updateField("name", e.target.value)}
             className="input"
           />
         </div>
 
         {/* RIGHT */}
-        <div className="w-full md:w-1/2 bg-gray-100 p-4">
+        <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
 
-          {/* TEMPLATE THUMBNAILS */}
-          <div className="flex gap-3 mb-3">
-            {["modern","minimal","creative"].map((t)=>(
+          {/* TEMPLATE SELECTOR (IMPROVED UI) */}
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {["modern", "minimal", "creative"].map((t) => (
               <div
                 key={t}
-                onClick={()=>setTemplate(t)}
-                className={`p-3 border cursor-pointer ${template===t?"border-blue-500":""}`}
+                onClick={() => setTemplate(t)}
+                className={`cursor-pointer border rounded-lg p-3 text-center shadow-sm ${
+                  template === t ? "border-blue-500 bg-blue-50" : ""
+                }`}
               >
                 {t}
               </div>
             ))}
           </div>
 
-          {/* PREVIEW */}
+          {/* PREVIEW (FIXED — NO DUPLICATION) */}
           <div ref={pdfRef} className="bg-white p-6 rounded shadow">
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="sections">
-                {(p)=>(
-                  <div ref={p.innerRef} {...p.droppableProps}>
-                    {sectionOrder.map((sec,i)=>(
-                      <Draggable key={sec} draggableId={sec} index={i}>
-                        {(p)=>(
-                          <div ref={p.innerRef} {...p.draggableProps} className="mb-3 border p-2">
-                            <div {...p.dragHandleProps}>Drag</div>
-                            <button onClick={()=>removeSection(sec)}>❌</button>
-                            {renderTemplate()}
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {p.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+            {renderTemplate()}
+          </div>
+
+          {/* SECTION CONTROLS */}
+          <div className="mt-4 space-y-2">
+            <h3 className="text-sm font-semibold">Sections</h3>
+            {sectionOrder.map((sec) => (
+              <div key={sec} className="flex justify-between items-center bg-white p-2 rounded border">
+                <span>{sec}</span>
+                <button onClick={() => removeSection(sec)}>❌</button>
+              </div>
+            ))}
           </div>
 
         </div>
