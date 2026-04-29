@@ -18,9 +18,9 @@ import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
 const DEFAULT_RESUME = {
   name: "Your Name",
-  summary: "Write a strong professional summary...",
-  skills: ["React", "JavaScript"],
-  experience: [{ role: "Frontend Developer", company: "Company Name" }],
+  summary: "",
+  skills: [],
+  experience: [],
 };
 
 export default function Analyze() {
@@ -41,9 +41,6 @@ export default function Analyze() {
 
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-
-  const [versions, setVersions] = useState([]);
-  const [versionName, setVersionName] = useState("");
 
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
@@ -67,7 +64,6 @@ export default function Analyze() {
       if (layout) setSectionOrder(layout);
 
       const v = await getVersions(u.uid);
-      setVersions(v);
     });
 
     return () => unsub();
@@ -123,16 +119,14 @@ export default function Analyze() {
   // ↩️ UNDO REDO
   const undo = () => {
     if (historyIndex <= 0) return;
-    const i = historyIndex - 1;
-    setEditable(history[i]);
-    setHistoryIndex(i);
+    setEditable(history[historyIndex - 1]);
+    setHistoryIndex(historyIndex - 1);
   };
 
   const redo = () => {
     if (historyIndex >= history.length - 1) return;
-    const i = historyIndex + 1;
-    setEditable(history[i]);
-    setHistoryIndex(i);
+    setEditable(history[historyIndex + 1]);
+    setHistoryIndex(historyIndex + 1);
   };
 
   // 🤖 ATS ENGINE
@@ -140,17 +134,17 @@ export default function Analyze() {
     if (!job || !editable) return;
 
     const jobWords = job.toLowerCase().split(/\W+/);
-    const resumeWords = JSON.stringify(editable).toLowerCase();
+    const resumeText = JSON.stringify(editable).toLowerCase();
 
     const unique = [...new Set(jobWords.filter(w => w.length > 3))];
 
-    const matched = unique.filter(w => resumeWords.includes(w));
-    const missing = unique.filter(w => !resumeWords.includes(w));
+    const matched = unique.filter(w => resumeText.includes(w));
+    const missing = unique.filter(w => !resumeText.includes(w));
 
     const score = Math.round((matched.length / unique.length) * 100);
 
     setAtsScore(score || 0);
-    setMissingKeywords(missing.slice(0, 20));
+    setMissingKeywords(missing.slice(0, 15));
 
   }, [job, editable]);
 
@@ -169,9 +163,7 @@ export default function Analyze() {
 
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
-
-      setVersions(await getVersions(user.uid));
-    }, 2000);
+    }, 1500);
 
   }, [editable, sectionOrder, template]);
 
@@ -185,7 +177,7 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX (FIXED)
+  // 📄 DOCX
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
@@ -251,17 +243,7 @@ export default function Analyze() {
     setImproving(false);
   };
 
-  // ➕ SECTION
-  const addSection = () => {
-    const name = prompt("Section name?");
-    if (!name) return;
-    setSectionOrder([...sectionOrder, name]);
-  };
-
-  const removeSection = (sec) => {
-    setSectionOrder(sectionOrder.filter((s) => s !== sec));
-  };
-
+  // 🎨 TEMPLATE
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
@@ -271,90 +253,87 @@ export default function Analyze() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="h-screen flex flex-col bg-[#0f172a] text-white">
 
       {/* TOP BAR */}
-      <div className="flex flex-wrap gap-3 p-3 border-b bg-black text-white">
-        <button onClick={undo}>Undo</button>
-        <button onClick={redo}>Redo</button>
-        <button onClick={downloadPDF}>PDF</button>
-        <button onClick={exportDOCX}>DOCX</button>
-        <button onClick={shareResume}>Share</button>
-        <button onClick={addSection}>+ Section</button>
-        <button onClick={improveBullets}>
-          {improving ? "Improving..." : "Improve Bullets"}
+      <div className="sticky top-0 z-50 flex flex-wrap gap-2 p-3 bg-black border-b">
+        <button onClick={undo} className="btn">Undo</button>
+        <button onClick={redo} className="btn">Redo</button>
+        <button onClick={downloadPDF} className="btn">PDF</button>
+        <button onClick={exportDOCX} className="btn">DOCX</button>
+        <button onClick={shareResume} className="btn">Share</button>
+        <button onClick={improveBullets} className="btn">
+          {improving ? "Improving..." : "Improve"}
         </button>
-        <button onClick={()=>setRecruiterMode(!recruiterMode)}>
-          Recruiter Mode
-        </button>
-      </div>
 
-      {/* ATS PANEL */}
-      <div className="p-3 bg-gray-900 text-white text-sm">
-        ATS Score: {atsScore}%
-        <div className="flex flex-wrap gap-2 mt-2">
-          {missingKeywords.map((k,i)=>(
-            <span key={i} className="bg-red-500/20 px-2 py-1 rounded">
-              {k}
-            </span>
-          ))}
+        <div className="ml-auto font-bold">
+          ATS: {atsScore}%
         </div>
       </div>
 
-      {/* BULLET PANEL */}
-      {bulletSuggestions.length > 0 && (
-        <div className="p-4 bg-white border-t">
-          <h3 className="font-bold mb-2">AI Improvements</h3>
-          {bulletSuggestions.map((b,i)=>(
-            <div key={i} className="mb-3 border p-2">
-              <div>Original: {b.original}</div>
-              <div className="text-green-600">Improved: {b.improved}</div>
-              <div>Score: {b.score}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-1">
+      {/* MAIN */}
+      <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT */}
-        <div className="w-1/2 p-4 space-y-3 border-r">
+        <div className="w-full md:w-1/2 p-4 space-y-4 overflow-y-auto">
           <textarea
             placeholder="Paste your resume..."
             value={resumeText}
             onChange={(e)=>setResumeText(e.target.value)}
             className="input"
           />
+
           <textarea
             placeholder="Paste job description..."
             value={job}
             onChange={(e)=>setJob(e.target.value)}
             className="input"
           />
+
           <input
             placeholder="Your Name"
             value={editable.name}
             onChange={(e)=>updateField("name", e.target.value)}
             className="input"
           />
+
+          {/* KEYWORDS */}
+          <div>
+            <h3 className="font-bold mb-2">Missing Keywords</h3>
+            <div className="flex flex-wrap gap-2">
+              {missingKeywords.map((k,i)=>(
+                <span key={i} className="bg-red-500/20 px-2 py-1 rounded text-sm">
+                  {k}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* RIGHT */}
-        <div className="w-1/2 p-4 bg-gray-100">
-          <div className="flex gap-2 mb-3">
+        <div className="hidden md:block w-1/2 bg-gray-200 p-6 overflow-y-auto">
+
+          <div className="flex gap-2 mb-4">
             {["modern","minimal","creative"].map(t=>(
-              <button key={t} onClick={()=>setTemplate(t)}>
+              <button
+                key={t}
+                onClick={()=>setTemplate(t)}
+                className={`px-3 py-1 rounded ${
+                  template===t ? "bg-blue-500 text-white" : "bg-white text-black"
+                }`}
+              >
                 {t}
               </button>
             ))}
           </div>
 
-          <div ref={pdfRef} className="bg-white p-6">
+          <div ref={pdfRef} className="bg-white p-6 rounded shadow text-black">
             {renderTemplate()}
           </div>
+
         </div>
 
       </div>
     </div>
   );
-}
+         }
