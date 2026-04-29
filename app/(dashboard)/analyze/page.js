@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import { auth } from "../../../lib/firebase";
@@ -17,7 +16,6 @@ import ModernTemplate from "../../../components/templates/ModernTemplate";
 import MinimalTemplate from "../../../components/templates/MinimalTemplate";
 import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
-// ================= DEFAULT =================
 const DEFAULT_RESUME = {
   name: "Your Name",
   summary: "Write a strong professional summary...",
@@ -47,13 +45,15 @@ export default function Analyze() {
   const [versions, setVersions] = useState([]);
   const [versionName, setVersionName] = useState("");
 
-  const [atsScore, setAtsScore] = useState(null);
-  const [atsDetails, setAtsDetails] = useState(null);
+  const [atsScore, setAtsScore] = useState(0);
+  const [missingKeywords, setMissingKeywords] = useState([]);
+
+  const [recruiterMode, setRecruiterMode] = useState(false);
 
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // ================= AUTH =================
+  // 🔐 AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
@@ -70,29 +70,22 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // ================= SKILL GAP AUTO FIX =================
+  // 🔥 SKILL GAP AUTO FIX
   useEffect(() => {
     const fix = localStorage.getItem("fixData");
-
     if (fix) {
       const parsed = JSON.parse(fix);
-
       setJob(parsed.job || "");
-      setResumeText(
-        `Improve resume with: ${parsed.missingSkills?.join(", ")}`
-      );
-
+      setResumeText(`Improve resume with: ${parsed.missingSkills?.join(", ")}`);
       localStorage.removeItem("fixData");
     }
   }, []);
 
-  // ================= HISTORY =================
+  // 🧠 HISTORY
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
-
     if (newHistory.length > 20) newHistory.shift();
-
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -103,7 +96,7 @@ export default function Analyze() {
     pushHistory(updated);
   };
 
-  // ================= DRAG =================
+  // 🔀 DRAG
   const onDragEnd = async (result) => {
     if (!result.destination) return;
 
@@ -112,11 +105,10 @@ export default function Analyze() {
     items.splice(result.destination.index, 0, moved);
 
     setSectionOrder(items);
-
     if (user) await saveLayout(user.uid, items);
   };
 
-  // ================= UNDO REDO =================
+  // ↩️ UNDO REDO
   const undo = () => {
     if (historyIndex <= 0) return;
     const i = historyIndex - 1;
@@ -131,28 +123,26 @@ export default function Analyze() {
     setHistoryIndex(i);
   };
 
-  // ================= ATS SYSTEM (🔥 NEW CORE FEATURE) =================
-  const analyzeATS = () => {
-    if (!job || !resumeText) return alert("Add resume + job");
+  // 🤖 ATS SCORE ENGINE
+  useEffect(() => {
+    if (!job || !editable) return;
 
     const jobWords = job.toLowerCase().split(/\W+/);
-    const resumeWords = resumeText.toLowerCase().split(/\W+/);
+    const resumeWords = JSON.stringify(editable).toLowerCase();
 
-    const uniqueJob = [...new Set(jobWords)];
-    const matches = uniqueJob.filter((w) => resumeWords.includes(w));
+    const uniqueJobWords = [...new Set(jobWords.filter(w => w.length > 3))];
 
-    const score = Math.round((matches.length / uniqueJob.length) * 100);
+    const matched = uniqueJobWords.filter(w => resumeWords.includes(w));
+    const missing = uniqueJobWords.filter(w => !resumeWords.includes(w));
 
-    const missing = uniqueJob.filter((w) => !resumeWords.includes(w)).slice(0, 20);
+    const score = Math.round((matched.length / uniqueJobWords.length) * 100);
 
-    setAtsScore(score);
-    setAtsDetails({
-      matched: matches.slice(0, 20),
-      missing,
-    });
-  };
+    setAtsScore(score || 0);
+    setMissingKeywords(missing.slice(0, 20));
 
-  // ================= AUTOSAVE =================
+  }, [job, editable]);
+
+  // 💾 AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
@@ -170,9 +160,10 @@ export default function Analyze() {
 
       setVersions(await getVersions(user.uid));
     }, 2000);
+
   }, [editable, sectionOrder, template]);
 
-  // ================= PDF =================
+  // 📄 PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -182,35 +173,29 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // ================= DOCX (SAFE IMPORT) =================
+  // 📄 DOCX (NO BUILD ERROR)
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
 
     const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: editable.name,
-                  bold: true,
-                  size: 32,
-                }),
-              ],
-            }),
-            new Paragraph(editable.summary),
-          ],
-        },
-      ],
+      sections: [{
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({ text: editable.name, bold: true, size: 32 }),
+            ],
+          }),
+          new Paragraph(editable.summary),
+        ],
+      }],
     });
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "resume.docx");
   };
 
-  // ================= SHARE =================
+  // 🔗 SHARE
   const shareResume = async () => {
     if (!user) return;
 
@@ -220,11 +205,7 @@ export default function Analyze() {
       method: "POST",
       body: JSON.stringify({
         id,
-        data: {
-          resume: editable,
-          layout: sectionOrder,
-          template,
-        },
+        data: { resume: editable, layout: sectionOrder, template },
       }),
     });
 
@@ -233,7 +214,17 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
-  // ================= TEMPLATE =================
+  // ➕ SECTION
+  const addSection = () => {
+    const name = prompt("Section name?");
+    if (!name) return;
+    setSectionOrder([...sectionOrder, name]);
+  };
+
+  const removeSection = (sec) => {
+    setSectionOrder(sectionOrder.filter((s) => s !== sec));
+  };
+
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
 
@@ -245,29 +236,38 @@ export default function Analyze() {
   return (
     <div className="flex flex-col h-screen">
 
-      {/* ===== TOP BAR FIXED UI ===== */}
-      <div className="flex flex-wrap gap-2 p-3 border-b bg-white sticky top-0 z-50">
+      {/* TOP BAR */}
+      <div className="flex flex-wrap gap-2 p-3 border-b bg-black text-white">
+        <button onClick={undo}>Undo</button>
+        <button onClick={redo}>Redo</button>
+        <button onClick={downloadPDF}>PDF</button>
+        <button onClick={exportDOCX}>DOCX</button>
+        <button onClick={shareResume}>Share</button>
+        <button onClick={addSection}>+ Section</button>
 
-        <button onClick={undo} className="btn-primary">Undo</button>
-        <button onClick={redo} className="btn-primary">Redo</button>
-
-        <button onClick={analyzeATS} className="btn-primary bg-green-600">
-          ATS Score
+        <button onClick={()=>setRecruiterMode(!recruiterMode)}>
+          Recruiter Mode
         </button>
+      </div>
 
-        <button onClick={downloadPDF} className="btn-primary">PDF</button>
-        <button onClick={exportDOCX} className="btn-primary">DOCX</button>
-        <button onClick={shareResume} className="btn-primary">Share</button>
-
+      {/* ATS PANEL */}
+      <div className="p-3 bg-gray-900 text-white text-sm">
+        <div>ATS Score: {atsScore}%</div>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {missingKeywords.map((k,i)=>(
+            <span key={i} className="bg-red-500/20 px-2 py-1 rounded">
+              {k}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* ===== LEFT PANEL (FIXED PLACEHOLDERS) ===== */}
-        <div className="w-full md:w-1/2 p-4 space-y-3 overflow-y-auto">
-
+        {/* LEFT */}
+        <div className="w-full md:w-1/2 p-4 space-y-3 border-r">
           <textarea
-            placeholder="Paste your resume text here..."
+            placeholder="Paste resume text..."
             value={resumeText}
             onChange={(e)=>setResumeText(e.target.value)}
             className="input"
@@ -286,57 +286,33 @@ export default function Analyze() {
             onChange={(e)=>updateField("name", e.target.value)}
             className="input"
           />
-
         </div>
 
-        {/* ===== RIGHT PANEL ===== */}
-        <div className="w-full md:w-1/2 bg-gray-100 p-4 overflow-y-auto">
+        {/* RIGHT */}
+        <div className="w-full md:w-1/2 bg-gray-100 p-4">
 
-          {/* TEMPLATE UI FIX */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          {/* TEMPLATE SELECT */}
+          <div className="flex gap-3 mb-3">
             {["modern","minimal","creative"].map((t)=>(
-              <button
+              <div
                 key={t}
                 onClick={()=>setTemplate(t)}
-                className={`p-2 border rounded ${template===t?"bg-blue-500 text-white":""}`}
+                className={`p-3 border cursor-pointer ${
+                  template===t?"border-blue-500":""
+                }`}
               >
                 {t}
-              </button>
+              </div>
             ))}
           </div>
 
-          {/* PREVIEW FIXED (NO DUPLICATE RENDER) */}
+          {/* PREVIEW */}
           <div ref={pdfRef} className="bg-white p-6 rounded shadow">
             {renderTemplate()}
           </div>
-
-          {/* ===== ATS RESULT PANEL ===== */}
-          {atsScore !== null && (
-            <div className="mt-4 p-4 bg-black text-white rounded">
-
-              <h2 className="text-lg font-bold">ATS Score: {atsScore}%</h2>
-
-              <div className="mt-2 text-sm">
-                <p>Matched Keywords:</p>
-                <div className="flex flex-wrap gap-1">
-                  {atsDetails.matched.map((w,i)=>(
-                    <span key={i} className="bg-green-500/20 px-2 rounded">{w}</span>
-                  ))}
-                </div>
-
-                <p className="mt-2">Missing Keywords:</p>
-                <div className="flex flex-wrap gap-1">
-                  {atsDetails.missing.map((w,i)=>(
-                    <span key={i} className="bg-red-500/20 px-2 rounded">{w}</span>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          )}
 
         </div>
       </div>
     </div>
   );
-    }
+}
