@@ -48,6 +48,9 @@ export default function Analyze() {
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
 
+  const [bulletSuggestions, setBulletSuggestions] = useState([]);
+  const [improving, setImproving] = useState(false);
+
   const [recruiterMode, setRecruiterMode] = useState(false);
 
   const pdfRef = useRef();
@@ -73,11 +76,18 @@ export default function Analyze() {
   // 🔥 SKILL GAP AUTO FIX
   useEffect(() => {
     const fix = localStorage.getItem("fixData");
+
     if (fix) {
-      const parsed = JSON.parse(fix);
-      setJob(parsed.job || "");
-      setResumeText(`Improve resume with: ${parsed.missingSkills?.join(", ")}`);
-      localStorage.removeItem("fixData");
+      try {
+        const parsed = JSON.parse(fix);
+
+        setJob(parsed.job || "");
+        setResumeText(
+          `Improve resume with: ${parsed.missingSkills?.join(", ")}`
+        );
+
+        localStorage.removeItem("fixData");
+      } catch {}
     }
   }, []);
 
@@ -85,7 +95,9 @@ export default function Analyze() {
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
+
     if (newHistory.length > 20) newHistory.shift();
+
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -123,19 +135,19 @@ export default function Analyze() {
     setHistoryIndex(i);
   };
 
-  // 🤖 ATS SCORE ENGINE
+  // 🤖 ATS ENGINE
   useEffect(() => {
     if (!job || !editable) return;
 
     const jobWords = job.toLowerCase().split(/\W+/);
     const resumeWords = JSON.stringify(editable).toLowerCase();
 
-    const uniqueJobWords = [...new Set(jobWords.filter(w => w.length > 3))];
+    const unique = [...new Set(jobWords.filter(w => w.length > 3))];
 
-    const matched = uniqueJobWords.filter(w => resumeWords.includes(w));
-    const missing = uniqueJobWords.filter(w => !resumeWords.includes(w));
+    const matched = unique.filter(w => resumeWords.includes(w));
+    const missing = unique.filter(w => !resumeWords.includes(w));
 
-    const score = Math.round((matched.length / uniqueJobWords.length) * 100);
+    const score = Math.round((matched.length / unique.length) * 100);
 
     setAtsScore(score || 0);
     setMissingKeywords(missing.slice(0, 20));
@@ -173,7 +185,7 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX (NO BUILD ERROR)
+  // 📄 DOCX (FIXED)
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
@@ -214,6 +226,31 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
+  // 🚀 BULLET IMPROVER
+  const improveBullets = async () => {
+    if (!editable?.experience?.length) return;
+
+    setImproving(true);
+
+    try {
+      const res = await fetch("/api/improve-bullets", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          experience: editable.experience,
+          job,
+        }),
+      });
+
+      const data = await res.json();
+      setBulletSuggestions(data.suggestions || []);
+    } catch {
+      alert("Failed");
+    }
+
+    setImproving(false);
+  };
+
   // ➕ SECTION
   const addSection = () => {
     const name = prompt("Section name?");
@@ -237,14 +274,16 @@ export default function Analyze() {
     <div className="flex flex-col h-screen">
 
       {/* TOP BAR */}
-      <div className="flex flex-wrap gap-2 p-3 border-b bg-black text-white">
+      <div className="flex flex-wrap gap-3 p-3 border-b bg-black text-white">
         <button onClick={undo}>Undo</button>
         <button onClick={redo}>Redo</button>
         <button onClick={downloadPDF}>PDF</button>
         <button onClick={exportDOCX}>DOCX</button>
         <button onClick={shareResume}>Share</button>
         <button onClick={addSection}>+ Section</button>
-
+        <button onClick={improveBullets}>
+          {improving ? "Improving..." : "Improve Bullets"}
+        </button>
         <button onClick={()=>setRecruiterMode(!recruiterMode)}>
           Recruiter Mode
         </button>
@@ -252,7 +291,7 @@ export default function Analyze() {
 
       {/* ATS PANEL */}
       <div className="p-3 bg-gray-900 text-white text-sm">
-        <div>ATS Score: {atsScore}%</div>
+        ATS Score: {atsScore}%
         <div className="flex flex-wrap gap-2 mt-2">
           {missingKeywords.map((k,i)=>(
             <span key={i} className="bg-red-500/20 px-2 py-1 rounded">
@@ -262,24 +301,36 @@ export default function Analyze() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col md:flex-row">
+      {/* BULLET PANEL */}
+      {bulletSuggestions.length > 0 && (
+        <div className="p-4 bg-white border-t">
+          <h3 className="font-bold mb-2">AI Improvements</h3>
+          {bulletSuggestions.map((b,i)=>(
+            <div key={i} className="mb-3 border p-2">
+              <div>Original: {b.original}</div>
+              <div className="text-green-600">Improved: {b.improved}</div>
+              <div>Score: {b.score}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-1">
 
         {/* LEFT */}
-        <div className="w-full md:w-1/2 p-4 space-y-3 border-r">
+        <div className="w-1/2 p-4 space-y-3 border-r">
           <textarea
-            placeholder="Paste resume text..."
+            placeholder="Paste your resume..."
             value={resumeText}
             onChange={(e)=>setResumeText(e.target.value)}
             className="input"
           />
-
           <textarea
             placeholder="Paste job description..."
             value={job}
             onChange={(e)=>setJob(e.target.value)}
             className="input"
           />
-
           <input
             placeholder="Your Name"
             value={editable.name}
@@ -289,29 +340,20 @@ export default function Analyze() {
         </div>
 
         {/* RIGHT */}
-        <div className="w-full md:w-1/2 bg-gray-100 p-4">
-
-          {/* TEMPLATE SELECT */}
-          <div className="flex gap-3 mb-3">
-            {["modern","minimal","creative"].map((t)=>(
-              <div
-                key={t}
-                onClick={()=>setTemplate(t)}
-                className={`p-3 border cursor-pointer ${
-                  template===t?"border-blue-500":""
-                }`}
-              >
+        <div className="w-1/2 p-4 bg-gray-100">
+          <div className="flex gap-2 mb-3">
+            {["modern","minimal","creative"].map(t=>(
+              <button key={t} onClick={()=>setTemplate(t)}>
                 {t}
-              </div>
+              </button>
             ))}
           </div>
 
-          {/* PREVIEW */}
-          <div ref={pdfRef} className="bg-white p-6 rounded shadow">
+          <div ref={pdfRef} className="bg-white p-6">
             {renderTemplate()}
           </div>
-
         </div>
+
       </div>
     </div>
   );
