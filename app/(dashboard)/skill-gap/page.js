@@ -110,7 +110,7 @@ export default function SkillGap() {
     return text.split("\n")[0].slice(0, 30);
   };
 
-  // ✨ TYPING EFFECT
+  // ✨ SAFE TYPING EFFECT
   const typeEffect = (fullData) => {
     if (!fullData?.missingSkills?.length) {
       setDisplayData(fullData);
@@ -127,7 +127,7 @@ export default function SkillGap() {
 
       i++;
       if (i > fullData.missingSkills.length) clearInterval(interval);
-    }, 100);
+    }, 80);
   };
 
   // 🤖 ANALYZE
@@ -139,63 +139,62 @@ export default function SkillGap() {
     setData(null);
     setDisplayData(null);
 
-    const formData = new FormData();
-    formData.append("job", job);
-    formData.append("skills", skills);
+    try {
+      const formData = new FormData();
+      formData.append("job", job);
+      formData.append("skills", skills);
 
-    if (file) formData.append("file", file);
-    if (user) formData.append("userId", user.uid);
+      if (file) formData.append("file", file);
+      if (user) formData.append("userId", user.uid);
 
-    const res = await fetch("/api/skill-gap", {
-      method: "POST",
-      body: formData,
-    });
+      const res = await fetch("/api/skill-gap", {
+        method: "POST",
+        body: formData,
+      });
 
-    const json = await res.json();
+      const json = await res.json();
 
-    const safeData = {
-      matchPercentage: json.matchPercentage || 0,
-      matchedSkills: json.matchedSkills || [],
-      missingSkills: json.missingSkills || [],
-      recommendedSkills: json.recommendedSkills || [],
-      learningPlan: json.learningPlan || [],
-      score: json.resumeScore || json.matchPercentage || 0,
-      ats: json.atsScore || 0,
-    };
+      const safeData = {
+        matchPercentage: json.matchPercentage || 0,
+        matchedSkills: json.matchedSkills || [],
+        missingSkills: json.missingSkills || [],
+        recommendedSkills: json.recommendedSkills || [],
+        learningPlan: json.learningPlan || [],
+        score: json.resumeScore || json.matchPercentage || 0,
+        ats: json.atsScore || 0,
+      };
 
-    setData(safeData);
-    typeEffect(safeData);
+      setData(safeData);
+      typeEffect(safeData);
 
-    // 💾 SAVE CHAT
-    if (user && activeChat) {
-      const updatedMessages = [
-        ...messages,
-        {
-          role: "assistant",
-          content: safeData,
-        },
-      ];
+      // 💾 SAVE CHAT
+      if (user && activeChat) {
+        const updatedMessages = [
+          ...messages,
+          { role: "assistant", content: safeData },
+        ];
 
-      setMessages(updatedMessages);
+        setMessages(updatedMessages);
 
-      await saveMessages(user.uid, activeChat.id, updatedMessages);
+        await saveMessages(user.uid, activeChat.id, updatedMessages);
 
-      // 🧠 AUTO TITLE
-      const title = generateTitle(job);
+        const title = generateTitle(job);
+        await updateChatTitle(user.uid, activeChat.id, title);
 
-      await updateChatTitle(user.uid, activeChat.id, title);
-
-      setChats((prev) =>
-        prev.map((c) =>
-          c.id === activeChat.id ? { ...c, title } : c
-        )
-      );
+        setChats((prev) =>
+          prev.map((c) =>
+            c.id === activeChat.id ? { ...c, title } : c
+          )
+        );
+      }
+    } catch (err) {
+      alert("Analysis failed");
     }
 
     setLoading(false);
   };
 
-  // 🚀 FIX RESUME (NEW FEATURE)
+  // 🚀 FIX RESUME (AUTO CONNECT TO ANALYZE PAGE)
   const handleFixResume = () => {
     if (!displayData) return;
 
@@ -207,7 +206,7 @@ export default function SkillGap() {
 
     localStorage.setItem("fixData", JSON.stringify(payload));
 
-    // redirect to analyze page
+    // smooth redirect
     window.location.href = "/analyze";
   };
 
@@ -237,15 +236,17 @@ export default function SkillGap() {
       />
 
       {/* MAIN */}
-      <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+      <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
 
-        <h1 className="text-2xl font-bold">Skill Gap Analyzer</h1>
+        <h1 className="text-2xl font-bold">
+          Skill Gap Analyzer
+        </h1>
 
         {/* INPUT */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-[#020617] border border-gray-800 p-6 rounded-2xl space-y-4"
+          className="bg-[#020617] border border-gray-800 p-5 rounded-xl space-y-4"
         >
           <textarea
             value={job}
@@ -263,7 +264,7 @@ export default function SkillGap() {
             className="input"
           />
 
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             <input
               type="file"
               accept="application/pdf"
@@ -286,28 +287,37 @@ export default function SkillGap() {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-
+            {/* SCORE */}
             <div className="grid md:grid-cols-3 gap-6">
               <ScoreCard title="Match %" value={displayData.matchPercentage} />
               <ScoreCard title="Resume Score" value={displayData.score} />
               <ScoreCard title="ATS Score" value={displayData.ats} />
             </div>
 
+            {/* MISSING SKILLS */}
             <div className="card">
               <h2>Missing Skills</h2>
-              <div className="flex flex-wrap gap-2">
-                {displayData.missingSkills.map((k, i) => (
-                  <span key={i} className="bg-red-500/10 text-red-400 px-2 py-1 rounded">
-                    {k}
-                  </span>
-                ))}
+
+              <div className="flex flex-wrap gap-2 mt-2">
+                {displayData.missingSkills.length ? (
+                  displayData.missingSkills.map((k, i) => (
+                    <span
+                      key={i}
+                      className="bg-red-500/10 text-red-400 px-2 py-1 rounded"
+                    >
+                      {k}
+                    </span>
+                  ))
+                ) : (
+                  <p>No major gaps 🎉</p>
+                )}
               </div>
             </div>
 
-            {/* 🚀 NEW BUTTON */}
+            {/* 🚀 FIX BUTTON */}
             <button
               onClick={handleFixResume}
-              className="btn-primary w-full"
+              className="btn-primary w-full text-lg"
             >
               🚀 Fix Resume with AI
             </button>
@@ -317,4 +327,4 @@ export default function SkillGap() {
       </div>
     </div>
   );
-                                        }
+      }
