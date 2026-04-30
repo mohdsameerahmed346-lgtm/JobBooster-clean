@@ -18,10 +18,10 @@ import ProfessionalTemplate from "../../../components/templates/ProfessionalTemp
 import ExecutiveTemplate from "../../../components/templates/ExecutiveTemplate";
 
 const DEFAULT_RESUME = {
-  name: "Your Name",
-  summary: "Click to write your professional summary...",
-  skills: ["React", "JavaScript"],
-  experience: [{ role: "Frontend Developer", company: "Company Name" }],
+  name: "",
+  summary: "",
+  skills: [],
+  experience: [],
 };
 
 export default function Analyze() {
@@ -33,91 +33,89 @@ export default function Analyze() {
   const [editable, setEditable] = useState(DEFAULT_RESUME);
   const [template, setTemplate] = useState("modern");
 
-  const [sectionOrder, setSectionOrder] = useState([
-    "summary",
-    "skills",
-    "experience",
-  ]);
-
-  const [versions, setVersions] = useState([]);
-
-  // ATS
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
+  const [matchedKeywords, setMatchedKeywords] = useState([]);
 
-  // AI
   const [suggestions, setSuggestions] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
 
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // AUTH
+  // 🔐 AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
+
       setUser(u);
 
-      const layout = await getLayout(u.uid);
-      if (layout) setSectionOrder(layout);
-
       const v = await getVersions(u.uid);
-      setVersions(v);
+      console.log("versions loaded", v);
     });
 
     return () => unsub();
   }, []);
 
-  // SKILL GAP AUTO FIX
+  // 🔥 SKILL GAP AUTO FIX
   useEffect(() => {
     const fix = localStorage.getItem("fixData");
 
     if (fix) {
-      const parsed = JSON.parse(fix);
-      setJob(parsed.job || "");
-      setResumeText(`Improve resume with: ${parsed.missingSkills?.join(", ")}`);
-      localStorage.removeItem("fixData");
+      try {
+        const parsed = JSON.parse(fix);
+
+        setJob(parsed.job || "");
+        setResumeText(
+          `Improve resume with: ${(parsed.missingSkills || []).join(", ")}`
+        );
+
+        localStorage.removeItem("fixData");
+      } catch {}
     }
   }, []);
 
-  // ATS ENGINE
+  // 🧠 ATS ENGINE (SAFE FIXED)
   useEffect(() => {
     if (!job || !editable) return;
 
-    const jobWords = job.toLowerCase().split(/\W+/);
-    const resumeWords = JSON.stringify(editable).toLowerCase();
+    const jobWords = (job || "").toLowerCase().split(/\W+/);
+    const resumeWords = JSON.stringify(editable || {}).toLowerCase();
 
-    const unique = [...new Set(jobWords.filter(w => w.length > 3))];
+    const unique = [...new Set(jobWords.filter((w) => w.length > 3))];
 
-    const matched = unique.filter(w => resumeWords.includes(w));
-    const missing = unique.filter(w => !resumeWords.includes(w));
+    const matched = unique.filter((w) =>
+      resumeWords.includes(w)
+    );
 
-    const score = Math.round((matched.length / unique.length) * 100);
+    const missing = unique.filter(
+      (w) => !resumeWords.includes(w)
+    );
 
-    setAtsScore(score || 0);
+    const score =
+      unique.length > 0
+        ? Math.round((matched.length / unique.length) * 100)
+        : 0;
+
+    setAtsScore(score);
     setMissingKeywords(missing.slice(0, 15));
+    setMatchedKeywords(matched.slice(0, 10));
   }, [job, editable]);
 
-  // AUTOSAVE
+  // 💾 AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-      const data = { resume: editable, layout: sectionOrder, template };
+      const data = { resume: editable, template };
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
     }, 2000);
+  }, [editable, template]);
 
-  }, [editable, sectionOrder, template]);
-
-  // UPDATE FIELD (LIVE EDIT)
-  const updateField = (field, value) => {
-    setEditable(prev => ({ ...prev, [field]: value }));
-  };
-
-  // PDF
+  // 📄 PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -127,27 +125,35 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // DOCX
+  // 📄 DOCX
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
 
     const doc = new Document({
-      sections: [{
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: editable.name, bold: true, size: 32 })],
-          }),
-          new Paragraph(editable.summary),
-        ],
-      }],
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: editable.name || "Your Name",
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+            }),
+            new Paragraph(editable.summary || ""),
+          ],
+        },
+      ],
     });
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "resume.docx");
   };
 
-  // SHARE
+  // 🔗 SHARE
   const shareResume = async () => {
     const id = crypto.randomUUID();
 
@@ -155,7 +161,7 @@ export default function Analyze() {
       method: "POST",
       body: JSON.stringify({
         id,
-        data: { resume: editable, layout: sectionOrder, template },
+        data: { resume: editable, template },
       }),
     });
 
@@ -163,17 +169,17 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
-  // ADD KEYWORD
+  // ➕ ADD SKILL
   const addKeyword = (word) => {
-    if (!editable.skills.includes(word)) {
+    if (!editable.skills?.includes(word)) {
       setEditable({
         ...editable,
-        skills: [...editable.skills, word],
+        skills: [...(editable.skills || []), word],
       });
     }
   };
 
-  // AI Suggestions
+  // 🤖 AI SUGGESTIONS
   const getSuggestions = async () => {
     setLoadingAI(true);
 
@@ -190,7 +196,7 @@ export default function Analyze() {
     setLoadingAI(false);
   };
 
-  // TEMPLATE SWITCH
+  // 🎨 TEMPLATE
   const renderTemplate = () => {
     const props = { data: editable };
 
@@ -209,11 +215,11 @@ export default function Analyze() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-gray-100">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center p-3 border-b bg-black text-white">
-        <div>ATS Score: {atsScore}%</div>
+      <div className="flex justify-between items-center px-6 py-3 bg-black text-white">
+        <div className="font-semibold">ATS Score: {atsScore}%</div>
 
         <div className="flex gap-3">
           <button onClick={downloadPDF}>PDF</button>
@@ -225,30 +231,39 @@ export default function Analyze() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT PANEL */}
-        <div className="w-1/3 p-4 space-y-4 border-r overflow-y-auto bg-white">
+        <div className="w-1/3 bg-white p-4 space-y-4 overflow-y-auto border-r">
 
           <textarea
             placeholder="Paste your resume..."
             value={resumeText}
-            onChange={(e)=>setResumeText(e.target.value)}
+            onChange={(e) => setResumeText(e.target.value)}
             className="input w-full"
           />
 
           <textarea
             placeholder="Paste job description..."
             value={job}
-            onChange={(e)=>setJob(e.target.value)}
+            onChange={(e) => setJob(e.target.value)}
             className="input w-full"
           />
 
-          {/* ATS PANEL */}
+          <input
+            placeholder="Your Name"
+            value={editable.name}
+            onChange={(e) =>
+              setEditable({ ...editable, name: e.target.value })
+            }
+            className="input w-full"
+          />
+
+          {/* ATS */}
           <div className="bg-gray-900 text-white p-3 rounded">
             <h3 className="text-sm mb-2">Missing Keywords</h3>
             <div className="flex flex-wrap gap-2">
-              {missingKeywords.map((k,i)=>(
+              {missingKeywords.map((k, i) => (
                 <button
                   key={i}
-                  onClick={()=>addKeyword(k)}
+                  onClick={() => addKeyword(k)}
                   className="bg-red-500/20 px-2 py-1 rounded text-xs"
                 >
                   + {k}
@@ -257,66 +272,57 @@ export default function Analyze() {
             </div>
           </div>
 
-          {/* AI PANEL */}
-          <div className="bg-white p-3 rounded border">
-            <button onClick={getSuggestions} className="btn-primary w-full">
-              {loadingAI ? "Loading..." : "Get AI Suggestions"}
+          {/* AI */}
+          <div className="bg-white border p-3 rounded">
+            <button
+              onClick={getSuggestions}
+              className="btn-primary w-full"
+            >
+              {loadingAI ? "Loading..." : "AI Suggestions"}
             </button>
 
-            {suggestions.map((s,i)=>(
-              <div key={i} className="text-sm mt-2">• {s}</div>
+            {suggestions.map((s, i) => (
+              <div key={i} className="text-sm mt-2">
+                • {s}
+              </div>
             ))}
           </div>
 
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="w-2/3 p-4 bg-gray-100 overflow-y-auto">
+        <div className="w-2/3 flex flex-col">
 
-          {/* TEMPLATE SELECTOR */}
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold mb-2">Choose Template</h3>
-
-            <div className="flex gap-4 overflow-x-auto pb-2">
-
-              {["modern","minimal","creative","professional","executive"].map((t)=>(
+          {/* TEMPLATE SCROLL */}
+          <div className="p-4 bg-white border-b">
+            <div className="flex gap-4 overflow-x-auto">
+              {[
+                "modern",
+                "minimal",
+                "creative",
+                "professional",
+                "executive",
+              ].map((t) => (
                 <div
                   key={t}
-                  onClick={()=>setTemplate(t)}
-                  className={`min-w-[160px] p-3 cursor-pointer border rounded-xl
-                  ${template===t?"border-blue-500 shadow":"border-gray-300"}`}
+                  onClick={() => setTemplate(t)}
+                  className={`min-w-[140px] cursor-pointer border rounded-lg p-2 ${
+                    template === t ? "border-blue-500" : ""
+                  }`}
                 >
-                  {t}
+                  <div className="text-xs text-center capitalize">{t}</div>
                 </div>
               ))}
-
             </div>
           </div>
 
-          {/* LIVE EDIT PREVIEW */}
-          <div className="flex justify-center">
-            <div ref={pdfRef} className="bg-white p-6 shadow-lg w-[210mm]">
-
-              <div
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e)=>updateField("name", e.target.innerText)}
-                className="text-2xl font-bold outline-none hover:border-b"
-              >
-                {editable.name}
-              </div>
-
-              <div
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e)=>updateField("summary", e.target.innerText)}
-                className="mt-2 outline-none hover:border-b"
-              >
-                {editable.summary}
-              </div>
-
+          {/* PREVIEW */}
+          <div className="flex-1 overflow-auto p-6 flex justify-center">
+            <div
+              ref={pdfRef}
+              className="bg-white w-[794px] min-h-[1123px] shadow-lg p-8"
+            >
               {renderTemplate()}
-
             </div>
           </div>
 
@@ -325,4 +331,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-  }
+    }
