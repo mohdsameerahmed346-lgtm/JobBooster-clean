@@ -292,13 +292,56 @@ export default function Analyze() {
         {/* RIGHT PREVIEW */}
         <div className="w-full md:w-2/3 p-4 bg-gray-100 overflow-y-auto">
 
-          <div className="flex gap-2 mb-3">
-            {["modern","minimal","creative"].map(t=>(
-              <button key={t} onClick={()=>setTemplate(t)}>
-                {t}
-              </button>
-            ))}
+          <div className="mb-4">
+  <h3 className="text-sm font-semibold mb-2">Choose Template</h3>
+
+  <div className="flex gap-4 overflow-x-auto pb-2">
+
+    {[
+      { id: "modern", label: "Modern" },
+      { id: "minimal", label: "Minimal" },
+      { id: "creative", label: "Creative" },
+    ].map((t) => (
+
+      <div
+        key={t.id}
+        onClick={() => setTemplate(t.id)}
+        className={`min-w-[140px] cursor-pointer border rounded-xl overflow-hidden transition
+        ${template === t.id ? "border-blue-500 shadow-lg" : "border-gray-300"}
+        `}
+      >
+
+        {/* MINI PREVIEW */}
+        <div className="h-32 bg-white p-2 text-[8px] leading-tight">
+
+          <div className="font-bold">{editable.name || "Your Name"}</div>
+
+          <div className="mt-1 text-gray-500">
+            {editable.summary?.slice(0, 40) || "Summary preview..."}
           </div>
+
+          <div className="mt-2">
+            <div className="font-semibold">Skills</div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {(editable.skills || []).slice(0, 3).map((s, i) => (
+                <span key={i} className="bg-gray-200 px-1 rounded">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* LABEL */}
+        <div className="text-center text-xs py-1 bg-gray-50">
+          {t.label}
+        </div>
+
+      </div>
+    ))}
+  </div>
+</div>
 
           <div ref={pdfRef} className="bg-white p-6 shadow rounded">
             {renderTemplate()}
