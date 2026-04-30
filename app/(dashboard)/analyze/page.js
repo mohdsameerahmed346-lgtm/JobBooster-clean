@@ -18,13 +18,12 @@ import CreativeTemplate from "../../../components/templates/CreativeTemplate";
 
 const DEFAULT_RESUME = {
   name: "Your Name",
-  summary: "",
-  skills: [],
-  experience: [],
+  summary: "Write a strong professional summary...",
+  skills: ["React", "JavaScript"],
+  experience: [{ role: "Frontend Developer", company: "Company Name" }],
 };
 
 export default function Analyze() {
-
   const [user, setUser] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
@@ -42,13 +41,16 @@ export default function Analyze() {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
+  const [versions, setVersions] = useState([]);
+
+  // ATS
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
+  const [matchedKeywords, setMatchedKeywords] = useState([]);
 
-  const [bulletSuggestions, setBulletSuggestions] = useState([]);
-  const [improving, setImproving] = useState(false);
-
-  const [recruiterMode, setRecruiterMode] = useState(false);
+  // AI
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
@@ -57,13 +59,13 @@ export default function Analyze() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
-
       setUser(u);
 
       const layout = await getLayout(u.uid);
       if (layout) setSectionOrder(layout);
 
       const v = await getVersions(u.uid);
+      setVersions(v);
     });
 
     return () => unsub();
@@ -74,16 +76,10 @@ export default function Analyze() {
     const fix = localStorage.getItem("fixData");
 
     if (fix) {
-      try {
-        const parsed = JSON.parse(fix);
-
-        setJob(parsed.job || "");
-        setResumeText(
-          `Improve resume with: ${parsed.missingSkills?.join(", ")}`
-        );
-
-        localStorage.removeItem("fixData");
-      } catch {}
+      const parsed = JSON.parse(fix);
+      setJob(parsed.job || "");
+      setResumeText(`Improve resume with: ${parsed.missingSkills?.join(", ")}`);
+      localStorage.removeItem("fixData");
     }
   }, []);
 
@@ -91,9 +87,6 @@ export default function Analyze() {
   const pushHistory = (state) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(state);
-
-    if (newHistory.length > 20) newHistory.shift();
-
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -116,35 +109,23 @@ export default function Analyze() {
     if (user) await saveLayout(user.uid, items);
   };
 
-  // ↩️ UNDO REDO
-  const undo = () => {
-    if (historyIndex <= 0) return;
-    setEditable(history[historyIndex - 1]);
-    setHistoryIndex(historyIndex - 1);
-  };
-
-  const redo = () => {
-    if (historyIndex >= history.length - 1) return;
-    setEditable(history[historyIndex + 1]);
-    setHistoryIndex(historyIndex + 1);
-  };
-
-  // 🤖 ATS ENGINE
+  // 🤖 ATS ENGINE (UPGRADED)
   useEffect(() => {
     if (!job || !editable) return;
 
     const jobWords = job.toLowerCase().split(/\W+/);
-    const resumeText = JSON.stringify(editable).toLowerCase();
+    const resumeWords = JSON.stringify(editable).toLowerCase();
 
     const unique = [...new Set(jobWords.filter(w => w.length > 3))];
 
-    const matched = unique.filter(w => resumeText.includes(w));
-    const missing = unique.filter(w => !resumeText.includes(w));
+    const matched = unique.filter(w => resumeWords.includes(w));
+    const missing = unique.filter(w => !resumeWords.includes(w));
 
     const score = Math.round((matched.length / unique.length) * 100);
 
     setAtsScore(score || 0);
     setMissingKeywords(missing.slice(0, 15));
+    setMatchedKeywords(matched.slice(0, 10));
 
   }, [job, editable]);
 
@@ -155,15 +136,11 @@ export default function Analyze() {
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-      const data = {
-        resume: editable,
-        layout: sectionOrder,
-        template,
-      };
-
+      const data = { resume: editable, layout: sectionOrder, template };
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
-    }, 1500);
+      setVersions(await getVersions(user.uid));
+    }, 2000);
 
   }, [editable, sectionOrder, template]);
 
@@ -186,9 +163,7 @@ export default function Analyze() {
       sections: [{
         children: [
           new Paragraph({
-            children: [
-              new TextRun({ text: editable.name, bold: true, size: 32 }),
-            ],
+            children: [new TextRun({ text: editable.name, bold: true, size: 32 })],
           }),
           new Paragraph(editable.summary),
         ],
@@ -201,8 +176,6 @@ export default function Analyze() {
 
   // 🔗 SHARE
   const shareResume = async () => {
-    if (!user) return;
-
     const id = crypto.randomUUID();
 
     await fetch("/api/share-resume", {
@@ -213,69 +186,57 @@ export default function Analyze() {
       }),
     });
 
-    const link = `${window.location.origin}/resume/${id}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard.writeText(`${window.location.origin}/resume/${id}`);
     alert("Link copied!");
   };
 
-  // 🚀 BULLET IMPROVER
-  const improveBullets = async () => {
-    if (!editable?.experience?.length) return;
-
-    setImproving(true);
-
-    try {
-      const res = await fetch("/api/improve-bullets", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({
-          experience: editable.experience,
-          job,
-        }),
-      });
-
-      const data = await res.json();
-      setBulletSuggestions(data.suggestions || []);
-    } catch {
-      alert("Failed");
+  // 🚀 ADD KEYWORD
+  const addKeyword = (word) => {
+    if (!editable.skills.includes(word)) {
+      updateField("skills", [...editable.skills, word]);
     }
-
-    setImproving(false);
   };
 
-  // 🎨 TEMPLATE
+  // 🤖 AI SUGGESTIONS
+  const getSuggestions = async () => {
+    setLoadingAI(true);
+
+    const res = await fetch("/api/rewrite-resume", {
+      method: "POST",
+      body: new FormData(),
+    });
+
+    const data = await res.json();
+    setSuggestions(data?.tips || []);
+    setLoadingAI(false);
+  };
+
   const renderTemplate = () => {
     const props = { data: editable, order: sectionOrder };
-
     if (template === "minimal") return <MinimalTemplate {...props} />;
     if (template === "creative") return <CreativeTemplate {...props} />;
     return <ModernTemplate {...props} />;
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#0f172a] text-white">
+    <div className="flex flex-col h-screen">
 
-      {/* TOP BAR */}
-      <div className="sticky top-0 z-50 flex flex-wrap gap-2 p-3 bg-black border-b">
-        <button onClick={undo} className="btn">Undo</button>
-        <button onClick={redo} className="btn">Redo</button>
-        <button onClick={downloadPDF} className="btn">PDF</button>
-        <button onClick={exportDOCX} className="btn">DOCX</button>
-        <button onClick={shareResume} className="btn">Share</button>
-        <button onClick={improveBullets} className="btn">
-          {improving ? "Improving..." : "Improve"}
-        </button>
+      {/* HEADER */}
+      <div className="flex justify-between items-center p-3 border-b bg-black text-white">
+        <div>ATS: {atsScore}%</div>
 
-        <div className="ml-auto font-bold">
-          ATS: {atsScore}%
+        <div className="flex gap-2">
+          <button onClick={downloadPDF}>PDF</button>
+          <button onClick={exportDOCX}>DOCX</button>
+          <button onClick={shareResume}>Share</button>
         </div>
       </div>
 
-      {/* MAIN */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* LEFT */}
-        <div className="w-full md:w-1/2 p-4 space-y-4 overflow-y-auto">
+        {/* LEFT PANEL */}
+        <div className="w-full md:w-1/3 p-4 space-y-4 border-r overflow-y-auto">
+
           <textarea
             placeholder="Paste your resume..."
             value={resumeText}
@@ -297,37 +258,49 @@ export default function Analyze() {
             className="input"
           />
 
-          {/* KEYWORDS */}
-          <div>
-            <h3 className="font-bold mb-2">Missing Keywords</h3>
-            <div className="flex flex-wrap gap-2">
+          {/* ATS PANEL */}
+          <div className="bg-gray-900 text-white p-3 rounded">
+            <h3>Missing Keywords</h3>
+            <div className="flex flex-wrap gap-2 mt-2">
               {missingKeywords.map((k,i)=>(
-                <span key={i} className="bg-red-500/20 px-2 py-1 rounded text-sm">
-                  {k}
-                </span>
+                <button
+                  key={i}
+                  onClick={()=>addKeyword(k)}
+                  className="bg-red-500/20 px-2 py-1 rounded"
+                >
+                  + {k}
+                </button>
               ))}
             </div>
           </div>
+
+          {/* AI PANEL */}
+          <div className="bg-white p-3 rounded border">
+            <button onClick={getSuggestions}>
+              {loadingAI ? "Loading..." : "Get AI Suggestions"}
+            </button>
+
+            {suggestions.map((s,i)=>(
+              <div key={i} className="text-sm mt-2">
+                • {s}
+              </div>
+            ))}
+          </div>
+
         </div>
 
-        {/* RIGHT */}
-        <div className="hidden md:block w-1/2 bg-gray-200 p-6 overflow-y-auto">
+        {/* RIGHT PREVIEW */}
+        <div className="w-full md:w-2/3 p-4 bg-gray-100 overflow-y-auto">
 
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-3">
             {["modern","minimal","creative"].map(t=>(
-              <button
-                key={t}
-                onClick={()=>setTemplate(t)}
-                className={`px-3 py-1 rounded ${
-                  template===t ? "bg-blue-500 text-white" : "bg-white text-black"
-                }`}
-              >
+              <button key={t} onClick={()=>setTemplate(t)}>
                 {t}
               </button>
             ))}
           </div>
 
-          <div ref={pdfRef} className="bg-white p-6 rounded shadow text-black">
+          <div ref={pdfRef} className="bg-white p-6 shadow rounded">
             {renderTemplate()}
           </div>
 
@@ -336,4 +309,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-         }
+}
