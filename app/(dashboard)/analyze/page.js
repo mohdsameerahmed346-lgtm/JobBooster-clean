@@ -15,6 +15,8 @@ import { getVersions, saveVersion } from "../../../lib/version";
 import ModernTemplate from "../../../components/templates/ModernTemplate";
 import MinimalTemplate from "../../../components/templates/MinimalTemplate";
 import CreativeTemplate from "../../../components/templates/CreativeTemplate";
+import ProfessionalTemplate from "../../../components/templates/ProfessionalTemplate";
+import ExecutiveTemplate from "../../../components/templates/ExecutiveTemplate";
 
 const DEFAULT_RESUME = {
   name: "Your Name",
@@ -38,9 +40,6 @@ export default function Analyze() {
     "experience",
   ]);
 
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-
   const [versions, setVersions] = useState([]);
 
   // ATS
@@ -55,7 +54,7 @@ export default function Analyze() {
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // 🔐 AUTH
+  // AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
@@ -71,7 +70,7 @@ export default function Analyze() {
     return () => unsub();
   }, []);
 
-  // 🔥 SKILL GAP AUTO FIX
+  // SKILL GAP AUTO FIX
   useEffect(() => {
     const fix = localStorage.getItem("fixData");
 
@@ -83,33 +82,7 @@ export default function Analyze() {
     }
   }, []);
 
-  // 🧠 HISTORY
-  const pushHistory = (state) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(state);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  };
-
-  const updateField = (field, value) => {
-    const updated = { ...editable, [field]: value };
-    setEditable(updated);
-    pushHistory(updated);
-  };
-
-  // 🔀 DRAG
-  const onDragEnd = async (result) => {
-    if (!result.destination) return;
-
-    const items = Array.from(sectionOrder);
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
-
-    setSectionOrder(items);
-    if (user) await saveLayout(user.uid, items);
-  };
-
-  // 🤖 ATS ENGINE (UPGRADED)
+  // ATS ENGINE
   useEffect(() => {
     if (!job || !editable) return;
 
@@ -126,10 +99,9 @@ export default function Analyze() {
     setAtsScore(score || 0);
     setMissingKeywords(missing.slice(0, 15));
     setMatchedKeywords(matched.slice(0, 10));
-
   }, [job, editable]);
 
-  // 💾 AUTOSAVE
+  // AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
@@ -144,7 +116,7 @@ export default function Analyze() {
 
   }, [editable, sectionOrder, template]);
 
-  // 📄 PDF
+  // PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -154,7 +126,7 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX
+  // DOCX
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
@@ -174,7 +146,7 @@ export default function Analyze() {
     saveAs(blob, "resume.docx");
   };
 
-  // 🔗 SHARE
+  // SHARE
   const shareResume = async () => {
     const id = crypto.randomUUID();
 
@@ -190,32 +162,49 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
-  // 🚀 ADD KEYWORD
+  // ADD KEYWORD
   const addKeyword = (word) => {
     if (!editable.skills.includes(word)) {
-      updateField("skills", [...editable.skills, word]);
+      setEditable({
+        ...editable,
+        skills: [...editable.skills, word],
+      });
     }
   };
 
-  // 🤖 AI SUGGESTIONS
+  // AI Suggestions
   const getSuggestions = async () => {
     setLoadingAI(true);
 
-    const res = await fetch("/api/rewrite-resume", {
-      method: "POST",
-      body: new FormData(),
-    });
+    try {
+      const res = await fetch("/api/rewrite-resume", {
+        method: "POST",
+        body: new FormData(),
+      });
 
-    const data = await res.json();
-    setSuggestions(data?.tips || []);
+      const data = await res.json();
+      setSuggestions(data?.tips || []);
+    } catch {}
+
     setLoadingAI(false);
   };
 
+  // TEMPLATE SWITCH
   const renderTemplate = () => {
-    const props = { data: editable, order: sectionOrder };
-    if (template === "minimal") return <MinimalTemplate {...props} />;
-    if (template === "creative") return <CreativeTemplate {...props} />;
-    return <ModernTemplate {...props} />;
+    const props = { data: editable };
+
+    switch (template) {
+      case "minimal":
+        return <MinimalTemplate {...props} />;
+      case "creative":
+        return <CreativeTemplate {...props} />;
+      case "professional":
+        return <ProfessionalTemplate {...props} />;
+      case "executive":
+        return <ExecutiveTemplate {...props} />;
+      default:
+        return <ModernTemplate {...props} />;
+    }
   };
 
   return (
@@ -223,50 +212,50 @@ export default function Analyze() {
 
       {/* HEADER */}
       <div className="flex justify-between items-center p-3 border-b bg-black text-white">
-        <div>ATS: {atsScore}%</div>
+        <div>ATS Score: {atsScore}%</div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button onClick={downloadPDF}>PDF</button>
           <button onClick={exportDOCX}>DOCX</button>
           <button onClick={shareResume}>Share</button>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col md:flex-row">
+      <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT PANEL */}
-        <div className="w-full md:w-1/3 p-4 space-y-4 border-r overflow-y-auto">
+        <div className="w-1/3 p-4 space-y-4 border-r overflow-y-auto bg-white">
 
           <textarea
             placeholder="Paste your resume..."
             value={resumeText}
             onChange={(e)=>setResumeText(e.target.value)}
-            className="input"
+            className="input w-full"
           />
 
           <textarea
             placeholder="Paste job description..."
             value={job}
             onChange={(e)=>setJob(e.target.value)}
-            className="input"
+            className="input w-full"
           />
 
           <input
             placeholder="Your Name"
             value={editable.name}
-            onChange={(e)=>updateField("name", e.target.value)}
-            className="input"
+            onChange={(e)=>setEditable({...editable, name: e.target.value})}
+            className="input w-full"
           />
 
           {/* ATS PANEL */}
           <div className="bg-gray-900 text-white p-3 rounded">
-            <h3>Missing Keywords</h3>
-            <div className="flex flex-wrap gap-2 mt-2">
+            <h3 className="text-sm mb-2">Missing Keywords</h3>
+            <div className="flex flex-wrap gap-2">
               {missingKeywords.map((k,i)=>(
                 <button
                   key={i}
                   onClick={()=>addKeyword(k)}
-                  className="bg-red-500/20 px-2 py-1 rounded"
+                  className="bg-red-500/20 px-2 py-1 rounded text-xs"
                 >
                   + {k}
                 </button>
@@ -276,75 +265,62 @@ export default function Analyze() {
 
           {/* AI PANEL */}
           <div className="bg-white p-3 rounded border">
-            <button onClick={getSuggestions}>
+            <button onClick={getSuggestions} className="btn-primary w-full">
               {loadingAI ? "Loading..." : "Get AI Suggestions"}
             </button>
 
             {suggestions.map((s,i)=>(
-              <div key={i} className="text-sm mt-2">
-                • {s}
-              </div>
+              <div key={i} className="text-sm mt-2">• {s}</div>
             ))}
           </div>
 
         </div>
 
-        {/* RIGHT PREVIEW */}
-        <div className="w-full md:w-2/3 p-4 bg-gray-100 overflow-y-auto">
+        {/* RIGHT PANEL */}
+        <div className="w-2/3 p-4 bg-gray-100 overflow-y-auto">
 
+          {/* TEMPLATE SCROLLER */}
           <div className="mb-4">
-  <h3 className="text-sm font-semibold mb-2">Choose Template</h3>
+            <h3 className="text-sm font-semibold mb-2">Choose Template</h3>
 
-  <div className="flex gap-4 overflow-x-auto pb-2">
+            <div className="flex gap-4 overflow-x-auto pb-2">
 
-    {[
-      { id: "modern", label: "Modern" },
-      { id: "minimal", label: "Minimal" },
-      { id: "creative", label: "Creative" },
-    ].map((t) => (
+              {[
+                { id: "modern", label: "Modern" },
+                { id: "minimal", label: "Minimal" },
+                { id: "creative", label: "Creative" },
+                { id: "professional", label: "Pro" },
+                { id: "executive", label: "Executive" },
+              ].map((t) => (
 
-      <div
-        key={t.id}
-        onClick={() => setTemplate(t.id)}
-        className={`min-w-[140px] cursor-pointer border rounded-xl overflow-hidden transition
-        ${template === t.id ? "border-blue-500 shadow-lg" : "border-gray-300"}
-        `}
-      >
+                <div
+                  key={t.id}
+                  onClick={() => setTemplate(t.id)}
+                  className={`min-w-[160px] cursor-pointer border rounded-xl overflow-hidden transition
+                  ${template === t.id ? "border-blue-500 shadow-lg" : "border-gray-300"}`}
+                >
 
-        {/* MINI PREVIEW */}
-        <div className="h-32 bg-white p-2 text-[8px] leading-tight">
+                  <div className="h-36 bg-white p-2 text-[8px]">
+                    <div className="font-bold">{editable.name}</div>
+                    <div className="text-gray-500 mt-1">
+                      {editable.summary.slice(0, 40)}
+                    </div>
+                  </div>
 
-          <div className="font-bold">{editable.name || "Your Name"}</div>
+                  <div className="text-center text-xs py-1 bg-gray-50">
+                    {t.label}
+                  </div>
 
-          <div className="mt-1 text-gray-500">
-            {editable.summary?.slice(0, 40) || "Summary preview..."}
-          </div>
-
-          <div className="mt-2">
-            <div className="font-semibold">Skills</div>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {(editable.skills || []).slice(0, 3).map((s, i) => (
-                <span key={i} className="bg-gray-200 px-1 rounded">
-                  {s}
-                </span>
+                </div>
               ))}
             </div>
           </div>
 
-        </div>
-
-        {/* LABEL */}
-        <div className="text-center text-xs py-1 bg-gray-50">
-          {t.label}
-        </div>
-
-      </div>
-    ))}
-  </div>
-</div>
-
-          <div ref={pdfRef} className="bg-white p-6 shadow rounded">
-            {renderTemplate()}
+          {/* RESUME PREVIEW */}
+          <div className="flex justify-center">
+            <div ref={pdfRef} className="bg-white shadow-lg">
+              {renderTemplate()}
+            </div>
           </div>
 
         </div>
@@ -352,4 +328,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-}
+    }
