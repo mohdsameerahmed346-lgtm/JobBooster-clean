@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 import { auth } from "../../../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -20,7 +19,7 @@ import ExecutiveTemplate from "../../../components/templates/ExecutiveTemplate";
 
 const DEFAULT_RESUME = {
   name: "Your Name",
-  summary: "Write a strong professional summary...",
+  summary: "Click to write your professional summary...",
   skills: ["React", "JavaScript"],
   experience: [{ role: "Frontend Developer", company: "Company Name" }],
 };
@@ -45,7 +44,6 @@ export default function Analyze() {
   // ATS
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
-  const [matchedKeywords, setMatchedKeywords] = useState([]);
 
   // AI
   const [suggestions, setSuggestions] = useState([]);
@@ -98,7 +96,6 @@ export default function Analyze() {
 
     setAtsScore(score || 0);
     setMissingKeywords(missing.slice(0, 15));
-    setMatchedKeywords(matched.slice(0, 10));
   }, [job, editable]);
 
   // AUTOSAVE
@@ -111,10 +108,14 @@ export default function Analyze() {
       const data = { resume: editable, layout: sectionOrder, template };
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
-      setVersions(await getVersions(user.uid));
     }, 2000);
 
   }, [editable, sectionOrder, template]);
+
+  // UPDATE FIELD (LIVE EDIT)
+  const updateField = (field, value) => {
+    setEditable(prev => ({ ...prev, [field]: value }));
+  };
 
   // PDF
   const downloadPDF = async () => {
@@ -240,13 +241,6 @@ export default function Analyze() {
             className="input w-full"
           />
 
-          <input
-            placeholder="Your Name"
-            value={editable.name}
-            onChange={(e)=>setEditable({...editable, name: e.target.value})}
-            className="input w-full"
-          />
-
           {/* ATS PANEL */}
           <div className="bg-gray-900 text-white p-3 rounded">
             <h3 className="text-sm mb-2">Missing Keywords</h3>
@@ -279,47 +273,50 @@ export default function Analyze() {
         {/* RIGHT PANEL */}
         <div className="w-2/3 p-4 bg-gray-100 overflow-y-auto">
 
-          {/* TEMPLATE SCROLLER */}
+          {/* TEMPLATE SELECTOR */}
           <div className="mb-4">
             <h3 className="text-sm font-semibold mb-2">Choose Template</h3>
 
             <div className="flex gap-4 overflow-x-auto pb-2">
 
-              {[
-                { id: "modern", label: "Modern" },
-                { id: "minimal", label: "Minimal" },
-                { id: "creative", label: "Creative" },
-                { id: "professional", label: "Pro" },
-                { id: "executive", label: "Executive" },
-              ].map((t) => (
-
+              {["modern","minimal","creative","professional","executive"].map((t)=>(
                 <div
-                  key={t.id}
-                  onClick={() => setTemplate(t.id)}
-                  className={`min-w-[160px] cursor-pointer border rounded-xl overflow-hidden transition
-                  ${template === t.id ? "border-blue-500 shadow-lg" : "border-gray-300"}`}
+                  key={t}
+                  onClick={()=>setTemplate(t)}
+                  className={`min-w-[160px] p-3 cursor-pointer border rounded-xl
+                  ${template===t?"border-blue-500 shadow":"border-gray-300"}`}
                 >
-
-                  <div className="h-36 bg-white p-2 text-[8px]">
-                    <div className="font-bold">{editable.name}</div>
-                    <div className="text-gray-500 mt-1">
-                      {editable.summary.slice(0, 40)}
-                    </div>
-                  </div>
-
-                  <div className="text-center text-xs py-1 bg-gray-50">
-                    {t.label}
-                  </div>
-
+                  {t}
                 </div>
               ))}
+
             </div>
           </div>
 
-          {/* RESUME PREVIEW */}
+          {/* LIVE EDIT PREVIEW */}
           <div className="flex justify-center">
-            <div ref={pdfRef} className="bg-white shadow-lg">
+            <div ref={pdfRef} className="bg-white p-6 shadow-lg w-[210mm]">
+
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e)=>updateField("name", e.target.innerText)}
+                className="text-2xl font-bold outline-none hover:border-b"
+              >
+                {editable.name}
+              </div>
+
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e)=>updateField("summary", e.target.innerText)}
+                className="mt-2 outline-none hover:border-b"
+              >
+                {editable.summary}
+              </div>
+
               {renderTemplate()}
+
             </div>
           </div>
 
@@ -328,4 +325,4 @@ export default function Analyze() {
       </div>
     </div>
   );
-    }
+  }
