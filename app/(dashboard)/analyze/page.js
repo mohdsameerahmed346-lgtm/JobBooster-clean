@@ -25,6 +25,7 @@ const DEFAULT_RESUME = {
 };
 
 export default function Analyze() {
+
   const [user, setUser] = useState(null);
 
   const [resumeText, setResumeText] = useState("");
@@ -33,89 +34,97 @@ export default function Analyze() {
   const [editable, setEditable] = useState(DEFAULT_RESUME);
   const [template, setTemplate] = useState("modern");
 
+  const [sectionOrder, setSectionOrder] = useState([
+    "summary",
+    "skills",
+    "experience",
+  ]);
+
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const [versions, setVersions] = useState([]);
+
+  // ATS
   const [atsScore, setAtsScore] = useState(0);
   const [missingKeywords, setMissingKeywords] = useState([]);
   const [matchedKeywords, setMatchedKeywords] = useState([]);
 
+  // AI
   const [suggestions, setSuggestions] = useState([]);
   const [loadingAI, setLoadingAI] = useState(false);
 
   const pdfRef = useRef();
   const autosaveRef = useRef(null);
 
-  // 🔐 AUTH
+  // AUTH
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) return;
-
       setUser(u);
 
+      const layout = await getLayout(u.uid);
+      if (layout) setSectionOrder(layout);
+
       const v = await getVersions(u.uid);
-      console.log("versions loaded", v);
+      setVersions(v);
     });
 
     return () => unsub();
   }, []);
 
-  // 🔥 SKILL GAP AUTO FIX
-  useEffect(() => {
-    const fix = localStorage.getItem("fixData");
+  // HISTORY
+  const pushHistory = (state) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(state);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
 
-    if (fix) {
-      try {
-        const parsed = JSON.parse(fix);
+  const updateField = (field, value) => {
+    const updated = { ...editable, [field]: value };
+    setEditable(updated);
+    pushHistory(updated);
+  };
 
-        setJob(parsed.job || "");
-        setResumeText(
-          `Improve resume with: ${(parsed.missingSkills || []).join(", ")}`
-        );
-
-        localStorage.removeItem("fixData");
-      } catch {}
-    }
-  }, []);
-
-  // 🧠 ATS ENGINE (SAFE FIXED)
+  // ATS ENGINE (FIXED SAFE)
   useEffect(() => {
     if (!job || !editable) return;
 
     const jobWords = (job || "").toLowerCase().split(/\W+/);
     const resumeWords = JSON.stringify(editable || {}).toLowerCase();
 
-    const unique = [...new Set(jobWords.filter((w) => w.length > 3))];
+    const unique = [...new Set(jobWords.filter(w => w && w.length > 3))];
 
-    const matched = unique.filter((w) =>
-      resumeWords.includes(w)
-    );
+    const matched = unique.filter(w => resumeWords.includes(w));
+    const missing = unique.filter(w => !resumeWords.includes(w));
 
-    const missing = unique.filter(
-      (w) => !resumeWords.includes(w)
-    );
-
-    const score =
-      unique.length > 0
-        ? Math.round((matched.length / unique.length) * 100)
-        : 0;
+    const score = unique.length
+      ? Math.round((matched.length / unique.length) * 100)
+      : 0;
 
     setAtsScore(score);
     setMissingKeywords(missing.slice(0, 15));
     setMatchedKeywords(matched.slice(0, 10));
+
   }, [job, editable]);
 
-  // 💾 AUTOSAVE
+  // AUTOSAVE
   useEffect(() => {
     if (!editable || !user) return;
 
     clearTimeout(autosaveRef.current);
 
     autosaveRef.current = setTimeout(async () => {
-      const data = { resume: editable, template };
+      const data = { resume: editable, layout: sectionOrder, template };
       await saveResumeState(user.uid, data);
       await saveVersion(user.uid, data);
+      setVersions(await getVersions(user.uid));
     }, 2000);
-  }, [editable, template]);
 
-  // 📄 PDF
+  }, [editable, sectionOrder, template]);
+
+  // PDF
   const downloadPDF = async () => {
     const canvas = await html2canvas(pdfRef.current, { scale: 2 });
     const img = canvas.toDataURL("image/png");
@@ -125,43 +134,37 @@ export default function Analyze() {
     pdf.save("resume.pdf");
   };
 
-  // 📄 DOCX
+  // DOCX
   const exportDOCX = async () => {
     const { saveAs } = await import("file-saver");
     const { Document, Packer, Paragraph, TextRun } = await import("docx");
 
     const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: editable.name || "Your Name",
-                  bold: true,
-                  size: 32,
-                }),
-              ],
-            }),
-            new Paragraph(editable.summary || ""),
-          ],
-        },
-      ],
+      sections: [{
+        children: [
+          new Paragraph({
+            children: [new TextRun({ text: editable?.name || "", bold: true, size: 32 })],
+          }),
+          new Paragraph(editable?.summary || ""),
+        ],
+      }],
     });
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, "resume.docx");
   };
 
-  // 🔗 SHARE
+  // SHARE
   const shareResume = async () => {
+    if (!user) return;
+
     const id = crypto.randomUUID();
 
     await fetch("/api/share-resume", {
       method: "POST",
       body: JSON.stringify({
         id,
-        data: { resume: editable, template },
+        data: { resume: editable, layout: sectionOrder, template },
       }),
     });
 
@@ -169,26 +172,23 @@ export default function Analyze() {
     alert("Link copied!");
   };
 
-  // ➕ ADD SKILL
+  // KEYWORD ADD
   const addKeyword = (word) => {
-    if (!editable.skills?.includes(word)) {
-      setEditable({
-        ...editable,
-        skills: [...(editable.skills || []), word],
-      });
+    if (!word) return;
+
+    const skills = editable?.skills || [];
+
+    if (!skills.includes(word)) {
+      updateField("skills", [...skills, word]);
     }
   };
 
-  // 🤖 AI SUGGESTIONS
+  // AI Suggestions
   const getSuggestions = async () => {
     setLoadingAI(true);
 
     try {
-      const res = await fetch("/api/rewrite-resume", {
-        method: "POST",
-        body: new FormData(),
-      });
-
+      const res = await fetch("/api/rewrite-resume", { method: "POST" });
       const data = await res.json();
       setSuggestions(data?.tips || []);
     } catch {}
@@ -196,30 +196,25 @@ export default function Analyze() {
     setLoadingAI(false);
   };
 
-  // 🎨 TEMPLATE
+  // TEMPLATE
   const renderTemplate = () => {
     const props = { data: editable };
 
     switch (template) {
-      case "minimal":
-        return <MinimalTemplate {...props} />;
-      case "creative":
-        return <CreativeTemplate {...props} />;
-      case "professional":
-        return <ProfessionalTemplate {...props} />;
-      case "executive":
-        return <ExecutiveTemplate {...props} />;
-      default:
-        return <ModernTemplate {...props} />;
+      case "minimal": return <MinimalTemplate {...props} />;
+      case "creative": return <CreativeTemplate {...props} />;
+      case "professional": return <ProfessionalTemplate {...props} />;
+      case "executive": return <ExecutiveTemplate {...props} />;
+      default: return <ModernTemplate {...props} />;
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-50">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center px-6 py-3 bg-black text-white">
-        <div className="font-semibold">ATS Score: {atsScore}%</div>
+      <div className="flex justify-between items-center p-4 bg-black text-white">
+        <div className="text-sm">ATS Score: {atsScore}%</div>
 
         <div className="flex gap-3">
           <button onClick={downloadPDF}>PDF</button>
@@ -231,97 +226,103 @@ export default function Analyze() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* LEFT PANEL */}
-        <div className="w-1/3 bg-white p-4 space-y-4 overflow-y-auto border-r">
+        <div className="w-1/3 p-4 space-y-4 overflow-y-auto bg-white border-r">
 
           <textarea
             placeholder="Paste your resume..."
             value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
-            className="input w-full"
+            onChange={(e)=>setResumeText(e.target.value)}
+            className="w-full border p-2 rounded"
           />
 
           <textarea
             placeholder="Paste job description..."
             value={job}
-            onChange={(e) => setJob(e.target.value)}
-            className="input w-full"
+            onChange={(e)=>setJob(e.target.value)}
+            className="w-full border p-2 rounded"
           />
 
           <input
             placeholder="Your Name"
-            value={editable.name}
-            onChange={(e) =>
-              setEditable({ ...editable, name: e.target.value })
-            }
-            className="input w-full"
+            value={editable?.name || ""}
+            onChange={(e)=>updateField("name", e.target.value)}
+            className="w-full border p-2 rounded"
           />
 
-          {/* ATS */}
+          {/* ATS PANEL */}
           <div className="bg-gray-900 text-white p-3 rounded">
             <h3 className="text-sm mb-2">Missing Keywords</h3>
+
             <div className="flex flex-wrap gap-2">
-              {missingKeywords.map((k, i) => (
+              {missingKeywords.map((k,i)=>(
                 <button
                   key={i}
-                  onClick={() => addKeyword(k)}
+                  onClick={()=>addKeyword(k)}
                   className="bg-red-500/20 px-2 py-1 rounded text-xs"
                 >
                   + {k}
                 </button>
               ))}
             </div>
+
+            <h3 className="text-sm mt-3 mb-1">Matched</h3>
+            <div className="flex flex-wrap gap-2">
+              {matchedKeywords.map((k,i)=>(
+                <span key={i} className="bg-green-500/20 px-2 py-1 rounded text-xs">
+                  {k}
+                </span>
+              ))}
+            </div>
           </div>
 
-          {/* AI */}
+          {/* AI PANEL */}
           <div className="bg-white border p-3 rounded">
-            <button
-              onClick={getSuggestions}
-              className="btn-primary w-full"
-            >
+            <button onClick={getSuggestions} className="w-full border p-2 rounded">
               {loadingAI ? "Loading..." : "AI Suggestions"}
             </button>
 
-            {suggestions.map((s, i) => (
-              <div key={i} className="text-sm mt-2">
-                • {s}
-              </div>
+            {suggestions.map((s,i)=>(
+              <div key={i} className="text-sm mt-2">• {s}</div>
             ))}
           </div>
 
         </div>
 
         {/* RIGHT PANEL */}
-        <div className="w-2/3 flex flex-col">
+        <div className="w-2/3 p-4 overflow-y-auto">
 
           {/* TEMPLATE SCROLL */}
-          <div className="p-4 bg-white border-b">
-            <div className="flex gap-4 overflow-x-auto">
-              {[
-                "modern",
-                "minimal",
-                "creative",
-                "professional",
-                "executive",
-              ].map((t) => (
-                <div
-                  key={t}
-                  onClick={() => setTemplate(t)}
-                  className={`min-w-[140px] cursor-pointer border rounded-lg p-2 ${
-                    template === t ? "border-blue-500" : ""
-                  }`}
-                >
-                  <div className="text-xs text-center capitalize">{t}</div>
+          <div className="flex gap-4 overflow-x-auto pb-4 mb-4">
+
+            {[
+              { id:"modern", label:"Modern" },
+              { id:"minimal", label:"Minimal" },
+              { id:"creative", label:"Creative" },
+              { id:"professional", label:"Pro" },
+              { id:"executive", label:"Executive" },
+            ].map((t)=>(
+              <div
+                key={t.id}
+                onClick={()=>setTemplate(t.id)}
+                className={`min-w-[160px] border rounded-lg cursor-pointer
+                ${template===t.id?"border-blue-500 shadow":"border-gray-300"}`}
+              >
+                <div className="h-32 bg-white p-2 text-xs">
+                  <div className="font-bold">{editable?.name || "Name"}</div>
+                  <div className="text-gray-500">
+                    {(editable?.summary || "").slice(0,40)}
+                  </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-center text-xs py-1 bg-gray-50">
+                  {t.label}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* PREVIEW */}
-          <div className="flex-1 overflow-auto p-6 flex justify-center">
-            <div
-              ref={pdfRef}
-              className="bg-white w-[794px] min-h-[1123px] shadow-lg p-8"
-            >
+          <div className="flex justify-center">
+            <div ref={pdfRef} className="bg-white shadow-lg p-6">
               {renderTemplate()}
             </div>
           </div>
